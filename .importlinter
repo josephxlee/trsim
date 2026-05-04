@@ -1,5 +1,14 @@
-# .importlinter — 의존성 규칙 자동 검사
-# 02 § 2.5 의존성 규칙을 강제. CI 에서 `lint-imports` 명령 실행.
+# .importlinter — 의존성 규칙 자동 검사 (plan/02 § 2.5)
+# CI 에서 `lint-imports` 명령 실행.
+#
+# Phase 0.4 시점: 일부 모듈이 아직 없어 활성화하면 import-linter 가 source_modules
+# 미존재 에러로 fail. Phase 별로 활성화:
+#   - Contract 1 (layer-stack)        : 활성 — 모든 패키지 존재
+#   - Contract 2 (workspace-isolation): 활성 — ui.editor/ui.simulator 디렉토리 존재
+#   - Contract 3 (domain-purity)      : 활성
+#   - Contract 4 (sdk-dependency)     : 활성
+#   - Contract 5 (pyvista-isolation)  : 비활성 — Phase 4 (UI 구현 시) 활성. 개별 패널 모듈 미존재.
+#   - Contract 6 (nn-isolation)       : 비활성 — Phase 6 (NN 통합) 활성. workbench.io 등 미존재 가능.
 
 [importlinter]
 root_packages =
@@ -17,9 +26,6 @@ layers =
     workbench.sdk
     workbench.domain
     workbench.physics
-ignore_imports =
-    # io 레이어는 모든 계층에서 호출 가능 (외부 I/O 경계)
-    workbench.io -> *
 
 
 # === Contract 2: Workspace 격리 (Editor ↔ Simulator 직접 참조 금지) ===
@@ -69,38 +75,47 @@ forbidden_modules =
     pyvista
 
 
-# === Contract 5: Visualization 격리 (PyVista 의존을 scene_3d 안으로) ===
-[importlinter:contract:pyvista-isolation]
-name = PyVista must only be imported within ui.simulator.scene_3d
-type = forbidden
-source_modules =
-    workbench.ui.editor
-    workbench.ui.simulator.fft_panel
-    workbench.ui.simulator.range_doppler_panel
-    workbench.ui.simulator.run_panel
-    workbench.ui.simulator.properties_panel
-    workbench.ui.simulator.stage_io_panel
-    workbench.ui.simulator.physics_validation_panel
-    workbench.ui.simulator.plugin_manager_panel
-    workbench.app
-    workbench.domain
-    workbench.physics
-forbidden_modules =
-    pyvista
-    vtk
-
-
-# === Contract 6: NN 격리 (NN 코드는 app/nn 와 ui/simulator/nn_mode 안에만) ===
-[importlinter:contract:nn-isolation]
-name = Torch/sklearn must only be imported in nn modules
-type = forbidden
-source_modules =
-    workbench.domain
-    workbench.physics
-    workbench.sdk
-    workbench.io
-    workbench.ui.editor
-forbidden_modules =
-    torch
-    tensorflow
-    sklearn
+# ======================================================================
+# Contract 5 + 6: Phase 4 / Phase 6 활성화 후보 (현재 비활성)
+# ======================================================================
+#
+# 활성화 시점:
+#   - Contract 5: ui/simulator/{fft_panel,range_doppler_panel,...} 파일 생성 후 (Phase 4)
+#   - Contract 6: workbench.io 디렉토리에 실제 모듈 추가 후 (Phase 3)
+#
+# 활성화 방법: 아래 주석 해제 + Phase 시작 시 본 .importlinter 갱신
+#
+# # === Contract 5: Visualization 격리 (PyVista는 scene_3d 안으로만) ===
+# [importlinter:contract:pyvista-isolation]
+# name = PyVista must only be imported within ui.simulator.scene_3d
+# type = forbidden
+# source_modules =
+#     workbench.ui.editor
+#     workbench.ui.simulator.fft_panel
+#     workbench.ui.simulator.range_doppler_panel
+#     workbench.ui.simulator.run_panel
+#     workbench.ui.simulator.properties_panel
+#     workbench.ui.simulator.stage_io_panel
+#     workbench.ui.simulator.physics_validation_panel
+#     workbench.ui.simulator.plugin_manager_panel
+#     workbench.app
+#     workbench.domain
+#     workbench.physics
+# forbidden_modules =
+#     pyvista
+#     vtk
+#
+# # === Contract 6: NN 격리 (Torch/sklearn은 app/nn, ui/simulator/nn_mode 안에만) ===
+# [importlinter:contract:nn-isolation]
+# name = Torch/sklearn must only be imported in nn modules
+# type = forbidden
+# source_modules =
+#     workbench.domain
+#     workbench.physics
+#     workbench.sdk
+#     workbench.io
+#     workbench.ui.editor
+# forbidden_modules =
+#     torch
+#     tensorflow
+#     sklearn
