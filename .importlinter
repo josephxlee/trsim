@@ -1,0 +1,106 @@
+# .importlinter — 의존성 규칙 자동 검사
+# 02 § 2.5 의존성 규칙을 강제. CI 에서 `lint-imports` 명령 실행.
+
+[importlinter]
+root_packages =
+    workbench
+include_external_packages = False
+
+
+# === Contract 1: 계층 의존 (UI → App → SDK → Domain → Physics) ===
+[importlinter:contract:layer-stack]
+name = Layer dependency stack (one-way)
+type = layers
+layers =
+    workbench.ui
+    workbench.app
+    workbench.sdk
+    workbench.domain
+    workbench.physics
+ignore_imports =
+    # io 레이어는 모든 계층에서 호출 가능 (외부 I/O 경계)
+    workbench.io -> *
+
+
+# === Contract 2: Workspace 격리 (Editor ↔ Simulator 직접 참조 금지) ===
+[importlinter:contract:workspace-isolation]
+name = Editor and Simulator workspaces must not import each other
+type = forbidden
+source_modules =
+    workbench.ui.editor
+forbidden_modules =
+    workbench.ui.simulator
+
+[importlinter:contract:workspace-isolation-reverse]
+name = Simulator must not import Editor
+type = forbidden
+source_modules =
+    workbench.ui.simulator
+forbidden_modules =
+    workbench.ui.editor
+
+
+# === Contract 3: Domain 순수성 (Qt·시각화 의존 금지) ===
+[importlinter:contract:domain-purity]
+name = Domain layer must not depend on Qt or visualization
+type = forbidden
+source_modules =
+    workbench.domain
+    workbench.physics
+forbidden_modules =
+    PySide6
+    pyqtgraph
+    pyvista
+    vtk
+    workbench.ui
+
+
+# === Contract 4: SDK 의존 (Domain만 import, App·UI 직접 참조 금지) ===
+[importlinter:contract:sdk-dependency]
+name = SDK must only import Domain (not App, UI)
+type = forbidden
+source_modules =
+    workbench.sdk
+forbidden_modules =
+    workbench.app
+    workbench.ui
+    PySide6
+    pyqtgraph
+    pyvista
+
+
+# === Contract 5: Visualization 격리 (PyVista 의존을 scene_3d 안으로) ===
+[importlinter:contract:pyvista-isolation]
+name = PyVista must only be imported within ui.simulator.scene_3d
+type = forbidden
+source_modules =
+    workbench.ui.editor
+    workbench.ui.simulator.fft_panel
+    workbench.ui.simulator.range_doppler_panel
+    workbench.ui.simulator.run_panel
+    workbench.ui.simulator.properties_panel
+    workbench.ui.simulator.stage_io_panel
+    workbench.ui.simulator.physics_validation_panel
+    workbench.ui.simulator.plugin_manager_panel
+    workbench.app
+    workbench.domain
+    workbench.physics
+forbidden_modules =
+    pyvista
+    vtk
+
+
+# === Contract 6: NN 격리 (NN 코드는 app/nn 와 ui/simulator/nn_mode 안에만) ===
+[importlinter:contract:nn-isolation]
+name = Torch/sklearn must only be imported in nn modules
+type = forbidden
+source_modules =
+    workbench.domain
+    workbench.physics
+    workbench.sdk
+    workbench.io
+    workbench.ui.editor
+forbidden_modules =
+    torch
+    tensorflow
+    sklearn
