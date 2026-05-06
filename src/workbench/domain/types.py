@@ -10,6 +10,7 @@ All types are immutable (``frozen=True``) per plan/02 § 2.1 원칙 4 (Observabl
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -47,7 +48,7 @@ class VelocityENU:
     @property
     def speed(self) -> float:
         """Magnitude of the velocity vector [m/s]."""
-        return (self.vx**2 + self.vy**2 + self.vz**2) ** 0.5
+        return math.sqrt(self.vx**2 + self.vy**2 + self.vz**2)
 
 
 @dataclass(frozen=True, slots=True)
