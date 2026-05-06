@@ -16,8 +16,14 @@ inline 함수로 직접 구현.
 
 ## 사용법
 
+개발 PC 에 Octave (또는 MATLAB) 설치되어 있으면 그대로:
+
 ```bash
-# Octave (Linux/Mac/Windows)
+# Octave — repo root 에서
+octave docs/matlab_validation/test_geometry.m
+
+# 또는 폴더로 이동
+cd docs/matlab_validation
 octave test_geometry.m
 
 # MATLAB
@@ -31,7 +37,14 @@ matlab -batch "run('test_geometry.m')"
 # tests/physics/test_geometry.py 의 expectation 과 .m 출력값 일치 여부 확인
 ```
 
-차이가 tolerance 보다 크면 issue 를 열어 reference 값 또는 Python 구현 점검.
+차이가 tolerance 보다 크면 reference 값 또는 Python 구현 점검 → goldens 정밀화 commit.
+
+## 워크플로
+
+1. Cowork 가 새 primitive 모듈 + `.m` 짝꿍 작성
+2. push 후 같은 PC 에서 `octave <script>.m` 실행
+3. 출력값을 pytest expectation 과 비교
+4. 일치하면 그대로, 불일치하면 goldens 갱신 commit
 
 ## 파일
 
