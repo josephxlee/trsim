@@ -13,7 +13,9 @@
 [importlinter]
 root_packages =
     workbench
-include_external_packages = False
+# True: external packages (PySide6, pyqtgraph, pyvista 등) 도 추적해
+# Contract 3/4 의 forbidden_modules 검사가 가능. plan/02 § 2.5 의 Domain 순수성 강제.
+include_external_packages = True
 
 
 # === Contract 1: 계층 의존 (UI → App → SDK → Domain → Physics) ===
