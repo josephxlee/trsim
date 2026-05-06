@@ -79,14 +79,20 @@ def test_wgs84_to_ecef_north_pole() -> None:
 def test_wgs84_to_ecef_seoul_landmark() -> None:
     """Seoul City Hall reference point (37.5665°N, 126.9780°E, 0m).
 
-    Reference values from MATLAB ``geodetic2ecef(referenceEllipsoid('wgs84'), ...)``
-    / PROJ ``+proj=cart +ellps=WGS84``. Values agree to < 1 mm.
+    Reference values from GNU Octave cross-validation
+    (``docs/matlab_validation/test_geometry.m``, NIMA TR8350.2 standard
+    formulas via base math). Both implementations use identical
+    floating-point operations — values must agree to <1 mm.
+
+    Octave output (2026-05-06):
+        x = -3044779.970191
+        y =  4043789.111365
+        z =  3867416.976876
     """
     x, y, z = wgs84_to_ecef(37.5665, 126.9780, 0.0)
-    # Reference ECEF (computed via standard formulas; expect ~0.5 mm match).
-    assert x == pytest.approx(-3043032.5, abs=10.0)  # ~m precision
-    assert y == pytest.approx(4036887.6, abs=10.0)
-    assert z == pytest.approx(3863026.4, abs=10.0)
+    assert x == pytest.approx(-3044779.970191, abs=1e-3)
+    assert y == pytest.approx(4043789.111365, abs=1e-3)
+    assert z == pytest.approx(3867416.976876, abs=1e-3)
 
 
 @pytest.mark.parametrize(
