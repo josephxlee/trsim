@@ -46,10 +46,10 @@ WGS84_B: Final[float] = WGS84_A * (1.0 - WGS84_F)
 """Semi-minor axis [m]."""
 
 WGS84_E2: Final[float] = WGS84_F * (2.0 - WGS84_F)
-"""First eccentricity squared, e² = 2f − f²."""
+"""First eccentricity squared, e^2 = 2f - f^2."""
 
 WGS84_EP2: Final[float] = WGS84_E2 / (1.0 - WGS84_E2)
-"""Second eccentricity squared, e′² = e² / (1 − e²)."""
+"""Second eccentricity squared, e'^2 = e^2 / (1 - e^2)."""
 
 
 # ---------------------------------------------------------------------------

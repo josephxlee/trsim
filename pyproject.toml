@@ -164,7 +164,11 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["B011", "S101"]       # assert 허용
+# tests/ 는 pytest 컨벤션 따름:
+#   B011: assert 허용
+#   S101: assert in tests OK
+#   SIM300: pytest 의 `actual == expected` 패턴 — pytest.approx 좌변에 두라는 ruff 의 Yoda 규칙은 pytest 컨벤션과 충돌
+"tests/**/*.py" = ["B011", "S101", "SIM300"]
 "src/workbench/sdk/protocols.py" = ["UP"]  # Protocol 정의는 명시적 typing
 
 [tool.ruff.format]
