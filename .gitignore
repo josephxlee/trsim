@@ -103,3 +103,8 @@ profile.json
 # - sandbox 가 Windows mount 의 git lockfile 못 다뤄서 사용자가 Git Bash 로 실행
 # - 한 번 실행 후 의미 없음 — 로컬에 보존, repo 에는 push X
 git_sh/
+
+# 일회성 git 작업 스크립트 (Cowork ↔ Git Bash 협업용)
+# - Cowork sandbox 가 Windows mount 의 git lockfile 못 다뤄서 사용자가 Git Bash 로 실행
+# - 한 번 실행 후 의미 없음 — 로컬에 보존, repo 에는 push X
+git_sh/

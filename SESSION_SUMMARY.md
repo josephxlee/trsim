@@ -306,3 +306,45 @@ v0.16~v0.40: 72 결정 → v0.41 (mockup 추가): **약 100 결정**, 블로커 
 - Repo root drafts 8 종 준비
 
 다음 단계: cowork 환경에서 Phase 0 인프라 셋업.
+
+---
+
+## 17. Cowork 첫 세션 — Phase 0.1 + 0.3 + 0.4 (2026-05-04)
+
+### 진행 흐름
+1. `files.zip` 압축 해제 → `handoff/` 정착
+2. 핸드오프 문서 정독 (COWORK_HANDOFF / AGENT_GUIDE / PHASE_0_GUIDE / SESSION_SUMMARY / ROADMAP / OPEN_QUESTIONS / REVIEW_REPORT) + plan 19 + UI mockup 9 영역 + repo_root_drafts
+3. 메모리 정착 (user/feedback/project/reference 7 파일)
+4. GitHub repo: `https://github.com/josephxlee/trsim.git` 사용자 생성
+5. **Phase 0.1**: `Tracking Radar Simulator/trsim/` subfolder 생성, repo_root_drafts 정착, .gitignore 추가, git init + DCO sign-off + 첫 commit (`789ba52`) + push
+6. **Phase 0.3**: `src/workbench/` 디렉토리 트리 (40 `__init__.py` + `py.typed`), `tests/` 트리
+7. **Phase 0.4**: `__main__.py`, `domain/types.py` (PositionENU/VelocityENU/Time, frozen+slots), `sdk/protocols.py` (11 Plugin Protocol stubs), `sdk/__init__.py` re-export, `tests/conftest.py`, `tests/unit/domain/test_types.py` (5 unit tests)
+8. `.importlinter` 단순화 — Contract 1-4 활성, 5(pyvista)/6(nn) Phase 4/6 활성 예정
+9. 두 번째 commit + push (Phase 0.3 + 0.4 통합)
+
+### 이 세션 산출물
+- repo `josephxlee/trsim` GitHub public, Apache 2.0
+- branch: `main` (DCO sign-off)
+- 2 commits: Initial + Phase 0.3+0.4
+- src 패키지 트리 완성, types/protocols 첫 코드, 5 unit test
+- `setup_phase0.sh`, `setup_phase0_4.sh` 스크립트 (Cowork sandbox 가 Windows mount git lockfile 못 다뤄서 사용자가 Git Bash 로 실행)
+
+### Cowork 환경 학습
+- Sandbox bash 가 Windows bindfs 마운트의 `.git/config.lock` unlink 권한 없음 → git 명령은 사용자가 Git Bash 로
+- 파일 작성·편집은 Cowork 측이 직접 가능 (Windows 마운트로 정상 write)
+- `repo_root_drafts/.github/workflows/ci.yml` 이미 존재 (ruff + ruff format check + mypy strict + import-linter + pytest matrix Ubuntu/Windows/macOS × Py 3.11/3.12)
+
+### 다음 세션 시작점
+- **CI 결과 확인 먼저** — Phase 0.4 push 후 GitHub Actions 통과 여부
+- **CI fail 시**: mypy strict 가 빈 Protocol class 문제일 가능성 → `pass` 추가 또는 method stub
+- **CI pass 시**: Phase 1 진입 — `physics/fmcw.py`, `physics/ray_tracing.py`, `physics/geometry.py` 등 primitive 함수 + 분석 공식 검증 (수계산: range 1km → beat 666.7Hz 등)
+- 또는 Phase 2 (Domain Contract) 와 병행 시작
+
+### 결정 누계
+v0.41 까지 ~100. 이번 세션 신규 결정:
+- Repo 위치: `Tracking Radar Simulator/trsim/` subfolder (사용자 선택)
+- Repo 이름: `trsim` 소문자
+- DCO 식별자: joseph / huvluv14@gmail.com
+- 첫 dataclass = PositionENU/VelocityENU/Time, frozen+slots
+- 첫 Protocol = 11 (DetectorProtocol ~ PhysicsModelProtocol), `@runtime_checkable`
+- importlinter Phase 0 시점: Contract 1-4 활성, 5/6 비활성 (Phase 4/6 활성)
