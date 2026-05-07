@@ -19,7 +19,7 @@ function test_fmcw()
     f_beat = beat_freq(R, B, T, C);
     fprintf('1. Beat freq (R=%.1f m, B=%.0f MHz, T=%.1f ms)\n', R, B/1e6, T*1e3);
     fprintf('   f_beat = %.6f Hz\n', f_beat);
-    fprintf('   Expected ≈ 667128.184500 Hz\n\n');
+    fprintf('   Expected ≈ 667128.190396 Hz\n\n');
 
     %% 2. Beat freq linear in R
     b1 = beat_freq(1000, B, T, C);
@@ -31,7 +31,7 @@ function test_fmcw()
     f_d = doppler(v, fc, C);
     fprintf('3. Doppler (v=%.1f m/s, fc=%.1f GHz)\n', v, fc/1e9);
     fprintf('   f_D = %.6f Hz\n', f_d);
-    fprintf('   Expected ≈ 627.121829 Hz\n\n');
+    fprintf('   Expected ≈ 627.100499 Hz\n\n');
 
     %% 4. Doppler sign — receding
     f_d_neg = doppler(-50, fc, C);

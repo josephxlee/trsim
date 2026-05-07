@@ -51,10 +51,10 @@ def test_speed_of_light_constant() -> None:
 
 
 def test_beat_freq_known_case_1km_100mhz_1ms() -> None:
-    """R=1 km, B=100 MHz, T=1 ms → f_beat ≈ 667.128 kHz.
+    """R=1 km, B=100 MHz, T=1 ms → f_beat ≈ 667128.19 Hz.
 
     f_beat = 2·R·B / (c·T) = 2·1000·1e8 / (299_792_458·1e-3)
-           = 2e11 / 299_792.458 = 667128.18450... Hz
+           = 2e11 / 299_792.458 ≈ 667128.190396 Hz
     """
     f_beat = beat_freq_from_range(
         range_m=1000.0,
@@ -62,8 +62,8 @@ def test_beat_freq_known_case_1km_100mhz_1ms() -> None:
         sweep_period_s=1e-3,
     )
     expected = 2.0 * 1000.0 * 100e6 / (C_LIGHT_M_S * 1e-3)
-    assert f_beat == pytest.approx(expected, abs=1e-6)
-    assert f_beat == pytest.approx(667128.18450, abs=1e-3)
+    assert f_beat == pytest.approx(expected, abs=1e-9)
+    assert f_beat == pytest.approx(667128.1904, abs=1e-3)
 
 
 def test_beat_freq_zero_range() -> None:
@@ -98,14 +98,14 @@ def test_beat_freq_inverse_in_sweep_period() -> None:
 
 
 def test_doppler_xband_10_mps() -> None:
-    """v=10 m/s @ 9.4 GHz X-band → f_D ≈ 627.1 Hz.
+    """v=10 m/s @ 9.4 GHz X-band → f_D ≈ 627.10 Hz.
 
-    f_D = 2·v·f_c / c = 2·10·9.4e9 / 299_792_458 = 627.1218... Hz
+    f_D = 2·v·f_c / c = 2·10·9.4e9 / 299_792_458 ≈ 627.100499 Hz
     """
     f_d = doppler_freq(v_radial_m_s=10.0, carrier_freq_hz=9.4e9)
     expected = 2.0 * 10.0 * 9.4e9 / C_LIGHT_M_S
-    assert f_d == pytest.approx(expected, abs=1e-6)
-    assert f_d == pytest.approx(627.1218, abs=1e-3)
+    assert f_d == pytest.approx(expected, abs=1e-9)
+    assert f_d == pytest.approx(627.1005, abs=1e-3)
 
 
 def test_doppler_zero_velocity() -> None:
