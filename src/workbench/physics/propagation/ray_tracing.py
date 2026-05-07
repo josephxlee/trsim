@@ -212,7 +212,7 @@ def two_ray_path_difference_m(
     h2_m: float,
     ground_distance_m: float,
 ) -> float:
-    """Path-length difference Δ = reflected − direct.
+    """Path-length difference Δ = reflected - direct.
 
     Used to compute the relative phase of the two-ray contribution.
     For the wavelength λ, the relative phase is ``2π · Δ / λ`` (plus the
@@ -224,7 +224,7 @@ def two_ray_path_difference_m(
         ground_distance_m: Horizontal distance [m].
 
     Returns:
-        ``d_reflected − d_direct`` [m].
+        ``d_reflected - d_direct`` [m].
     """
     return two_ray_reflected_path_length_m(h1_m, h2_m, ground_distance_m) - direct_path_length_m(
         h1_m, h2_m, ground_distance_m,

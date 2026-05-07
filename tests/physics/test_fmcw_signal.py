@@ -203,7 +203,7 @@ def test_range_resolution_100mhz() -> None:
 
 
 def test_range_resolution_1ghz_finer() -> None:
-    """B=1 GHz → ΔR ≈ 0.1499 m. 10× B = 1/10× ΔR."""
+    """B=1 GHz -> ΔR ≈ 0.1499 m. 10x B = 1/10x ΔR."""
     dr = range_resolution_m(1e9)
     assert dr == pytest.approx(0.1499, abs=1e-3)
 

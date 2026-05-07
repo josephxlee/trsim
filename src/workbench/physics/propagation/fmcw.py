@@ -13,17 +13,17 @@ References:
 Sign convention (approaching target = positive radial velocity):
 
 - Doppler shift: ``f_D = 2·v_r·f_c / c``  (positive when approaching).
-- Sweep slope: ``α = B / T_sweep``  [Hz/s].
-- Round-trip delay: ``τ = 2·R / c``  [s].
-- UP sweep beat:   ``f_b_up   = α·τ - f_D``  (approaching target lowers up beat).
-- DOWN sweep beat: ``f_b_down = α·τ + f_D``  (approaching target raises down beat).
+- Sweep slope: ``alpha = B / T_sweep``  [Hz/s].
+- Round-trip delay: ``tau = 2·R / c``  [s].
+- UP sweep beat:   ``f_b_up   = alpha·tau - f_D``  (approaching target lowers up beat).
+- DOWN sweep beat: ``f_b_down = alpha·tau + f_D``  (approaching target raises down beat).
 - Pairing inverse:
-    ``α·τ = (f_b_up + f_b_down) / 2``  → range component.
-    ``f_D = (f_b_down - f_b_up) / 2``  → velocity component.
+    ``alpha·tau = (f_b_up + f_b_down) / 2``  -> range component.
+    ``f_D = (f_b_down - f_b_up) / 2``  -> velocity component.
 
 Range / velocity from pairing:
 
-    ``R         = (α·τ) · c / (2·α) = f_R · c · T_sweep / (2·B)``
+    ``R         = (alpha·tau) · c / (2·alpha) = f_R · c · T_sweep / (2·B)``
     ``v_radial  = f_D · c / (2·f_c)``
 
 All frequencies in Hz, ranges in m, times in s, velocities in m/s, unless
@@ -50,7 +50,7 @@ def beat_freq_from_range(
 ) -> float:
     """Beat frequency for a stationary target on a single linear sweep.
 
-    ``f_beat = α · τ = (B / T) · (2R / c) = 2·R·B / (c · T)``.
+    ``f_beat = alpha · tau = (B / T) · (2R / c) = 2·R·B / (c · T)``.
 
     Args:
         range_m: Target slant range [m], must be >= 0.
@@ -87,8 +87,8 @@ def fmcw_triangle_beats(
 ) -> tuple[float, float]:
     """Predict UP / DOWN beat frequencies for a moving target.
 
-    ``f_b_up   = α·τ - f_D``
-    ``f_b_down = α·τ + f_D``
+    ``f_b_up   = alpha·tau - f_D``
+    ``f_b_down = alpha·tau + f_D``
 
     Useful for synthesising the expected beat pair from ground truth
     in tests, and for validating the pairing inverse via round-trip.
