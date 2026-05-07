@@ -76,19 +76,19 @@ def test_horizon_distance_negative_raises() -> None:
 
 
 def test_horizon_distance_100m_4_3_earth() -> None:
-    """h=100 m, k=4/3 → ~41,219 m. Standard tropospheric horizon."""
+    """h=100 m, k=4/3 → 41218.15 m. Octave-validated 2026-05-06."""
     d = horizon_distance_m(100.0)
     expected = math.sqrt(2.0 * (4.0 / 3.0) * R_EARTH_MEAN_M * 100.0)
-    assert d == pytest.approx(expected, abs=1e-6)
-    assert d == pytest.approx(41219.36, abs=1.0)
+    assert d == pytest.approx(expected, abs=1e-9)
+    assert d == pytest.approx(41218.1474, abs=1e-3)
 
 
 def test_horizon_distance_100m_geometric() -> None:
-    """h=100 m, k=1 → ~35,696 m. Bare geometric horizon (no refraction)."""
+    """h=100 m, k=1 → 35695.96 m (geometric, no refraction). Octave-validated."""
     d = horizon_distance_m(100.0, k_factor=1.0)
     expected = math.sqrt(2.0 * 1.0 * R_EARTH_MEAN_M * 100.0)
-    assert d == pytest.approx(expected, abs=1e-6)
-    assert d == pytest.approx(35696.40, abs=1.0)
+    assert d == pytest.approx(expected, abs=1e-9)
+    assert d == pytest.approx(35695.9627, abs=1e-3)
 
 
 def test_horizon_distance_refraction_extends() -> None:
@@ -100,17 +100,18 @@ def test_horizon_distance_refraction_extends() -> None:
 @pytest.mark.parametrize(
     ("height_m", "expected_km_4_3"),
     [
-        (1.0, 4.122),  # 1 m → ~4.12 km
-        (10.0, 13.037),  # 10 m → ~13.04 km
-        (100.0, 41.219),  # 100 m → ~41.22 km
-        (1000.0, 130.366),  # 1 km → ~130.4 km
-        (10_000.0, 412.255),  # 10 km → ~412 km
+        # Values produced by the same formula in Octave (2026-05-06 run).
+        (1.0, 4.122),
+        (10.0, 13.034),
+        (100.0, 41.218),
+        (1000.0, 130.343),
+        (10_000.0, 412.181),
     ],
 )
 def test_horizon_distance_table(height_m: float, expected_km_4_3: float) -> None:
-    """Tabulated horizon distances for k=4/3."""
+    """Tabulated horizon distances for k=4/3 (Octave-validated)."""
     d_km = horizon_distance_m(height_m) / 1000.0
-    assert d_km == pytest.approx(expected_km_4_3, abs=0.01)
+    assert d_km == pytest.approx(expected_km_4_3, abs=1e-3)
 
 
 # ---------------------------------------------------------------------------
@@ -165,15 +166,11 @@ def test_earth_bulge_zero_at_endpoints() -> None:
 
 
 def test_earth_bulge_midpoint_10km_4_3_earth() -> None:
-    """10 km segment, midpoint, k=4/3 → ~1.471 m bulge.
-
-    h_bulge_max = d² / (8·k·R_E) = (10_000)² / (8 · 4/3 · 6_371_008.77)
-                = 1.4714... m
-    """
+    """10 km segment, midpoint, k=4/3 → 1.471510 m bulge. Octave-validated."""
     bulge = earth_bulge_m(distance_from_a_m=5000.0, distance_from_b_m=5000.0)
     expected = (10_000.0**2) / (8.0 * (4.0 / 3.0) * R_EARTH_MEAN_M)
     assert bulge == pytest.approx(expected, abs=1e-9)
-    assert bulge == pytest.approx(1.4714, abs=1e-3)
+    assert bulge == pytest.approx(1.471510, abs=1e-6)
 
 
 def test_earth_bulge_geometric_larger() -> None:
