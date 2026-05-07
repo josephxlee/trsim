@@ -209,4 +209,4 @@ def dbsm_to_rcs(rcs_dbsm: float) -> float:
     Returns:
         Linear RCS [m^2].
     """
-    return 10.0 ** (rcs_dbsm / 10.0)
+    return math.pow(10.0, rcs_dbsm / 10.0)
