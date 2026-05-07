@@ -180,10 +180,18 @@ def test_round_trip_range_velocity(range_m: float, v_m_s: float) -> None:
     sweep_period_s = 1e-3
     carrier_freq_hz = 9.4e9
     f_up, f_down = fmcw_triangle_beats(
-        range_m, v_m_s, bandwidth_hz, sweep_period_s, carrier_freq_hz,
+        range_m,
+        v_m_s,
+        bandwidth_hz,
+        sweep_period_s,
+        carrier_freq_hz,
     )
     r_back, v_back = beat_pair_to_range_velocity(
-        f_up, f_down, bandwidth_hz, sweep_period_s, carrier_freq_hz,
+        f_up,
+        f_down,
+        bandwidth_hz,
+        sweep_period_s,
+        carrier_freq_hz,
     )
     assert r_back == pytest.approx(range_m, abs=1e-6)
     assert v_back == pytest.approx(v_m_s, abs=1e-9)

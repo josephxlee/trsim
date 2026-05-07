@@ -227,7 +227,9 @@ def two_ray_path_difference_m(
         ``d_reflected - d_direct`` [m].
     """
     return two_ray_reflected_path_length_m(h1_m, h2_m, ground_distance_m) - direct_path_length_m(
-        h1_m, h2_m, ground_distance_m,
+        h1_m,
+        h2_m,
+        ground_distance_m,
     )
 
 

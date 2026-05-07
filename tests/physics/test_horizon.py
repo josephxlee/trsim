@@ -200,7 +200,8 @@ def test_reflected_path_uses_image_source() -> None:
     """``d_refl = sqrt(d² + (h1+h2)²)``."""
     # h1+h2 = 100, d = 100 → refl = sqrt(2)*100 ≈ 141.42
     assert two_ray_reflected_path_length_m(40.0, 60.0, 100.0) == pytest.approx(
-        math.sqrt(20_000.0), abs=1e-12,
+        math.sqrt(20_000.0),
+        abs=1e-12,
     )
 
 
