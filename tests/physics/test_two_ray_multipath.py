@@ -17,6 +17,8 @@ Reference values are produced by the same closed-form expressions in
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from workbench.physics.propagation.multipath import (
@@ -182,17 +184,20 @@ def test_smooth_sea_peak_is_below_4() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_in_phase_reflection_at_phi_zero_is_4() -> None:
-    """rho = +1 at d -> infinity (phi -> 0): F^2 = 4*cos^2(phi/2) -> 4."""
-    f2 = two_ray_power_factor(
-        10.0,
-        100.0,
-        1_000_000.0,
-        LAMBDA_X_BAND_M,
-        reflection_coef=1.0,
-    )
-    # phi -> 0, cos(phi/2) -> 1, F^2 -> 4
-    assert f2 == pytest.approx(4.0, abs=1e-3)
+def test_in_phase_reflection_4cos_squared_identity() -> None:
+    """rho = +1 -> F^2 = 4*cos^2(phi/2). Mathematical identity, any geometry."""
+    h1, h2, d = 10.0, 100.0, 50_000.0
+    phi = two_ray_phase_difference_rad(h1, h2, d, LAMBDA_X_BAND_M)
+    f2 = two_ray_power_factor(h1, h2, d, LAMBDA_X_BAND_M, reflection_coef=1.0)
+    expected = 4.0 * math.cos(phi / 2.0) ** 2
+    assert f2 == pytest.approx(expected, abs=1e-12)
+
+
+def test_in_phase_reflection_phi_zero_limit() -> None:
+    """rho = +1, phi -> 0 (d -> infinity): F^2 -> 4."""
+    # d=1e10 m: phi ~ 4e-5 rad, F^2 - 4 ~ -1.5e-9
+    f2 = two_ray_power_factor(10.0, 100.0, 1e10, LAMBDA_X_BAND_M, reflection_coef=1.0)
+    assert f2 == pytest.approx(4.0, abs=1e-6)
 
 
 # ---------------------------------------------------------------------------
