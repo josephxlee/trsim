@@ -117,5 +117,23 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 
 설계 정체성·plan 인덱스는 여기 안 둠. `AGENT_GUIDE.md` 가 권위.
 
+## 9. 사용자 명령 매핑 (단축 트리거)
+
+사용자가 짧은 한국어 명령을 주면 해당 워크플로 .md 따라 실행.
+워크플로 진입점은 `docs/agent_workflows/README.md`.
+
+| 트리거 | 워크플로 | 동작 |
+|---|---|---|
+| "phase 상태", "진행 상황", "dashboard 갱신" | `docs/agent_workflows/phase_status.md` | 진행 보고 + dashboard artifact 갱신 |
+| "sync 체크", "잘림 확인", 모듈 Write 직후 | `docs/agent_workflows/sync_check.md` | py_compile + ruff + tail 검사 |
+| "ci 결과", "ci 봐줘", push 직후 | `docs/agent_workflows/ci_status.md` | scheduled task `trsim-ci-status` 또는 sandbox curl |
+
+**중요 도구 위치**:
+- Phase dashboard artifact id = `trsim-phase-dashboard` (cowork 사이드바)
+- Scheduled task = `trsim-ci-status` (사용자 OneDrive\Claude\Scheduled\)
+- pre-commit hook = `scripts/githooks/` (사용자 PC 에서 setup_hooks.sh 1회)
+
+새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
+
 ---
-최근 갱신: 2026-05-08 — Phase 2.3c 시점 + Cowork 구현 컨벤션 신규 정리.
+최근 갱신: 2026-05-08 — Phase 2.3c 시점 + Cowork 구현 컨벤션 + § 9 명령 매핑 추가.
