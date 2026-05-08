@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# TRsim pre-commit hook — bindfs truncation 감지 + ruff check + format.
+#
+# 활성화 (한 번만, 저장소 루트에서):
+#   $ git config core.hooksPath scripts/githooks
+#
+# bypass:
+#   $ git commit --no-verify
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# staged 인 .py 파일만 — 삭제는 제외 (--diff-filter=ACM)
+mapfile -t PY_FILES < <(git diff --cached --name-only --diff-filter=ACM | grep -E '\.py$' || true)
+
+if [ ${#PY_FILES[@]} -eq 0 ]; then
+    exit 0
+fi
+
+echo "[pre-commit] checking ${#PY_FILES[@]} staged .py file(s)"
+
+# --- 1. truncation 검사 (bindfs sync 트랩) ---
+# Python 으로 ast 파싱 — syntax error 면 잘렸을 가능성 매우 높음
+TRUNC_FAIL=0
+for f in "${PY_FILES[@]}"; do
+    if [ ! -f "$f" ]; then continue; fi
+    if ! python -m py_compile "$f" 2>/dev/null; then
+        echo "  [TRUNC] $f — py_compile 실패. bindfs sync 잘렸을 가능성."
+        echo "          tail 확인:"
+        tail -5 "$f" | sed 's/^/            /'
+        TRUNC_FAIL=1
+    fi
+done
+if [ $TRUNC_FAIL -ne 0 ]; then
+    echo ""
+    echo "[pre-commit] FAIL — truncation 감지. Cowork 에서 파일 재저장 후 재시도."
+    exit 1
+fi
+
+# --- 2. ruff check (lint) ---
+if ! command -v ruff >/dev/null 2>&1; then
+    echo "[pre-commit] WARN — ruff 설치 안 됨. pip install ruff 또는 uv sync 권장."
+else
+    if ! ruff check --quiet "${PY_FILES[@]}"; then
+        echo "[pre-commit] FAIL — ruff check 위반. 'ruff check --fix' 시도 후 재 add."
+        exit 1
+    fi
+    if ! ruff format --check --quiet "${PY_FILES[@]}"; then
+        echo "[pre-commit] FAIL — ruff format 미적용. 'ruff format' 후 재 add."
+        exit 1
+    fi
+fi
+
+echo "[pre-commit] OK"
+exit 0
