@@ -19,9 +19,11 @@ cd "$REPO_ROOT"
 if ! command -v octave-cli >/dev/null 2>&1; then
     for cand in \
         "/c/Octave/Octave-11.1.0/mingw64/bin/octave-cli.exe" \
+        "/c/Program Files/GNU Octave/Octave-11.1.0/mingw64/bin/octave-cli.exe" \
         "/c/Octave/Octave-10.1.0/mingw64/bin/octave-cli.exe" \
         "/c/Octave/Octave-9.2.0/mingw64/bin/octave-cli.exe" \
-        "$(ls -d /c/Octave/Octave-*/mingw64/bin/octave-cli.exe 2>/dev/null | head -1)"; do
+        "$(ls -d /c/Octave/Octave-*/mingw64/bin/octave-cli.exe 2>/dev/null | head -1)" \
+        "$(ls -d "/c/Program Files/GNU Octave"/Octave-*/mingw64/bin/octave-cli.exe 2>/dev/null | head -1)"; do
         if [ -x "$cand" ]; then
             export PATH="$(dirname "$cand"):$PATH"
             echo "[octave-run] PATH +=$(dirname "$cand")"

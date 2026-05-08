@@ -40,15 +40,25 @@ if [ $TRUNC_FAIL -ne 0 ]; then
 fi
 
 # --- 2. ruff check (lint) ---
-if ! command -v ruff >/dev/null 2>&1; then
-    echo "[pre-commit] WARN — ruff 설치 안 됨. pip install ruff 또는 uv sync 권장."
+# .venv 의 ruff 자동 탐색 (activate 안 된 상태에서도 작동)
+RUFF=""
+if command -v ruff >/dev/null 2>&1; then
+    RUFF="ruff"
+elif [ -x ".venv/Scripts/ruff.exe" ]; then
+    RUFF=".venv/Scripts/ruff.exe"
+elif [ -x ".venv/bin/ruff" ]; then
+    RUFF=".venv/bin/ruff"
+fi
+
+if [ -z "$RUFF" ]; then
+    echo "[pre-commit] WARN — ruff 설치 안 됨. uv pip install -e \".[dev]\" 권장."
 else
-    if ! ruff check --quiet "${PY_FILES[@]}"; then
-        echo "[pre-commit] FAIL — ruff check 위반. 'ruff check --fix' 시도 후 재 add."
+    if ! "$RUFF" check --quiet "${PY_FILES[@]}"; then
+        echo "[pre-commit] FAIL — ruff check 위반. '$RUFF check --fix' 시도 후 재 add."
         exit 1
     fi
-    if ! ruff format --check --quiet "${PY_FILES[@]}"; then
-        echo "[pre-commit] FAIL — ruff format 미적용. 'ruff format' 후 재 add."
+    if ! "$RUFF" format --check --quiet "${PY_FILES[@]}"; then
+        echo "[pre-commit] FAIL — ruff format 미적용. '$RUFF format' 후 재 add."
         exit 1
     fi
 fi

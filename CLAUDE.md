@@ -17,9 +17,11 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-- **Phase 2.3c** 완료 (BuildingEntity + Anchor 4 + MeshOrigin 3, push 대기)
-- 누적 test ~258, CI 6 환경 PASS
-- 다음: 2.3d Target → 2.5 Atmosphere → 2.6 Antenna → 2.4 Dynamics …
+- **Phase 2.6** 완료 (parabolic antenna; 2.3d/2.5 누적 push, fixup 으로
+  placeholder dir 충돌 해소)
+- 누적 test 298 (로컬 PASS, .venv Python 3.13.3); 2.3d/2.5/2.6 직전
+  push 들이 placeholder 충돌로 CI fail → fixup 7c4b115 가 회복 commit
+- 다음: **2.4 Dynamics** (6 sub-module — 2.4a rigid_body 부터)
   (`docs/sessions/phase_2_progress.md` 참조)
 
 ## 2. 사용자 커뮤니케이션
