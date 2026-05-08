@@ -5,16 +5,15 @@ from __future__ import annotations
 import pytest
 
 from workbench.physics.atmosphere import (
-    AtmosphereState,
     ISA_SEA_LEVEL_PRESSURE_HPA,
     ISA_SEA_LEVEL_TEMPERATURE_K,
+    AtmosphereState,
     isa_density,
     isa_pressure,
     isa_temperature,
     rain_attenuation_dbpkm,
     two_way_loss_db,
 )
-
 
 # ---------------------------------------------------------------------
 # AtmosphereState
@@ -151,9 +150,7 @@ def test_rain_attenuation_above_xband_uses_simplified() -> None:
     ("freq_ghz", "rain_mmh"),
     [(0.0, 5.0), (-1.0, 5.0)],
 )
-def test_rain_attenuation_rejects_bad_frequency(
-    freq_ghz: float, rain_mmh: float
-) -> None:
+def test_rain_attenuation_rejects_bad_frequency(freq_ghz: float, rain_mmh: float) -> None:
     with pytest.raises(ValueError, match=r"frequency_ghz"):
         rain_attenuation_dbpkm(freq_ghz, rain_mmh)
 

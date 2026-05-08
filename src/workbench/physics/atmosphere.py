@@ -82,10 +82,7 @@ class AtmosphereState:
 
     def __post_init__(self) -> None:
         if self.sea_level_temperature_k <= 0.0:
-            msg = (
-                f"sea_level_temperature_k must be > 0 K, "
-                f"got {self.sea_level_temperature_k}"
-            )
+            msg = f"sea_level_temperature_k must be > 0 K, got {self.sea_level_temperature_k}"
             raise ValueError(msg)
         if self.sea_level_pressure_hpa <= 0.0:
             msg = f"sea_level_pressure_hpa must be > 0, got {self.sea_level_pressure_hpa}"
@@ -135,9 +132,7 @@ def isa_pressure(altitude_m: float, atm: AtmosphereState) -> float:
         h = max(altitude_m, 0.0)
         t = t0 - ISA_LAPSE_RATE_K_PER_M * h
         # P = P0 * (T/T0) ** (g / (R*L))
-        exponent = ISA_G_M_PER_S2 / (
-            ISA_R_GAS_DRY_AIR_J_PER_KGK * ISA_LAPSE_RATE_K_PER_M
-        )
+        exponent = ISA_G_M_PER_S2 / (ISA_R_GAS_DRY_AIR_J_PER_KGK * ISA_LAPSE_RATE_K_PER_M)
         return p0_pa * math.pow(t / t0, exponent)
     # MVP: clamp at tropopause value.
     return isa_pressure(ISA_TROPOPAUSE_M, atm)
@@ -208,9 +203,7 @@ def rain_attenuation_dbpkm(frequency_ghz: float, rain_rate_mmh: float) -> float:
     return k * math.pow(rain_rate_mmh, alpha)
 
 
-def two_way_loss_db(
-    target_range_m: float, atm: AtmosphereState, frequency_hz: float
-) -> float:
+def two_way_loss_db(target_range_m: float, atm: AtmosphereState, frequency_hz: float) -> float:
     """Two-way rain-attenuation path loss [dB] (plan/15 § 15.5.2).
 
     Two-way = 2 * (range_km * specific_attenuation). Other propagation

@@ -15,7 +15,6 @@ from workbench.domain.target import (
 from workbench.domain.types import PositionENU
 from workbench.domain.wave_response import make_large_ship
 
-
 # ---------------------------------------------------------------------
 # TargetWaypoint
 # ---------------------------------------------------------------------
@@ -31,9 +30,7 @@ def test_target_waypoint_defaults() -> None:
 
 
 def test_target_waypoint_explicit_heading() -> None:
-    wp = TargetWaypoint(
-        t_s=10.0, east_m=0.0, north_m=0.0, altitude_m=0.0, heading_rad=math.pi / 4
-    )
+    wp = TargetWaypoint(t_s=10.0, east_m=0.0, north_m=0.0, altitude_m=0.0, heading_rad=math.pi / 4)
     assert wp.heading_rad == pytest.approx(math.pi / 4)
 
 
@@ -122,9 +119,7 @@ def test_target_entity_rejects_empty_trajectory() -> None:
     ],
 )
 def test_target_entity_rejects_non_increasing_t_s(ts_seq: tuple[float, ...]) -> None:
-    traj = tuple(
-        TargetWaypoint(t_s=t, east_m=0.0, north_m=0.0, altitude_m=0.0) for t in ts_seq
-    )
+    traj = tuple(TargetWaypoint(t_s=t, east_m=0.0, north_m=0.0, altitude_m=0.0) for t in ts_seq)
     with pytest.raises(ValueError, match="strictly"):
         TargetEntity(
             placement=_aircraft_placement(),
@@ -230,14 +225,22 @@ def test_make_default_aircraft_target_overrides() -> None:
 def test_make_default_aircraft_target_heading_atan2() -> None:
     # purely east motion: heading = pi/2 (90 deg clockwise from North)
     tgt_east = make_default_aircraft_target(
-        entity_id="e", target_id=0, east_m=0.0, north_m=0.0,
-        velocity_east_mps=100.0, velocity_north_mps=0.0,
+        entity_id="e",
+        target_id=0,
+        east_m=0.0,
+        north_m=0.0,
+        velocity_east_mps=100.0,
+        velocity_north_mps=0.0,
     )
     assert tgt_east.placement.base_heading_rad == pytest.approx(math.pi / 2)
     # purely north motion: heading = 0
     tgt_north = make_default_aircraft_target(
-        entity_id="n", target_id=0, east_m=0.0, north_m=0.0,
-        velocity_east_mps=0.0, velocity_north_mps=100.0,
+        entity_id="n",
+        target_id=0,
+        east_m=0.0,
+        north_m=0.0,
+        velocity_east_mps=0.0,
+        velocity_north_mps=100.0,
     )
     assert tgt_north.placement.base_heading_rad == pytest.approx(0.0)
 

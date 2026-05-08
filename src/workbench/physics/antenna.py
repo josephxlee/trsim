@@ -153,9 +153,7 @@ def parabolic_peak_gain_dbi(
     return 10.0 * math.log10(efficiency * ratio * ratio)
 
 
-def parabolic_beam_pattern(
-    theta_deg: float, phi_deg: float, beamwidth_3db_deg: float
-) -> float:
+def parabolic_beam_pattern(theta_deg: float, phi_deg: float, beamwidth_3db_deg: float) -> float:
     """Normalised sinc^2 pattern for a circular aperture.
 
     Uses the off-axis angle ``alpha = sqrt(theta^2 + phi^2)`` so the

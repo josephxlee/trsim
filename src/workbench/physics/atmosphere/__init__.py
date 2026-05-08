@@ -1,1 +1,0 @@
-"""ISA atmosphere, rain, ducting."""

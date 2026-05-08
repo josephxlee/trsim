@@ -124,10 +124,7 @@ class TargetEntity:
         prev_t = float("-inf")
         for i, wp in enumerate(self.trajectory):
             if wp.t_s <= prev_t:
-                msg = (
-                    f"trajectory[{i}].t_s = {wp.t_s} not strictly "
-                    f"increasing (prev = {prev_t})"
-                )
+                msg = f"trajectory[{i}].t_s = {wp.t_s} not strictly increasing (prev = {prev_t})"
                 raise ValueError(msg)
             prev_t = wp.t_s
 
