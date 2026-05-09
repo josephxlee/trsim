@@ -78,12 +78,17 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 
 `git_sh/commit_*.sh` 의 sync 확인 블록이 표준 패턴.
 
-## 5. Git 작업 (사용자 Git Bash 로)
+## 5. Git 작업 (Claude Code 가 직접)
 
-- Cowork 가 commit 안 함. **사용자가 Git Bash 로 실행**.
-- 일회성 commit 스크립트는 `git_sh/<name>.sh` (gitignore).
-- DCO sign-off 필수 (`git commit -s`). 모든 commit 스크립트에 `-s` 포함.
+- Cowork 시절 사용자가 Git Bash 로 실행했지만 **Claude Code 단계
+  (2026-05-09~) 부터는 내가 직접 commit + push** (gh auth 완료 후).
+- 일회성 commit 스크립트 `git_sh/<name>.sh` 는 여전히 만들어 둠
+  (gitignore) — sync 가드 + commit message 내용 정리용. 실행은 직접
+  bash 또는 git 명령으로.
+- DCO sign-off 필수 (`git commit -s`). 모든 commit 에 `-s` 포함.
+- Co-Authored-By footer 포함 (system prompt 표준).
 - branch 전략 단순: `main` 직 push. 외부 PR 받기 시작하면 재고.
+- push 후 CI 결과 추측 금지 — `_ci_log.md` 에 한 줄 추가 흐름 (§ 7.1).
 
 ## 6. 세션 끝나면
 
