@@ -22,21 +22,38 @@ fi
 echo "[pre-commit] checking ${#PY_FILES[@]} staged .py file(s)"
 
 # --- 1. truncation 검사 (bindfs sync 트랩) ---
-# Python 으로 ast 파싱 — syntax error 면 잘렸을 가능성 매우 높음
-TRUNC_FAIL=0
-for f in "${PY_FILES[@]}"; do
-    if [ ! -f "$f" ]; then continue; fi
-    if ! python -m py_compile "$f" 2>/dev/null; then
-        echo "  [TRUNC] $f — py_compile 실패. bindfs sync 잘렸을 가능성."
-        echo "          tail 확인:"
-        tail -5 "$f" | sed 's/^/            /'
-        TRUNC_FAIL=1
+# Python 으로 ast 파싱 — syntax error 면 잘렸을 가능성 매우 높음.
+# .venv Python 우선 (system python 미설치/깨진 install 환경 회피).
+PY=""
+if [ -x ".venv/Scripts/python.exe" ]; then
+    PY=".venv/Scripts/python.exe"
+elif [ -x ".venv/bin/python" ]; then
+    PY=".venv/bin/python"
+elif command -v python >/dev/null 2>&1; then
+    PY="python"
+fi
+
+if [ -z "$PY" ]; then
+    echo "[pre-commit] WARN — python 미발견. truncation 검사 skip."
+else
+    TRUNC_FAIL=0
+    for f in "${PY_FILES[@]}"; do
+        if [ ! -f "$f" ]; then continue; fi
+        # 첫 fail 의 stderr 는 보존해서 진단 가능하게 (file 별 capture).
+        ERR=$("$PY" -m py_compile "$f" 2>&1) || {
+            echo "  [TRUNC] $f — py_compile 실패."
+            echo "          stderr: $ERR"
+            echo "          tail 확인:"
+            tail -5 "$f" | sed 's/^/            /'
+            TRUNC_FAIL=1
+        }
+    done
+    if [ $TRUNC_FAIL -ne 0 ]; then
+        echo ""
+        echo "[pre-commit] FAIL — truncation 감지. 파일 재저장 후 재시도."
+        echo "             (모든 파일 fail 이면 환경 문제 — '$PY' 점검)"
+        exit 1
     fi
-done
-if [ $TRUNC_FAIL -ne 0 ]; then
-    echo ""
-    echo "[pre-commit] FAIL — truncation 감지. Cowork 에서 파일 재저장 후 재시도."
-    exit 1
 fi
 
 # --- 2. ruff check (lint) ---
