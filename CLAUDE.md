@@ -17,12 +17,15 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-- **Phase 2 ALL DONE** (2.1 ~ 2.12 + 2.6b). Auto-mode 한 세션에서
-  2.7 / 2.6b / 2.8 / 2.9 / 2.10 / 2.11 / 2.12 7 sub-phase 연속 ship.
-- 누적 test 659 — 로컬 PASS, .venv Python 3.13.3. ruff/mypy/
-  import-linter all clean. 5 contracts KEPT.
-- 다음: **Phase 3** (App layer) — CommandBus / ResourceLibrary /
-  SimulationClock / Run Manager. `plan/04_migration.md` § 4.3.
+- **Phase 3 ALL DONE** (3.1~3.7). Auto-mode 한 세션에서 7 sub-phase
+  연속 ship — EventBus/CommandBus / SimulationClock+RunManager+
+  InputBuffer+ProbeRecorder / ResourceLibrary+Cache+ScenarioService /
+  io/run_storage+trace_storage / plugin loader+scanner /
+  timing(perf_clock+probe+boundary+profiler) / CLI.
+- 누적 test 820 (+161 from Phase 3) — 로컬 PASS, .venv Python 3.13.3.
+  ruff/mypy/import-linter all clean. 5 contracts KEPT.
+- 다음: **Phase 4** (UI) — PySide6 + pyqtgraph + pyvista. Two
+  Workspaces + Editor Activity 5종. `plan/04_migration.md` § 4.3.
 
 ## 2. 사용자 커뮤니케이션
 
