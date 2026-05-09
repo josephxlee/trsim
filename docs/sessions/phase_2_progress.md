@@ -4,9 +4,9 @@
 
 ## Status (현재 시점)
 
-- 완료: 2.1 / 2.2 / 2.3a / 2.3b / 2.3c / 2.3d / 2.4(a-f) / 2.5 / 2.6 / 2.7
-- CI: 2.7 push 후 확인 (2.4 큰 bundle 통과 후 single-module ship)
-- Phase 0 + 1 + 2 부분 누적 test: 512 (2.7 + 34)
+- **Phase 2 ALL DONE** — 2.1 / 2.2 / 2.3(a-d) / 2.4(a-f) / 2.5 / 2.6 / 2.6b / 2.7 / 2.8 / 2.9 / 2.10 / 2.11 / 2.12
+- CI: push 후 확인. Phase 2 마지막 commit 510c077 (2.10/2.11/2.12 bundle).
+- Phase 0+1+2 누적 test: 659 — ruff/mypy/import-linter all clean.
 
 ## Sub-phase 진척
 
@@ -22,11 +22,12 @@
 | **2.5** ✓ | `physics/atmosphere.py` | ISA (T/P/ρ) + ITU-R P.838 rain attenuation + two_way_loss | 22 |
 | **2.6** ✓ | `physics/antenna.py` | ParabolicAntenna + sinc² beam pattern + 3-dB bw / peak gain | 21 |
 | **2.7** ✓ | `physics/reflection/extended_target.py` | Scatterer + ExtendedTarget + ScatteringResult + body_to_world_rotation + compute_extended_target_return (coherent sum + glint) | 34 |
-| 2.8 | `domain/tracker/` | EKF / UKF / GNN | TBD |
-| 2.9 | `domain/detector/cfar.py` | CA-CFAR + OS-CFAR | TBD |
-| 2.10 | `domain/pipeline.py` + `scenario.py` | RadarPipeline + Scenario | TBD |
-| 2.11 | `domain/platform.py` | RadarPlatform | TBD |
-| 2.12 | `domain/timing/` | Reference Timing data model (v0.39) | TBD |
+| **2.8** ✓ | `domain/tracker/` (5 files) | TrackState/Detection + EKF + UKF + GNN data associator | 36 |
+| **2.9** ✓ | `domain/detector/cfar.py` | CA-CFAR + OS-CFAR (1-D + 2-D) + alpha_ca_for_pfa | 28 |
+| **2.10** ✓ | `domain/pipeline.py` + `scenario.py` | PipelineConfig + step + Scenario aggregator | 27 |
+| **2.11** ✓ | `domain/platform.py` | RadarPlatform + TrackerKind | 9 |
+| **2.12** ✓ | `domain/timing/reference_timing.py` | StageTimingProfile + TimingConfig + FrameTimestamp | 12 |
+| **2.6b** ✓ | `physics/{planar_array,monopulse}.py` | PlanarArray + Monopulse 4ch | 39 |
 
 ## Phase 2 핵심 결정 (지금까지)
 
@@ -42,16 +43,10 @@
 - 모든 도메인 dataclass `frozen=True, slots=True`
 - `entity_id` / `map_id` non-empty validation
 
-## 다음 sub-phase 후보
+## Phase 2 완료 → Phase 3 진입
 
-**우선순위 (의존 그래프 기준)**:
-1. **2.6b** PlanarArray + Monopulse 4ch — plan/08 § 8.5a.3, 8.5a.4
-   (Phase 2.6 후속 + 2.7 glint 와 monopulse_extended 결합 가능)
-2. **2.8** Tracker — Phase 2 핵심, EKF/UKF/GNN
-3. **2.9** CFAR — 작음
-4. **2.10** Pipeline + Scenario — 여러 sub 의존
-5. **2.11** Platform — 작음
-6. **2.12** Timing model — 작음
+다음: **Phase 3 (App layer)** — CommandBus / ResourceLibrary / SimulationClock / Run Manager
+(`plan/04_migration.md` § 4.3 / `plan/02_architecture.md` § 2.6).
 
 ## Phase 2 끝나면
 

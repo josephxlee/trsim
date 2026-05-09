@@ -17,12 +17,12 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-- **Phase 2.7** 완료 (`physics/reflection/extended_target.py` —
-  Multi-scatterer + Glint, plan/14 § 14.10 MVP).
-- 누적 test 512 (+34 from 2.7) — 로컬 PASS, .venv Python 3.13.3.
-  ruff/mypy/import-linter all clean.
-- 다음: **2.6b** PlanarArray + Monopulse 4ch (2.7 glint 와
-  monopulse_extended 결합 가능) — `docs/sessions/phase_2_progress.md`.
+- **Phase 2 ALL DONE** (2.1 ~ 2.12 + 2.6b). Auto-mode 한 세션에서
+  2.7 / 2.6b / 2.8 / 2.9 / 2.10 / 2.11 / 2.12 7 sub-phase 연속 ship.
+- 누적 test 659 — 로컬 PASS, .venv Python 3.13.3. ruff/mypy/
+  import-linter all clean. 5 contracts KEPT.
+- 다음: **Phase 3** (App layer) — CommandBus / ResourceLibrary /
+  SimulationClock / Run Manager. `plan/04_migration.md` § 4.3.
 
 ## 2. 사용자 커뮤니케이션
 
