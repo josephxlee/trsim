@@ -17,13 +17,12 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-- **Phase 2.4** 완료 (Dynamics — 9 모듈: rigid_body / forces / solver_rk4
-  / reference / aircraft / ballistic / powered_flight / surface_vessel /
-  ground_vehicle). 2.6 fixup 후 첫 Claude Code 단계 큰 bundle.
-- 누적 test 478 (+180 from 2.4) — 로컬 PASS, .venv Python 3.13.3.
+- **Phase 2.7** 완료 (`physics/reflection/extended_target.py` —
+  Multi-scatterer + Glint, plan/14 § 14.10 MVP).
+- 누적 test 512 (+34 from 2.7) — 로컬 PASS, .venv Python 3.13.3.
   ruff/mypy/import-linter all clean.
-- 다음: **2.6b** PlanarArray + Monopulse 4ch 또는 **2.7** Extended Target
-  (Multi-scatterer + Glint) — `docs/sessions/phase_2_progress.md` 우선순위 참조.
+- 다음: **2.6b** PlanarArray + Monopulse 4ch (2.7 glint 와
+  monopulse_extended 결합 가능) — `docs/sessions/phase_2_progress.md`.
 
 ## 2. 사용자 커뮤니케이션
 
