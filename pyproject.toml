@@ -197,6 +197,7 @@ module = [
     "vtk.*",
     "h5py.*",
     "watchdog.*",
+    "scipy.*",
 ]
 ignore_missing_imports = true
 
