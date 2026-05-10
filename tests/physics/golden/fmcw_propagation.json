@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "atol": 0.0,
+    "dataset_id": "fmcw.propagation.exact",
+    "notes": "Closed-form FMCW relations evaluated with c = 299_792_458 m/s. The function under test should reproduce the same expression bit-for-bit, so the tolerance can be tight (1e-12 relative).",
+    "rtol": 1e-12,
+    "source": "Skolnik chap 3 + Mahafza, MATLAB Simulations for Radar Systems Design, FMCW chapter (closed-form)",
+    "units": {
+      "bandwidth_hz": "Hz",
+      "beat_freq_hz": "Hz",
+      "carrier_freq_hz": "Hz",
+      "doppler_freq_hz": "Hz",
+      "range_m": "m",
+      "range_resolution_m": "m",
+      "sweep_period_s": "s",
+      "v_radial_m_s": "m/s",
+      "wavelength_m": "m"
+    }
+  },
+  "samples": [
+    {
+      "case_id": "beat_1km_150MHz_1ms",
+      "expected": {
+        "beat_freq_hz": 1000692.2855944562
+      },
+      "inputs": {
+        "bandwidth_hz": 150000000.0,
+        "range_m": 1000.0,
+        "sweep_period_s": 0.001
+      }
+    },
+    {
+      "case_id": "beat_10km_80MHz_1ms",
+      "expected": {
+        "beat_freq_hz": 5337025.523170433
+      },
+      "inputs": {
+        "bandwidth_hz": 80000000.0,
+        "range_m": 10000.0,
+        "sweep_period_s": 0.001
+      }
+    },
+    {
+      "case_id": "doppler_100mps_9_5GHz",
+      "expected": {
+        "doppler_freq_hz": 6337.717808764889
+      },
+      "inputs": {
+        "carrier_freq_hz": 9500000000.0,
+        "v_radial_m_s": 100.0
+      }
+    },
+    {
+      "case_id": "range_resolution_150MHz",
+      "expected": {
+        "range_resolution_m": 0.9993081933333333
+      },
+      "inputs": {
+        "bandwidth_hz": 150000000.0
+      }
+    },
+    {
+      "case_id": "wavelength_9_5GHz",
+      "expected": {
+        "wavelength_m": 0.031557100842105265
+      },
+      "inputs": {
+        "carrier_freq_hz": 9500000000.0
+      }
+    }
+  ]
+}

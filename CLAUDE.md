@@ -17,6 +17,10 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 5.2 DONE** — FMCW propagation 검증 (golden 기반). beat_freq /
+  doppler / range_resolution / wavelength 4 함수 + UP/DOWN beats round-
+  trip pairing + zero-range / sign-convention edge cases. golden JSON
+  closed-form reference (rtol=1e-12). 누적 1015 PASS (+8 신규).
 - **Phase 5.1 DONE** — Golden Dataset 인프라 (plan/04 § 4.3 Phase 5).
   `tests/physics/golden_dataset.py`: GoldenDatasetMeta + GoldenSample
   + GoldenDataset frozen dataclass + JSON load/save (sorted keys).
