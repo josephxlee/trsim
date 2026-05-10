@@ -17,6 +17,14 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.9 DONE** — Simulator 6 panel widgets + SimulatorWorkspace
+  splitter layout (plan/05 § 5.3.4 / 5.3.6 / 5.3.6c / 5.3.5 / 5.3.3).
+  FFTPanel + RangeDopplerPanel + RunPanel (history + primary metrics
+  6 readout) + PropertiesPanel (context-sensitive form) +
+  PluginManagerPanel (5 stage QListWidget) + StageIOPanel (6 IN/OUT
+  box grid + record toggle). SimulatorWorkspace = 3-col QSplitter
+  (PluginManager / FFT+RD vsplit / Properties) + bottom QTabWidget
+  (Run / Stage I/O). 누적 967 PASS (+14 신규).
 - **Phase 4.8 DONE** — TargetsEditor (plan/13 § 13.6) + AtmospherePanel
   (plan/15 § 15.4.3). Targets: 메타 form (name / motion_kind dropdown
   7종 / RCS / scatterer count) + Trajectory Preview placeholder + CSV
