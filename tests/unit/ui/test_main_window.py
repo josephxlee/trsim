@@ -1,4 +1,4 @@
-"""Unit tests for workbench.ui.main_window (Phase 4.1)."""
+"""Unit tests for workbench.ui.main_window (Phase 4.1 + 4.2a)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ pytest.importorskip("PySide6")
 
 from PySide6.QtGui import QKeySequence
 
+from workbench.ui.commands.palette import CommandPalette
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_window import MainWindow
 from workbench.ui.simulator.workspace import SimulatorWorkspace
@@ -61,3 +62,36 @@ def test_triggering_action_updates_selector(qtbot) -> None:  # type: ignore[no-u
         win.workspace_action(Workspace.SIMULATOR).trigger()
     assert blocker.args == [Workspace.SIMULATOR]
     assert win.selector.current == Workspace.SIMULATOR
+
+
+# ---------- Phase 4.2a — Command Palette ----------
+
+
+def test_main_window_seeds_command_registry_with_workspace_and_palette(qtbot) -> None:  # type: ignore[no-untyped-def]
+    win = MainWindow()
+    qtbot.addWidget(win)
+    ids = {cmd.id for cmd in win.commands.all()}
+    assert {
+        "workspace.switch_to_editor",
+        "workspace.switch_to_simulator",
+        "palette.open",
+    } <= ids
+
+
+def test_command_palette_dispatches_workspace_switch(qtbot) -> None:  # type: ignore[no-untyped-def]
+    win = MainWindow()
+    qtbot.addWidget(win)
+    assert win.selector.current == Workspace.EDITOR
+    win.commands.dispatch("workspace.switch_to_simulator")
+    assert win.selector.current == Workspace.SIMULATOR
+
+
+def test_open_command_palette_shows_dialog(qtbot) -> None:  # type: ignore[no-untyped-def]
+    win = MainWindow()
+    qtbot.addWidget(win)
+    palette = win.command_palette()
+    assert isinstance(palette, CommandPalette)
+    assert palette.isVisible() is False
+    win.open_command_palette()
+    assert palette.isVisible() is True
+    palette.close()

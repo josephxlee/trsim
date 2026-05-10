@@ -9,6 +9,8 @@
 | 2026-05-08 17:43 | 3a92bb5 | main | **failure** | ?/6 | Phase 2.5: physics/atmosphere.py — ISA + ITU-R P.838 rain attenuation |
 | 2026-05-08 17:43 | f13e6d4 | main | **failure** | ?/6 | Phase 2.6: physics/antenna.py — Parabolic dish + sinc^2 pattern |
 | 2026-05-08 18:41 | 7c4b115 | main | (in_progress) | ?/6 | Phase 2.6 fixup: physics 단일파일 vs placeholder dir 충돌 해소 |
+| 2026-05-10 (회수) | f530cee | main | success | 6/6 | Phase 4.1: ui/main_window.py + WorkspaceSelector + Editor/Simulator stub |
+| 2026-05-10 (회수) | d32a3ba | main | success | 6/6 | docs: CLAUDE.md § 1 — Phase 4.1 DONE 갱신 |
 
 > **메모 (Cowork→Claude Code 전환 시점):** 2.3d/2.5/2.6 3 run 의 fail
 > 원인은 `physics/{antenna,atmosphere}/__init__.py` placeholder 디렉토리가

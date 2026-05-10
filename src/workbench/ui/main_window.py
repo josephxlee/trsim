@@ -1,4 +1,4 @@
-"""TRsim MainWindow — thin assembler (Phase 4.1).
+"""TRsim MainWindow — thin assembler (Phase 4.1 + 4.2a).
 
 Owns:
 
@@ -6,10 +6,14 @@ Owns:
 - A central :class:`QStackedWidget` with one page per workspace.
 - A workspace-toggle toolbar (Editor / Simulator radio actions).
 - Ctrl+Shift+E / Ctrl+Shift+S shortcuts for switching.
+- Phase 4.2a — a :class:`WorkbenchCommandRegistry` + :class:`CommandPalette`
+  bound to ``Ctrl+Shift+P``.
 
 Subsequent Phase 4 sub-phases bolt on:
 
-- Phase 4.2: DockManager, CommandPalette, Toolbar (Sim/Target), Menu.
+- Phase 4.2b: Sim / Target run toolbars, Speed selector.
+- Phase 4.2c: MenuBar (File / Edit / View / Run / Plugins / Tools / Help).
+- Phase 4.2d: DockManager + workspace-state persistence.
 - Phase 4.3+: real Editor activities and Simulator panels.
 
 Strict ≤ 200 lines (CLAUDE.md § 3.1 — thin assembler).
@@ -17,10 +21,15 @@ Strict ≤ 200 lines (CLAUDE.md § 3.1 — thin assembler).
 
 from __future__ import annotations
 
-from PySide6.QtGui import QAction, QActionGroup, QKeySequence
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QShortcut
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QToolBar, QWidget
 
 from workbench import __version__
+from workbench.ui.commands import (
+    CommandPalette,
+    WorkbenchCommand,
+    WorkbenchCommandRegistry,
+)
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.simulator.workspace import SimulatorWorkspace
 from workbench.ui.workspace_selector import Workspace, WorkspaceSelector
@@ -35,6 +44,7 @@ class MainWindow(QMainWindow):
         self.resize(1280, 800)
 
         self.selector = WorkspaceSelector()
+        self.commands = WorkbenchCommandRegistry()
 
         self._stack = QStackedWidget(self)
         self._pages: dict[Workspace, QWidget] = {
@@ -50,6 +60,11 @@ class MainWindow(QMainWindow):
 
         self.selector.workspace_changed.connect(self._on_workspace_changed)
         self._sync_to_selector()
+
+        self._register_builtin_commands()
+        self._palette = CommandPalette(self.commands, self)
+        self._palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
+        self._palette_shortcut.activated.connect(self.open_command_palette)
 
     # ------------------------------------------------------------------
     # Toolbar / actions
@@ -95,6 +110,48 @@ class MainWindow(QMainWindow):
         self._actions[ws].setChecked(True)
 
     # ------------------------------------------------------------------
+    # Command catalog (Phase 4.2a — minimal seed; 4.2b/c add Sim/Target)
+    # ------------------------------------------------------------------
+    def _register_builtin_commands(self) -> None:
+        self.commands.register(
+            WorkbenchCommand(
+                id="workspace.switch_to_editor",
+                title="Switch to Editor Workspace",
+                category="Workspace",
+                execute=self._activate_editor,
+                shortcut="Ctrl+Shift+E",
+            )
+        )
+        self.commands.register(
+            WorkbenchCommand(
+                id="workspace.switch_to_simulator",
+                title="Switch to Simulator Workspace",
+                category="Workspace",
+                execute=self._activate_simulator,
+                shortcut="Ctrl+Shift+S",
+            )
+        )
+        self.commands.register(
+            WorkbenchCommand(
+                id="palette.open",
+                title="Show Command Palette",
+                category="View",
+                execute=self.open_command_palette,
+                shortcut="Ctrl+Shift+P",
+            )
+        )
+
+    def _activate_editor(self) -> None:
+        self.selector.set_workspace(Workspace.EDITOR)
+
+    def _activate_simulator(self) -> None:
+        self.selector.set_workspace(Workspace.SIMULATOR)
+
+    def open_command_palette(self) -> None:
+        """Show the Command Palette dialog (idempotent)."""
+        self._palette.open_fresh()
+
+    # ------------------------------------------------------------------
     # Test-only accessors
     # ------------------------------------------------------------------
     def page(self, workspace: Workspace) -> QWidget:
@@ -104,3 +161,7 @@ class MainWindow(QMainWindow):
     def workspace_action(self, workspace: Workspace) -> QAction:
         """Return the toolbar QAction for *workspace* (test helper)."""
         return self._actions[workspace]
+
+    def command_palette(self) -> CommandPalette:
+        """Return the embedded CommandPalette (test helper)."""
+        return self._palette
