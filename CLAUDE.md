@@ -17,6 +17,10 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 5.3 DONE** — Parabolic antenna 검증 (golden 기반). beamwidth
+  (D=0.6m / 1.2m @ 9.5 GHz) + 2x 비례 회귀 + peak gain dBi (eff=0.6) +
+  beam pattern (boresight=1.0, half-bw=0.5) + 입력 검증 5종. 누적
+  1026 PASS (+11 신규).
 - **Phase 5.2 DONE** — FMCW propagation 검증 (golden 기반). beat_freq /
   doppler / range_resolution / wavelength 4 함수 + UP/DOWN beats round-
   trip pairing + zero-range / sign-convention edge cases. golden JSON

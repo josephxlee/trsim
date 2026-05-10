@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "atol": 0.0,
+    "dataset_id": "antenna.parabolic.exact",
+    "notes": "Parabolic dish: 3-dB beamwidth via theta_3dB = 70 * lambda / D, peak gain via 10*log10(eff * (pi*D/lambda)^2), and the rotationally-symmetric sinc^2 pattern scaled so |alpha|=bw/2 returns 0.5. Reference values evaluated in Python with c = 299_792_458 m/s. Pattern at half-bandwidth uses a slightly looser tolerance because the sinc^2 inverse for the 1/2 root is a transcendental that the implementation evaluates numerically.",
+    "rtol": 1e-9,
+    "source": "plan/08 § 8.5a.2 + Skolnik chap 9",
+    "units": {
+      "alpha_deg": "deg",
+      "beamwidth_3db_deg": "deg",
+      "diameter_m": "m",
+      "efficiency": "linear",
+      "frequency_hz": "Hz",
+      "peak_gain_dbi": "dBi",
+      "phi_deg": "deg",
+      "theta_deg": "deg"
+    }
+  },
+  "samples": [
+    {
+      "case_id": "beamwidth_06m_9_5GHz",
+      "expected": {
+        "beamwidth_3db_deg": 3.6816617649122807
+      },
+      "inputs": {
+        "diameter_m": 0.6,
+        "frequency_hz": 9500000000.0
+      }
+    },
+    {
+      "case_id": "beamwidth_12m_9_5GHz",
+      "expected": {
+        "beamwidth_3db_deg": 1.8408308824561403
+      },
+      "inputs": {
+        "diameter_m": 1.2,
+        "frequency_hz": 9500000000.0
+      }
+    },
+    {
+      "case_id": "peak_gain_06m_9_5GHz_eff_06",
+      "expected": {
+        "peak_gain_dbi": 33.30559301261039
+      },
+      "inputs": {
+        "diameter_m": 0.6,
+        "efficiency": 0.6,
+        "frequency_hz": 9500000000.0
+      }
+    },
+    {
+      "case_id": "pattern_at_boresight",
+      "expected": {
+        "normalised_power": 1.0
+      },
+      "inputs": {
+        "beamwidth_3db_deg": 3.0,
+        "phi_deg": 0.0,
+        "theta_deg": 0.0
+      }
+    },
+    {
+      "case_id": "pattern_at_half_bw",
+      "expected": {
+        "normalised_power": 0.5
+      },
+      "inputs": {
+        "beamwidth_3db_deg": 3.0,
+        "phi_deg": 0.0,
+        "theta_deg": 1.5
+      }
+    }
+  ]
+}
