@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "atol": 0.0,
+    "dataset_id": "radar.equation.snr.sample",
+    "notes": "Sample golden dataset shape used by tests/physics/test_golden_dataset.py to round-trip the loader. Real radar-equation reference values are populated in a later Phase 5.x sub-step against the actual physics function.",
+    "rtol": 1e-09,
+    "source": "(placeholder)",
+    "units": {
+      "range_m": "m",
+      "snr_linear": "linear"
+    }
+  },
+  "samples": [
+    {
+      "case_id": "baseline",
+      "expected": {
+        "snr_linear": 41.95107293247016
+      },
+      "inputs": {
+        "range_m": 10000.0
+      }
+    },
+    {
+      "case_id": "doubled_range",
+      "expected": {
+        "snr_linear": 2.6219420582793848
+      },
+      "inputs": {
+        "range_m": 20000.0
+      }
+    }
+  ]
+}

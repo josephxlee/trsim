@@ -17,6 +17,12 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 5.1 DONE** — Golden Dataset 인프라 (plan/04 § 4.3 Phase 5).
+  `tests/physics/golden_dataset.py`: GoldenDatasetMeta + GoldenSample
+  + GoldenDataset frozen dataclass + JSON load/save (sorted keys).
+  `tests/physics/golden/` 디렉토리 + sample reference. Phase 5.2~ 가
+  19 카테고리 검증 시 이 모듈에 reference 데이터 적재. 누적 1007 PASS
+  (+9 신규).
 - **Phase 4 ALL DONE** (12 sub-phase 누적) — UI 골격 완성. Editor 5
   Activity (Composer/Map/Radar/Targets/Atmosphere) + Resource Browser
   사이드바 + Simulator 8 panel (FFT/RD/Run/Properties/PluginMgr/StageIO
