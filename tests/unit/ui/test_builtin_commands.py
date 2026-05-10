@@ -24,6 +24,11 @@ def _seeded_registry() -> tuple[WorkbenchCommandRegistry, dict[str, list[object]
         "target_stop": [],
         "palette": [],
         "simulator": [],
+        "act_composer": [],
+        "act_map": [],
+        "act_radar": [],
+        "act_targets": [],
+        "act_browser": [],
     }
     hooks = CommandHooks(
         on_workspace_editor=lambda: calls["editor"].append(None),
@@ -36,6 +41,11 @@ def _seeded_registry() -> tuple[WorkbenchCommandRegistry, dict[str, list[object]
         on_target_run=lambda: calls["target_run"].append(None),
         on_target_pause=lambda: calls["target_pause"].append(None),
         on_target_stop=lambda: calls["target_stop"].append(None),
+        on_activity_composer=lambda: calls["act_composer"].append(None),
+        on_activity_map=lambda: calls["act_map"].append(None),
+        on_activity_radar=lambda: calls["act_radar"].append(None),
+        on_activity_targets=lambda: calls["act_targets"].append(None),
+        on_activity_browser=lambda: calls["act_browser"].append(None),
     )
     reg = WorkbenchCommandRegistry()
     register_builtin_commands(reg, hooks)
@@ -70,8 +80,33 @@ def test_register_creates_every_phase_4_2_command() -> None:
         "plugins.manage",
         "plugins.reload_all",
         "help.about",
+        # Phase 4.3
+        "editor.activity.composer",
+        "editor.activity.map",
+        "editor.activity.radar",
+        "editor.activity.targets",
+        "editor.activity.browser",
     }
     assert {cmd.id for cmd in reg.all()} == expected
+
+
+def test_phase_4_3_activity_shortcuts_are_ctrl_one_through_five() -> None:
+    reg, _ = _seeded_registry()
+    assert reg.get("editor.activity.composer").shortcut == "Ctrl+1"
+    assert reg.get("editor.activity.map").shortcut == "Ctrl+2"
+    assert reg.get("editor.activity.radar").shortcut == "Ctrl+3"
+    assert reg.get("editor.activity.targets").shortcut == "Ctrl+4"
+    assert reg.get("editor.activity.browser").shortcut == "Ctrl+5"
+
+
+def test_phase_4_3_activity_hooks_dispatch_in_isolation() -> None:
+    reg, calls = _seeded_registry()
+    reg.dispatch("editor.activity.radar")
+    reg.dispatch("editor.activity.targets")
+    assert calls["act_radar"] == [None]
+    assert calls["act_targets"] == [None]
+    assert calls["act_composer"] == []
+    assert calls["act_browser"] == []
 
 
 def test_phase_4_2c_shortcuts_match_plan_05() -> None:

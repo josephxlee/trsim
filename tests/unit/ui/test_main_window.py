@@ -168,3 +168,37 @@ def test_main_window_owns_dock_manager(qtbot) -> None:  # type: ignore[no-untype
     assert mgr.host is win
     # Phase 4.2d ships an empty registry; Phase 4.3+ panels populate it.
     assert len(mgr) == 0
+
+
+# ---------- Phase 4.3 — Editor Activity dispatch ----------
+
+
+def test_activity_command_switches_to_editor_workspace_and_activity(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.editor.activities import Activity
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    # Start in Simulator to confirm the command also flips the workspace.
+    win.selector.set_workspace(Workspace.SIMULATOR)
+    assert win.selector.current is Workspace.SIMULATOR
+    win.commands.dispatch("editor.activity.radar")
+    assert win.selector.current is Workspace.EDITOR
+    editor = win.page(Workspace.EDITOR)
+    assert editor.selector.current is Activity.RADAR  # type: ignore[attr-defined]
+
+
+def test_every_activity_command_is_dispatchable(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.editor.activities import Activity
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    editor = win.page(Workspace.EDITOR)
+    for cid, activity in (
+        ("editor.activity.composer", Activity.COMPOSER),
+        ("editor.activity.map", Activity.MAP),
+        ("editor.activity.radar", Activity.RADAR),
+        ("editor.activity.targets", Activity.TARGETS),
+        ("editor.activity.browser", Activity.BROWSER),
+    ):
+        win.commands.dispatch(cid)
+        assert editor.selector.current is activity  # type: ignore[attr-defined]

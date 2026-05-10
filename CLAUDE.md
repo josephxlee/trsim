@@ -17,6 +17,13 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.3 DONE** — Editor ActivitySelector + 5 placeholder activities
+  + Ctrl+1~5 단축키 + WorkbenchCommand 5 (`editor.activity.*`).
+  ActivitySelector(QObject signal) 패턴 = WorkspaceSelector 와 동일.
+  EditorWorkspace = 좌측 vertical activity bar + 중앙 QStackedWidget.
+  placeholder 5종 (Composer/Map/Radar/Targets/Browser) — Phase 4.4+
+  실제 구현이 swap. main_window 가 dispatch 시 자동으로 Editor
+  workspace 로 전환 후 activity 선택. 17 tests 추가, 누적 893 PASS.
 - **Phase 4.2 DONE** (4 sub-step 누적):
   - 4.2a (`e99c73d`) ui/commands/ 인프라 — WorkbenchCommand (frozen+
     slots) + Registry (substring fuzzy, title>id ranking, enabled_when)

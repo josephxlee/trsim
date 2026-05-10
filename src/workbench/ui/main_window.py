@@ -37,6 +37,7 @@ from workbench.ui.commands import (
     register_builtin_commands,
 )
 from workbench.ui.dock_manager import DockManager
+from workbench.ui.editor.activities import Activity
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_menu import MainMenuBar
 from workbench.ui.simulator.workspace import SimulatorWorkspace
@@ -135,13 +136,31 @@ class MainWindow(QMainWindow):
     def _build_command_hooks(self) -> CommandHooks:
         # Phase 5 wiring replaces the no-op defaults for sim/target hooks
         # with calls into SimulationClock / RunManager via CommandBus.
+        editor = self._editor_page()
         return CommandHooks(
             on_workspace_editor=self._activate_editor,
             on_workspace_simulator=self._activate_simulator,
             on_palette_open=self.open_command_palette,
             on_file_exit=self._exit_app,
             on_view_toggle_fullscreen=self._toggle_fullscreen,
+            on_activity_composer=lambda: self._show_activity(editor, Activity.COMPOSER),
+            on_activity_map=lambda: self._show_activity(editor, Activity.MAP),
+            on_activity_radar=lambda: self._show_activity(editor, Activity.RADAR),
+            on_activity_targets=lambda: self._show_activity(editor, Activity.TARGETS),
+            on_activity_browser=lambda: self._show_activity(editor, Activity.BROWSER),
         )
+
+    def _editor_page(self) -> EditorWorkspace:
+        page = self._pages[Workspace.EDITOR]
+        assert isinstance(page, EditorWorkspace)
+        return page
+
+    def _show_activity(self, editor: EditorWorkspace, activity: Activity) -> None:
+        # Switch to the Editor workspace first so the activity becomes
+        # visible even when the user dispatched the command from the
+        # palette while sitting in the Simulator workspace.
+        self.selector.set_workspace(Workspace.EDITOR)
+        editor.selector.set_activity(activity)
 
     def _exit_app(self) -> None:
         self.close()

@@ -75,6 +75,13 @@ class CommandHooks:
     on_plugins_reload_all: Callable[[], None] = field(default=_noop)
     on_help_about: Callable[[], None] = field(default=_noop)
 
+    # Phase 4.3 — Editor Activity switching.
+    on_activity_composer: Callable[[], None] = field(default=_noop)
+    on_activity_map: Callable[[], None] = field(default=_noop)
+    on_activity_radar: Callable[[], None] = field(default=_noop)
+    on_activity_targets: Callable[[], None] = field(default=_noop)
+    on_activity_browser: Callable[[], None] = field(default=_noop)
+
 
 SIM_SPEEDS: tuple[int, ...] = (1, 2, 4, 8)
 
@@ -243,6 +250,42 @@ def register_builtin_commands(
             title="About TRsim",
             category="Help",
             execute=hooks.on_help_about,
+        ),
+        # ----- Editor Activity (Phase 4.3) -----
+        WorkbenchCommand(
+            id="editor.activity.composer",
+            title="Editor: Open Scenario Composer",
+            category="Editor",
+            execute=hooks.on_activity_composer,
+            shortcut="Ctrl+1",
+        ),
+        WorkbenchCommand(
+            id="editor.activity.map",
+            title="Editor: Open Map Editor",
+            category="Editor",
+            execute=hooks.on_activity_map,
+            shortcut="Ctrl+2",
+        ),
+        WorkbenchCommand(
+            id="editor.activity.radar",
+            title="Editor: Open Radar Editor",
+            category="Editor",
+            execute=hooks.on_activity_radar,
+            shortcut="Ctrl+3",
+        ),
+        WorkbenchCommand(
+            id="editor.activity.targets",
+            title="Editor: Open Targets Editor",
+            category="Editor",
+            execute=hooks.on_activity_targets,
+            shortcut="Ctrl+4",
+        ),
+        WorkbenchCommand(
+            id="editor.activity.browser",
+            title="Editor: Open Resource Browser",
+            category="Editor",
+            execute=hooks.on_activity_browser,
+            shortcut="Ctrl+5",
         ),
     ):
         registry.register(cmd)
