@@ -17,6 +17,12 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.8 DONE** — TargetsEditor (plan/13 § 13.6) + AtmospherePanel
+  (plan/15 § 15.4.3). Targets: 메타 form (name / motion_kind dropdown
+  7종 / RCS / scatterer count) + Trajectory Preview placeholder + CSV
+  Import/Export + Validation. Atmosphere: 5 field form (sky 4종 +
+  visibility/rain_rate/temperature/pressure) → AtmosphereState frozen
+  dataclass round-trip. 누적 953 PASS (+12 신규).
 - **Phase 4.7 DONE** — RadarEditor 통합 폼 (plan/05 § 5.3.9 + plan/13
   § 13.5). AntennaType StrEnum (Parabolic / PlanarArray) → QStackedWidget
   로 동적 폼 swap. RXChannelMode (SINGLE_SUM / MONOPULSE_4CH) radio.

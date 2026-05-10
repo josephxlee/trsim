@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from workbench.ui.editor.composer import ScenarioComposer
 from workbench.ui.editor.map_editor import MapEditor
 from workbench.ui.editor.radar_editor import RadarEditor
+from workbench.ui.editor.targets_editor import TargetsEditor
 
 
 def _make_placeholder(
@@ -91,21 +92,19 @@ class RadarEditorPage(QWidget):
 
 
 class TargetsEditorPage(QWidget):
-    """Activity 4 placeholder - real impl in Phase 4.8 (plan/13 § 13.6)."""
+    """Activity 4 - hosts the real TargetsEditor widget (Phase 4.8)."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("TargetsEditorPage")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(
-            _make_placeholder(
-                title="Targets Editor",
-                hint="Phase 4.8 mounts metadata edit + Trajectory Preview (CSV import only at MVP).",
-                object_name="TargetsEditorInner",
-                parent=self,
-            )
-        )
+        self._targets_editor = TargetsEditor(self)
+        layout.addWidget(self._targets_editor)
+
+    def targets_editor(self) -> TargetsEditor:
+        """Return the embedded :class:`TargetsEditor` (test helper)."""
+        return self._targets_editor
 
 
 class ResourceBrowserPage(QWidget):
