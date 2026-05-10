@@ -17,6 +17,12 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.11 DONE** — NN Mode panels (plan/07 + plan/05 § 5.1
+  principle 6). Step 1 (Dataset Builder): Scenario / probe / frames /
+  output path inputs + status banner + log list + Build/Cancel.
+  Step 2 (Eval): Dataset / NN plugin combos + 4-error diagnostic table
+  (Pairing / Tracker / Predictor / Classifier × RMSE/Bias). Mode
+  selector UI 통합은 Phase 4.12. 누적 983 PASS (+9 신규).
 - **Phase 4.10 DONE** — Scene3DPanel + ScopePOVPanel (plan/05 § 5.3.2).
   Scene3D = 3rd-person canvas placeholder + Camera preset toolbar
   (T/L/F/R) + 11 SceneLayer toggle (8 default-on). ScopePOV = boresight
