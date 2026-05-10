@@ -12,6 +12,20 @@
 | 2026-05-10 (회수) | f530cee | main | success | 6/6 | Phase 4.1: ui/main_window.py + WorkspaceSelector + Editor/Simulator stub |
 | 2026-05-10 (회수) | d32a3ba | main | success | 6/6 | docs: CLAUDE.md § 1 — Phase 4.1 DONE 갱신 |
 | 2026-05-10 16:18 | e99c73d | main | success | 6/6 | Phase 4.2a: ui/commands/ — WorkbenchCommand + Registry + CommandPalette (Ctrl+Shift+P) |
+| 2026-05-10 (회수) | 9fa0ffd | main | success | 6/6 | Phase 4.2b: Sim / Target-Run toolbars + Speed selector + Command hooks |
+| 2026-05-10 (회수) | 24e6d8b | main | success | 6/6 | Phase 4.2c: MainMenuBar (File/Edit/View/Run/Plugins/Tools/Help) |
+| 2026-05-10 (in_progress) | cacdb17 | main | (pending) | ?/6 | Phase 4.2d: DockManager infrastructure + CLAUDE.md Phase 4.2 DONE |
+| 2026-05-10 (회수) | cacdb17 | main | success | 6/6 | Phase 4.2d: DockManager infrastructure |
+| 2026-05-10 (회수) | b213163 | main | success | 6/6 | Phase 4.3: Editor ActivitySelector + 5 placeholder activities |
+| 2026-05-10 (회수) | 0929c71 | main | success | 6/6 | Phase 4.4: Resource Browser sidebar |
+| 2026-05-10 (회수) | bbb91db | main | success | 6/6 | Phase 4.5: ScenarioComposer 4-block shell |
+| 2026-05-10 (회수) | 4066d36 | main | success | 6/6 | Phase 4.6: MapEditor widget shell |
+| 2026-05-10 (회수) | 6154738 | main | success | 6/6 | Phase 4.7: RadarEditor unified form |
+| 2026-05-10 (회수) | 57e7395 | main | success | 6/6 | Phase 4.8: TargetsEditor + AtmospherePanel shells |
+| 2026-05-10 (회수) | 8cbfeb2 | main | success | 6/6 | Phase 4.9: Simulator panels + composite shell |
+| 2026-05-10 (회수) | 9577545 | main | success | 6/6 | Phase 4.10: Scene3DPanel + ScopePOVPanel |
+| 2026-05-10 (회수) | c6f2f25 | main | success | 6/6 | Phase 4.11: NN Mode Step 1 + Step 2 panels |
+| 2026-05-10 (in_progress) | 86df20b | main | (pending) | ?/6 | Phase 4.12: ProfilerPanel + Reference Timing UI - Phase 4 done |
 
 > **메모 (Cowork→Claude Code 전환 시점):** 2.3d/2.5/2.6 3 run 의 fail
 > 원인은 `physics/{antenna,atmosphere}/__init__.py` placeholder 디렉토리가
