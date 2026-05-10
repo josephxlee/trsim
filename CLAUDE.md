@@ -17,6 +17,13 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.10 DONE** — Scene3DPanel + ScopePOVPanel (plan/05 § 5.3.2).
+  Scene3D = 3rd-person canvas placeholder + Camera preset toolbar
+  (T/L/F/R) + 11 SceneLayer toggle (8 default-on). ScopePOV = boresight
+  cross-hair canvas placeholder + AZ actual/cmd/lag readout.
+  SimulatorWorkspace layout 4-col (PluginManager / 3D+Spectra vsplit /
+  Scope / Properties) + bottom Run/StageIO tabs. PyVista QtInteractor
+  + cross-hair renderer 는 4.10.x. 누적 974 PASS (+7 신규).
 - **Phase 4.9 DONE** — Simulator 6 panel widgets + SimulatorWorkspace
   splitter layout (plan/05 § 5.3.4 / 5.3.6 / 5.3.6c / 5.3.5 / 5.3.3).
   FFTPanel + RangeDopplerPanel + RunPanel (history + primary metrics

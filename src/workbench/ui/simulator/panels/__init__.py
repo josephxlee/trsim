@@ -26,13 +26,23 @@ from workbench.ui.simulator.panels.plugin_manager_panel import PluginManagerPane
 from workbench.ui.simulator.panels.properties_panel import PropertiesPanel
 from workbench.ui.simulator.panels.range_doppler_panel import RangeDopplerPanel
 from workbench.ui.simulator.panels.run_panel import RunPanel
+from workbench.ui.simulator.panels.scene_3d_panel import (
+    CameraPreset,
+    Scene3DPanel,
+    SceneLayer,
+)
+from workbench.ui.simulator.panels.scope_pov_panel import ScopePOVPanel
 from workbench.ui.simulator.panels.stage_io_panel import StageIOPanel
 
 __all__ = [
+    "CameraPreset",
     "FFTPanel",
     "PluginManagerPanel",
     "PropertiesPanel",
     "RangeDopplerPanel",
     "RunPanel",
+    "Scene3DPanel",
+    "SceneLayer",
+    "ScopePOVPanel",
     "StageIOPanel",
 ]

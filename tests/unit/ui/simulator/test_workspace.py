@@ -12,6 +12,8 @@ from workbench.ui.simulator.panels import (
     PropertiesPanel,
     RangeDopplerPanel,
     RunPanel,
+    Scene3DPanel,
+    ScopePOVPanel,
     StageIOPanel,
 )
 from workbench.ui.simulator.workspace import SimulatorWorkspace
@@ -28,6 +30,8 @@ def test_workspace_mounts_every_panel(qtbot) -> None:  # type: ignore[no-untyped
     assert isinstance(ws.properties_panel(), PropertiesPanel)
     assert isinstance(ws.plugin_manager_panel(), PluginManagerPanel)
     assert isinstance(ws.stage_io_panel(), StageIOPanel)
+    assert isinstance(ws.scene_3d_panel(), Scene3DPanel)
+    assert isinstance(ws.scope_pov_panel(), ScopePOVPanel)
 
 
 def test_bottom_tabs_have_run_and_stage_io(qtbot) -> None:  # type: ignore[no-untyped-def]

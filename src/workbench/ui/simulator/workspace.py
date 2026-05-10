@@ -1,20 +1,19 @@
-"""Simulator Workspace shell (Phase 4.9, plan/05 § 5.2).
+"""Simulator Workspace shell (Phase 4.9 + 4.10, plan/05 § 5.2).
 
-Phase 4.9 layout:
+Phase 4.10 layout:
 
 ::
 
-    +------------------+----------------+--------------+
-    | PluginManager    | FFT            | Properties   |
-    | (left col)       +----------------+              |
-    |                  | RangeDoppler   |              |
-    +------------------+----------------+--------------+
-    | Tabs: Run | Stage I/O                            |
-    +-----------------------------------------------------+
+    +---------------+--------------------+--------------+--------------+
+    | PluginManager | Scene3D            | Scope POV    | Properties   |
+    |               +--------------------+              |              |
+    |               | FFT | RangeDoppler |              |              |
+    +---------------+--------------------+--------------+--------------+
+    | Tabs: Run | Stage I/O                                              |
+    +-----------------------------------------------------------------+
 
-The 3D Scene View (plan/05 § 5.3.2) is intentionally absent here
-until Phase 4.10 mounts the PyVista interactor in place of one of the
-center plots.
+Live PyVista canvas in Scene3D + cross-hair canvas in Scope arrive
+in Phase 4.10.x.
 """
 
 from __future__ import annotations
@@ -33,18 +32,22 @@ from workbench.ui.simulator.panels import (
     PropertiesPanel,
     RangeDopplerPanel,
     RunPanel,
+    Scene3DPanel,
+    ScopePOVPanel,
     StageIOPanel,
 )
 
 
 class SimulatorWorkspace(QWidget):
-    """Composite simulator view with six runtime panels."""
+    """Composite simulator view with eight runtime panels."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("SimulatorWorkspace")
 
         # Build panels.
+        self._scene_3d_panel = Scene3DPanel(self)
+        self._scope_panel = ScopePOVPanel(self)
         self._fft_panel = FFTPanel(self)
         self._range_doppler_panel = RangeDopplerPanel(self)
         self._run_panel = RunPanel(self)
@@ -52,25 +55,35 @@ class SimulatorWorkspace(QWidget):
         self._plugin_manager_panel = PluginManagerPanel(self)
         self._stage_io_panel = StageIOPanel(self)
 
-        # Center column - FFT on top, RD below.
+        # Spectra row (FFT | RD).
+        spectra = QSplitter(Qt.Orientation.Horizontal, self)
+        spectra.setObjectName("SimulatorSpectraSplitter")
+        spectra.setChildrenCollapsible(False)
+        spectra.addWidget(self._fft_panel)
+        spectra.addWidget(self._range_doppler_panel)
+        spectra.setSizes([300, 300])
+
+        # Center column - Scene3D on top, Spectra row below.
         center = QSplitter(Qt.Orientation.Vertical, self)
         center.setObjectName("SimulatorCenterSplitter")
         center.setChildrenCollapsible(False)
-        center.addWidget(self._fft_panel)
-        center.addWidget(self._range_doppler_panel)
-        center.setSizes([260, 260])
+        center.addWidget(self._scene_3d_panel)
+        center.addWidget(spectra)
+        center.setSizes([320, 220])
 
-        # Top row - plugin manager | center column | properties.
+        # Top row - PluginManager | center | Scope | Properties.
         top_row = QSplitter(Qt.Orientation.Horizontal, self)
         top_row.setObjectName("SimulatorTopRowSplitter")
         top_row.setChildrenCollapsible(False)
         top_row.addWidget(self._plugin_manager_panel)
         top_row.addWidget(center)
+        top_row.addWidget(self._scope_panel)
         top_row.addWidget(self._properties_panel)
         top_row.setStretchFactor(0, 0)
         top_row.setStretchFactor(1, 1)
         top_row.setStretchFactor(2, 0)
-        top_row.setSizes([260, 700, 280])
+        top_row.setStretchFactor(3, 0)
+        top_row.setSizes([240, 640, 240, 240])
 
         # Bottom tabs - Run / Stage I/O.
         bottom_tabs = QTabWidget(self)
@@ -78,7 +91,6 @@ class SimulatorWorkspace(QWidget):
         bottom_tabs.addTab(self._run_panel, "Run")
         bottom_tabs.addTab(self._stage_io_panel, "Stage I/O")
 
-        # Outer vertical splitter pairs top row + bottom tabs.
         outer = QSplitter(Qt.Orientation.Vertical, self)
         outer.setObjectName("SimulatorOuterSplitter")
         outer.setChildrenCollapsible(False)
@@ -90,6 +102,7 @@ class SimulatorWorkspace(QWidget):
         self._outer_splitter = outer
         self._top_splitter = top_row
         self._center_splitter = center
+        self._spectra_splitter = spectra
         self._bottom_tabs = bottom_tabs
 
         layout = QVBoxLayout(self)
@@ -116,6 +129,12 @@ class SimulatorWorkspace(QWidget):
 
     def stage_io_panel(self) -> StageIOPanel:
         return self._stage_io_panel
+
+    def scene_3d_panel(self) -> Scene3DPanel:
+        return self._scene_3d_panel
+
+    def scope_pov_panel(self) -> ScopePOVPanel:
+        return self._scope_panel
 
     def bottom_tabs(self) -> QTabWidget:
         return self._bottom_tabs
