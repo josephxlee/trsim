@@ -17,16 +17,25 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-- **Phase 4.1 DONE** (`f530cee`) — MainWindow shell + WorkspaceSelector
-  (StrEnum editor/simulator + QObject signal) + Editor/Simulator stub
-  workspaces + `trsim ui` CLI + pytest-qt smoke (11 ui tests). ci.yml
-  에 QT_QPA_PLATFORM=offscreen + libegl1/libxkbcommon0/libdbus-1-3/
-  libxcb-cursor0 ubuntu deps + `[dev,ui-dev]` extras 설치 추가.
-- 누적 test 808 로컬 PASS, .venv Python 3.13.3, pytest-qt 4.5.0.
-  ruff/mypy strict/import-linter all clean. 5 contracts KEPT.
-- 다음: **Phase 4.2** — DockManager + CommandPalette + Toolbar(Sim/
-  Target 두 레이어) + Menu. 그 다음 4.3 Editor ActivitySelector + 5
-  placeholder activities. 전체 sub-phase 12개 계획 (4.1~4.12).
+- **Phase 4.2 DONE** (4 sub-step 누적):
+  - 4.2a (`e99c73d`) ui/commands/ 인프라 — WorkbenchCommand (frozen+
+    slots) + Registry (substring fuzzy, title>id ranking, enabled_when)
+    + CommandPalette QDialog (Ctrl+Shift+P, 화살표 from search box,
+    Enter dispatch).
+  - 4.2b (`9fa0ffd`) Sim / Target-Run 두 레이어 toolbar — addToolBarBreak
+    로 행 분리. SIM_SPEEDS=(1,2,4,8) radio. State 라벨 (IDLE/RUNNING/
+    PAUSED/ENDED). builtin.py 추출로 main_window thin assembler 유지.
+  - 4.2c (`24e6d8b`) MainMenuBar(QMenuBar) — File/Edit/View/Run/Plugins/
+    Tools/Help 7 menu. Run 안 Speed submenu. menu strong-ref 정책으로
+    libshiboken "C++ deleted" 회피.
+  - 4.2d DockManager (register/toggle/save_state/restore_state) —
+    Phase 4.3+ 패널들이 여기 mount.
+- 누적 test **876 로컬 PASS** (4.1 808 + 4.2a 19 + 4.2b 27 + 4.2c 12 +
+  4.2d 10). .venv Python 3.13.3, pytest-qt 4.5.0. ruff/mypy
+  strict/import-linter all clean. 5 contracts KEPT.
+- 다음: **Phase 4.3** Editor ActivitySelector + 5 placeholder activities
+  (Composer / Map / Radar / Targets / Browser). 전체 sub-phase 12개 계획
+  (4.1~4.12).
 
 ## 2. 사용자 커뮤니케이션
 

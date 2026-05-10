@@ -1,4 +1,4 @@
-"""TRsim MainWindow — thin assembler (Phase 4.1 + 4.2a + 4.2b).
+"""TRsim MainWindow — thin assembler (Phase 4.1 + 4.2 complete).
 
 Owns:
 
@@ -8,15 +8,18 @@ Owns:
 - Ctrl+Shift+E / Ctrl+Shift+S shortcuts for switching.
 - A :class:`WorkbenchCommandRegistry` seeded by
   :func:`register_builtin_commands` + a :class:`CommandPalette` bound
-  to ``Ctrl+Shift+P``.
+  to ``Ctrl+Shift+P`` (4.2a).
+- A :class:`MainMenuBar` covering File / Edit / View / Run / Plugins /
+  Tools / Help (4.2c).
 - A :class:`SimulationToolbar` (outer layer) and
-  :class:`TargetRunToolbar` (inner layer), separated by a toolbar break.
+  :class:`TargetRunToolbar` (inner layer), separated by a toolbar
+  break (4.2b).
+- A :class:`DockManager` ready to host Phase 4.3+ panels (4.2d).
 
 Subsequent Phase 4 sub-phases bolt on:
 
-- Phase 4.2c: MenuBar (File / Edit / View / Run / Plugins / Tools / Help).
-- Phase 4.2d: DockManager + workspace-state persistence.
-- Phase 4.3+: real Editor activities and Simulator panels.
+- Phase 4.3+: real Editor activities and Simulator panels mount as
+  QDockWidgets through :class:`DockManager`.
 
 Strict ≤ 200 lines (CLAUDE.md § 3.1 — thin assembler).
 """
@@ -33,6 +36,7 @@ from workbench.ui.commands import (
     WorkbenchCommandRegistry,
     register_builtin_commands,
 )
+from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_menu import MainMenuBar
 from workbench.ui.simulator.workspace import SimulatorWorkspace
@@ -50,6 +54,7 @@ class MainWindow(QMainWindow):
 
         self.selector = WorkspaceSelector()
         self.commands = WorkbenchCommandRegistry()
+        self.docks = DockManager(host=self)
 
         self._stack = QStackedWidget(self)
         self._pages: dict[Workspace, QWidget] = {
@@ -183,3 +188,7 @@ class MainWindow(QMainWindow):
     def main_menu_bar(self) -> MainMenuBar:
         """Return the MainWindow's QMenuBar (test helper)."""
         return self._menu_bar
+
+    def dock_manager(self) -> DockManager:
+        """Return the DockManager (test helper)."""
+        return self.docks

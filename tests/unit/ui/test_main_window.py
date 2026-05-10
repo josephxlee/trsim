@@ -153,3 +153,18 @@ def test_menu_bar_has_seven_top_level_menus(qtbot) -> None:  # type: ignore[no-u
     qtbot.addWidget(win)
     titles = [a.text() for a in win.main_menu_bar().actions() if a.menu() is not None]
     assert titles == ["&File", "&Edit", "&View", "&Run", "&Plugins", "&Tools", "&Help"]
+
+
+# ---------- Phase 4.2d — DockManager ----------
+
+
+def test_main_window_owns_dock_manager(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.dock_manager import DockManager
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    mgr = win.dock_manager()
+    assert isinstance(mgr, DockManager)
+    assert mgr.host is win
+    # Phase 4.2d ships an empty registry; Phase 4.3+ panels populate it.
+    assert len(mgr) == 0
