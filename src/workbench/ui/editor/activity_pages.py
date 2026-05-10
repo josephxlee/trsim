@@ -1,20 +1,17 @@
-"""Five Editor activity placeholder pages (Phase 4.3).
+"""Editor activity pages (Phase 4.3 + 4.5+ progressive replacement).
 
-Each placeholder is a QWidget that announces which Activity it stands
-in for. Phase 4.5+ replaces them with the real implementations
-(Scenario Composer, Map Editor, Radar Editor, Targets Editor, Resource
-Browser) per plan/13 sections 13.3-13.7.
-
-Keeping the stubs in a single file (vs. five sub-packages) at this
-phase avoids premature directory churn. When a real activity arrives
-(e.g. Map Editor with its DEM-import wizard) it gets its own module
-and this file shrinks.
+Activities replace their placeholder once a real implementation
+arrives. Phase 4.5 has already migrated :class:`ScenarioComposerPage`
+to wrap the real :class:`ScenarioComposer` widget; Map / Radar /
+Targets / Browser remain placeholder stubs until Phase 4.6+.
 """
 
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
+from workbench.ui.editor.composer import ScenarioComposer
 
 
 def _make_placeholder(
@@ -44,21 +41,19 @@ def _make_placeholder(
 
 
 class ScenarioComposerPage(QWidget):
-    """Activity 1 placeholder - real impl in Phase 4.5 (plan/13 § 13.3)."""
+    """Activity 1 - hosts the real ScenarioComposer widget (Phase 4.5)."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("ScenarioComposerPage")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(
-            _make_placeholder(
-                title="Scenario Composer",
-                hint="Phase 4.5 will mount References / Installation / Composition / Validation here.",
-                object_name="ScenarioComposerInner",
-                parent=self,
-            )
-        )
+        self._composer = ScenarioComposer(self)
+        layout.addWidget(self._composer)
+
+    def composer(self) -> ScenarioComposer:
+        """Return the embedded :class:`ScenarioComposer` (test helper)."""
+        return self._composer
 
 
 class MapEditorPage(QWidget):

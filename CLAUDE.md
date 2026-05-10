@@ -17,6 +17,13 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.5 DONE** — ScenarioComposer 4 block 골격 (plan/13 § 13.3).
+  References (Map/Radar/Targets dropdown + Open in Editor 버튼) +
+  Installation (East/North/Az QLineEdit) + Composition (Sea State /
+  Atmosphere QComboBox) + Validation (status banner + message list).
+  Action row: Save / Save As / Validate / Export Bundle (4 signals).
+  data source 는 Phase 5+ 에서 ResourceLibrary 로 주입. 누적 922 PASS
+  (+8 신규).
 - **Phase 4.4 DONE** — Resource Browser sidebar (plan/13 § 13.2.3).
   좌측 vertical activity bar 옆에 QSplitter 로 ResourceBrowserSidebar +
   central QStackedWidget. 트리 4 카테고리 (Scenarios/Maps/Radars/Targets)
