@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from workbench.ui.editor.composer import ScenarioComposer
+from workbench.ui.editor.map_editor import MapEditor
 
 
 def _make_placeholder(
@@ -57,21 +58,19 @@ class ScenarioComposerPage(QWidget):
 
 
 class MapEditorPage(QWidget):
-    """Activity 2 placeholder - real impl in Phase 4.6 (plan/13 § 13.4)."""
+    """Activity 2 - hosts the real MapEditor widget (Phase 4.6)."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("MapEditorPage")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(
-            _make_placeholder(
-                title="Map Editor",
-                hint="Phase 4.6 mounts Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + DEM Import.",
-                object_name="MapEditorInner",
-                parent=self,
-            )
-        )
+        self._map_editor = MapEditor(self)
+        layout.addWidget(self._map_editor)
+
+    def map_editor(self) -> MapEditor:
+        """Return the embedded :class:`MapEditor` (test helper)."""
+        return self._map_editor
 
 
 class RadarEditorPage(QWidget):

@@ -17,6 +17,13 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.6 DONE** — MapEditor 골격 (plan/13 § 13.4).
+  Tools palette 좌측 (Pan/LandSeaBrush/SpotEdit/FlattenArea/AddBuilding 5
+  ToolButton, exclusive group) + canvas placeholder + Layers panel
+  (5 checkbox, 기본 3 on) + Edit History list + action row (Save /
+  Import DEM... / Validate). MapTool StrEnum, tool_changed /
+  layer_visibility_changed signal. canvas 는 pyqtgraph 도착 (Phase
+  4.6.x) 까지 stub. 누적 932 PASS (+10 신규).
 - **Phase 4.5 DONE** — ScenarioComposer 4 block 골격 (plan/13 § 13.3).
   References (Map/Radar/Targets dropdown + Open in Editor 버튼) +
   Installation (East/North/Az QLineEdit) + Composition (Sea State /
