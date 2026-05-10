@@ -17,6 +17,11 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **다음 진입점**: Phase 5.4 (planar array / atmosphere ISA / ballistic
+> 중 가벼운 것). 자세한 인계: `docs/sessions/phase_4_ui_layout.md` (Phase
+> 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
+> 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
+
 - **Phase 5.3 DONE** — Parabolic antenna 검증 (golden 기반). beamwidth
   (D=0.6m / 1.2m @ 9.5 GHz) + 2x 비례 회귀 + peak gain dBi (eff=0.6) +
   beam pattern (boresight=1.0, half-bw=0.5) + 입력 검증 5종. 누적
