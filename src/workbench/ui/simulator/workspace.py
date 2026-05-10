@@ -36,6 +36,7 @@ from workbench.ui.simulator.panels import (
     ScopePOVPanel,
     StageIOPanel,
 )
+from workbench.ui.simulator.profiler_panel import ProfilerPanel
 
 
 class SimulatorWorkspace(QWidget):
@@ -54,6 +55,7 @@ class SimulatorWorkspace(QWidget):
         self._properties_panel = PropertiesPanel(self)
         self._plugin_manager_panel = PluginManagerPanel(self)
         self._stage_io_panel = StageIOPanel(self)
+        self._profiler_panel = ProfilerPanel(self)
 
         # Spectra row (FFT | RD).
         spectra = QSplitter(Qt.Orientation.Horizontal, self)
@@ -85,11 +87,12 @@ class SimulatorWorkspace(QWidget):
         top_row.setStretchFactor(3, 0)
         top_row.setSizes([240, 640, 240, 240])
 
-        # Bottom tabs - Run / Stage I/O.
+        # Bottom tabs - Run / Stage I/O / Profiler.
         bottom_tabs = QTabWidget(self)
         bottom_tabs.setObjectName("SimulatorBottomTabs")
         bottom_tabs.addTab(self._run_panel, "Run")
         bottom_tabs.addTab(self._stage_io_panel, "Stage I/O")
+        bottom_tabs.addTab(self._profiler_panel, "Profiler")
 
         outer = QSplitter(Qt.Orientation.Vertical, self)
         outer.setObjectName("SimulatorOuterSplitter")
@@ -135,6 +138,9 @@ class SimulatorWorkspace(QWidget):
 
     def scope_pov_panel(self) -> ScopePOVPanel:
         return self._scope_panel
+
+    def profiler_panel(self) -> ProfilerPanel:
+        return self._profiler_panel
 
     def bottom_tabs(self) -> QTabWidget:
         return self._bottom_tabs

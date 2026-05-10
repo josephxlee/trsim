@@ -17,6 +17,19 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4 ALL DONE** (12 sub-phase 누적) — UI 골격 완성. Editor 5
+  Activity (Composer/Map/Radar/Targets/Atmosphere) + Resource Browser
+  사이드바 + Simulator 8 panel (FFT/RD/Run/Properties/PluginMgr/StageIO
+  + Scene3D + ScopePOV) + Profiler tab (Timing/Scale/Report). 모든
+  플롯 canvas 와 PyVista 임베드 는 Phase 4.x.x 후속에서. 누적 998
+  PASS, ruff/mypy strict/import-linter 5 contracts KEPT.
+- **Phase 4.12 DONE** — ProfilerPanel composite (plan/18 § 18.16/17).
+  TimingBreakdownPanel (6 stage QProgressBar) + ScaleIndicator (toolbar
+  scale 0.57x readout, 색상 cue 0.9/0.5 threshold) + ProfileReport
+  (5 column QTableWidget: Stage/avg/p50/p95/p99). SimulatorWorkspace
+  bottom tabs 에 Profiler 추가 (Run / Stage I/O / Profiler 3 tabs).
+  Run Profile (100 frames) / Set Reference Timing 버튼 signals. 누적
+  998 PASS (+15 신규).
 - **Phase 4.11 DONE** — NN Mode panels (plan/07 + plan/05 § 5.1
   principle 6). Step 1 (Dataset Builder): Scenario / probe / frames /
   output path inputs + status banner + log list + Build/Cancel.
