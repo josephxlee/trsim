@@ -17,6 +17,12 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.7 DONE** — RadarEditor 통합 폼 (plan/05 § 5.3.9 + plan/13
+  § 13.5). AntennaType StrEnum (Parabolic / PlanarArray) → QStackedWidget
+  로 동적 폼 swap. RXChannelMode (SINGLE_SUM / MONOPULSE_4CH) radio.
+  Computed values strip (Az BW / El BW / Peak gain). BeamPattern
+  Preview placeholder. Action: Save / Save As New. 누적 941 PASS
+  (+9 신규).
 - **Phase 4.6 DONE** — MapEditor 골격 (plan/13 § 13.4).
   Tools palette 좌측 (Pan/LandSeaBrush/SpotEdit/FlattenArea/AddBuilding 5
   ToolButton, exclusive group) + canvas placeholder + Layers panel

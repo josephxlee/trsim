@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from workbench.ui.editor.composer import ScenarioComposer
 from workbench.ui.editor.map_editor import MapEditor
+from workbench.ui.editor.radar_editor import RadarEditor
 
 
 def _make_placeholder(
@@ -74,21 +75,19 @@ class MapEditorPage(QWidget):
 
 
 class RadarEditorPage(QWidget):
-    """Activity 3 placeholder - real impl in Phase 4.7 (plan/13 § 13.5)."""
+    """Activity 3 - hosts the real RadarEditor widget (Phase 4.7)."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("RadarEditorPage")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(
-            _make_placeholder(
-                title="Radar Editor",
-                hint="Phase 4.7 mounts Antenna type dropdown + dynamic form + Beam Pattern Preview.",
-                object_name="RadarEditorInner",
-                parent=self,
-            )
-        )
+        self._radar_editor = RadarEditor(self)
+        layout.addWidget(self._radar_editor)
+
+    def radar_editor(self) -> RadarEditor:
+        """Return the embedded :class:`RadarEditor` (test helper)."""
+        return self._radar_editor
 
 
 class TargetsEditorPage(QWidget):
