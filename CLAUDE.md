@@ -17,6 +17,12 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+- **Phase 4.4 DONE** — Resource Browser sidebar (plan/13 § 13.2.3).
+  좌측 vertical activity bar 옆에 QSplitter 로 ResourceBrowserSidebar +
+  central QStackedWidget. 트리 4 카테고리 (Scenarios/Maps/Radars/Targets)
+  + ASCII status prefix ([active]/[stale]/[builtin]) + 검색 필터 +
+  더블클릭 시 자동으로 매칭 Activity 로 전환. ResourceLibrary 데이터 source 는
+  Phase 5+ 에서 주입. 누적 914 PASS (+21 신규).
 - **Phase 4.3 DONE** — Editor ActivitySelector + 5 placeholder activities
   + Ctrl+1~5 단축키 + WorkbenchCommand 5 (`editor.activity.*`).
   ActivitySelector(QObject signal) 패턴 = WorkspaceSelector 와 동일.

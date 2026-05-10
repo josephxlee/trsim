@@ -76,3 +76,53 @@ def test_activity_bar_has_one_action_per_activity_in_order(qtbot) -> None:  # ty
     bar_action_names = [a.objectName() for a in bar.actions()]
     expected_names = [f"EditorActivity_{a.value}" for a in ACTIVITY_ORDER]
     assert bar_action_names == expected_names
+
+
+# ---------- Phase 4.4 — Resource Browser sidebar ----------
+
+
+def test_workspace_mounts_resource_browser_sidebar(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.editor.resource_browser import ResourceBrowserSidebar
+
+    ws = EditorWorkspace()
+    qtbot.addWidget(ws)
+    sb = ws.resource_browser()
+    assert isinstance(sb, ResourceBrowserSidebar)
+    # Sidebar lives on the splitter alongside the central stack.
+    splitter = ws.splitter()
+    assert splitter.widget(0) is sb
+    assert splitter.count() == 2
+
+
+def test_double_click_on_resource_switches_activity(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.editor.resource_browser import ResourceCategory, ResourceItem
+
+    ws = EditorWorkspace()
+    qtbot.addWidget(ws)
+    ws.resource_browser().add_item(
+        ResourceItem(name="fmcw_corvette", category=ResourceCategory.RADAR)
+    )
+    leaf = ws.resource_browser().category_node(ResourceCategory.RADAR).child(0)
+    ws.resource_browser().tree().itemDoubleClicked.emit(leaf, 0)
+    assert ws.selector.current is Activity.RADAR
+
+
+@pytest.mark.parametrize(
+    ("category", "expected_activity"),
+    [
+        ("scenario", Activity.COMPOSER),
+        ("map", Activity.MAP),
+        ("radar", Activity.RADAR),
+        ("targets", Activity.TARGETS),
+    ],
+)
+def test_each_category_routes_to_its_activity(qtbot, category, expected_activity) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.editor.resource_browser import ResourceCategory, ResourceItem
+
+    ws = EditorWorkspace()
+    qtbot.addWidget(ws)
+    cat = ResourceCategory(category)
+    ws.resource_browser().add_item(ResourceItem(name=f"x_{category}", category=cat))
+    leaf = ws.resource_browser().category_node(cat).child(0)
+    ws.resource_browser().tree().itemDoubleClicked.emit(leaf, 0)
+    assert ws.selector.current is expected_activity

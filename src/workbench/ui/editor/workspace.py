@@ -1,16 +1,16 @@
-"""Editor Workspace shell (Phase 4.3, plan/13 section 13.2).
+"""Editor Workspace shell (Phase 4.3 + 4.4, plan/13 section 13.2).
 
-Layout (Phase 4.3 - Resource Browser sidebar arrives in Phase 4.4):
+Layout (Phase 4.4):
 
 ::
 
-    +-------+----------------------------+
-    | [icon]|                            |
-    | [icon]|                            |
-    | [icon]|     central activity page  |
-    | [icon]|                            |
-    | [icon]|                            |
-    +-------+----------------------------+
+    +-------+--------------------+----------------------+
+    | [icn] | Resource Browser   |  central activity    |
+    | [icn] | (sidebar, plan/13  |  page (QStackedWidget|
+    | [icn] |  § 13.2.3)         |   with 5 pages)      |
+    | [icn] |                    |                      |
+    | [icn] |                    |                      |
+    +-------+--------------------+----------------------+
 
 The vertical icon bar on the left is the
 :class:`ActivitySelector` - five exclusive radio QActions, one per
@@ -18,16 +18,24 @@ The vertical icon bar on the left is the
 :class:`workbench.ui.main_window.MainWindow` wires the shortcuts) swaps
 the central :class:`QStackedWidget` page.
 
+The Resource Browser sidebar between the activity bar and the central
+stack hosts a filterable tree of every known resource (Scenarios /
+Maps / Radars / Targets). It is empty at boot - Phase 5+
+ResourceLibrary feeds it real items.
+
 Phase 4.5+ replaces the placeholder pages with real Composer / Map /
 Radar / Targets / Browser widgets.
 """
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QSplitter,
     QStackedWidget,
     QToolBar,
     QWidget,
@@ -44,6 +52,10 @@ from workbench.ui.editor.activity_pages import (
     ResourceBrowserPage,
     ScenarioComposerPage,
     TargetsEditorPage,
+)
+from workbench.ui.editor.resource_browser import (
+    ResourceBrowserSidebar,
+    ResourceCategory,
 )
 
 # Plan/13 section 13.2.2 lists each activity's emoji glyph; we use
@@ -77,14 +89,26 @@ class EditorWorkspace(QWidget):
         self._pages = self._build_pages()
         self._stack = self._build_stack()
         self._actions, self._activity_bar = self._build_activity_bar()
+        self._resource_browser = ResourceBrowserSidebar(self)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        splitter.setObjectName("EditorSplitter")
+        splitter.setChildrenCollapsible(False)
+        splitter.addWidget(self._resource_browser)
+        splitter.addWidget(self._stack)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([280, 1000])
+        self._splitter = splitter
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self._activity_bar)
-        layout.addWidget(self._stack, 1)
+        layout.addWidget(splitter, 1)
 
         self.selector.activity_changed.connect(self._on_activity_changed)
+        self._resource_browser.item_double_clicked.connect(self._on_resource_double_clicked)
         self._sync_to_selector()
 
     # ------------------------------------------------------------------
@@ -152,3 +176,36 @@ class EditorWorkspace(QWidget):
     def activity_bar(self) -> QToolBar:
         """Return the vertical activity QToolBar (test helper)."""
         return self._activity_bar
+
+    def resource_browser(self) -> ResourceBrowserSidebar:
+        """Return the always-visible Resource Browser sidebar."""
+        return self._resource_browser
+
+    def splitter(self) -> QSplitter:
+        """Return the QSplitter that pairs sidebar + central stack."""
+        return self._splitter
+
+    # ------------------------------------------------------------------
+    # Resource browser -> Activity routing
+    # ------------------------------------------------------------------
+    _CATEGORY_TO_ACTIVITY: ClassVar[dict[ResourceCategory, Activity]] = {
+        ResourceCategory.SCENARIO: Activity.COMPOSER,
+        ResourceCategory.MAP: Activity.MAP,
+        ResourceCategory.RADAR: Activity.RADAR,
+        ResourceCategory.TARGETS: Activity.TARGETS,
+    }
+
+    def _on_resource_double_clicked(
+        self,
+        category: ResourceCategory,
+        _name: str,
+    ) -> None:
+        """Switch to the Activity that edits ``category``.
+
+        Phase 4.5+ enriches this to actually open ``_name`` in a tab;
+        Phase 4.4 only flips the activity (placeholders ignore the
+        name). The double-click binding lives here so the routing
+        policy stays centralised.
+        """
+        target = self._CATEGORY_TO_ACTIVITY[category]
+        self.selector.set_activity(target)
