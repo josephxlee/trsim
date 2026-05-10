@@ -133,3 +133,23 @@ def test_sim_lifecycle_button_dispatches_via_registry(qtbot) -> None:  # type: i
     qtbot.addWidget(win)
     # No-op hook for sim.start at Phase 4.2b — must not raise.
     win.simulation_toolbar().lifecycle_action("sim.start").trigger()
+
+
+# ---------- Phase 4.2c — MenuBar ----------
+
+
+def test_main_window_mounts_menu_bar(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from PySide6.QtWidgets import QMenuBar
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    bar = win.main_menu_bar()
+    assert isinstance(bar, QMenuBar)
+    assert bar is win.menuBar()
+
+
+def test_menu_bar_has_seven_top_level_menus(qtbot) -> None:  # type: ignore[no-untyped-def]
+    win = MainWindow()
+    qtbot.addWidget(win)
+    titles = [a.text() for a in win.main_menu_bar().actions() if a.menu() is not None]
+    assert titles == ["&File", "&Edit", "&View", "&Run", "&Plugins", "&Tools", "&Help"]

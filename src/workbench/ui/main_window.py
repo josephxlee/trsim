@@ -34,6 +34,7 @@ from workbench.ui.commands import (
     register_builtin_commands,
 )
 from workbench.ui.editor.workspace import EditorWorkspace
+from workbench.ui.main_menu import MainMenuBar
 from workbench.ui.simulator.workspace import SimulatorWorkspace
 from workbench.ui.toolbars import SimulationToolbar, TargetRunToolbar
 from workbench.ui.workspace_selector import Workspace, WorkspaceSelector
@@ -69,6 +70,9 @@ class MainWindow(QMainWindow):
         self._palette = CommandPalette(self.commands, self)
         self._palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
         self._palette_shortcut.activated.connect(self.open_command_palette)
+
+        self._menu_bar = MainMenuBar(self, self.commands)
+        self.setMenuBar(self._menu_bar)
 
         self.addToolBarBreak()
         self._sim_toolbar = SimulationToolbar(self.commands, self)
@@ -130,7 +134,18 @@ class MainWindow(QMainWindow):
             on_workspace_editor=self._activate_editor,
             on_workspace_simulator=self._activate_simulator,
             on_palette_open=self.open_command_palette,
+            on_file_exit=self._exit_app,
+            on_view_toggle_fullscreen=self._toggle_fullscreen,
         )
+
+    def _exit_app(self) -> None:
+        self.close()
+
+    def _toggle_fullscreen(self) -> None:
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
 
     def _activate_editor(self) -> None:
         self.selector.set_workspace(Workspace.EDITOR)
@@ -164,3 +179,7 @@ class MainWindow(QMainWindow):
     def target_run_toolbar(self) -> TargetRunToolbar:
         """Return the TargetRunToolbar (test helper)."""
         return self._target_toolbar
+
+    def main_menu_bar(self) -> MainMenuBar:
+        """Return the MainWindow's QMenuBar (test helper)."""
+        return self._menu_bar

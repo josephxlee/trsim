@@ -64,6 +64,17 @@ class CommandHooks:
     on_target_pause: Callable[[], None] = field(default=_noop)
     on_target_stop: Callable[[], None] = field(default=_noop)
 
+    # Phase 4.2c — file / view / plugins / help (menu bar entries).
+    on_file_new: Callable[[], None] = field(default=_noop)
+    on_file_open: Callable[[], None] = field(default=_noop)
+    on_file_save: Callable[[], None] = field(default=_noop)
+    on_file_exit: Callable[[], None] = field(default=_noop)
+    on_view_reset_layout: Callable[[], None] = field(default=_noop)
+    on_view_toggle_fullscreen: Callable[[], None] = field(default=_noop)
+    on_plugins_manage: Callable[[], None] = field(default=_noop)
+    on_plugins_reload_all: Callable[[], None] = field(default=_noop)
+    on_help_about: Callable[[], None] = field(default=_noop)
+
 
 SIM_SPEEDS: tuple[int, ...] = (1, 2, 4, 8)
 
@@ -171,3 +182,67 @@ def register_builtin_commands(
             shortcut="Shift+Ctrl+Space",
         )
     )
+
+    # ----- File / View / Plugins / Help (Phase 4.2c menu bar) -----
+    for cmd in (
+        WorkbenchCommand(
+            id="file.new",
+            title="New Resource...",
+            category="File",
+            execute=hooks.on_file_new,
+            shortcut="Ctrl+N",
+        ),
+        WorkbenchCommand(
+            id="file.open",
+            title="Open Scenario...",
+            category="File",
+            execute=hooks.on_file_open,
+            shortcut="Ctrl+O",
+        ),
+        WorkbenchCommand(
+            id="file.save",
+            title="Save",
+            category="File",
+            execute=hooks.on_file_save,
+            shortcut="Ctrl+S",
+        ),
+        WorkbenchCommand(
+            id="file.exit",
+            title="Exit",
+            category="File",
+            execute=hooks.on_file_exit,
+            shortcut="Ctrl+Q",
+        ),
+        WorkbenchCommand(
+            id="view.reset_layout",
+            title="Reset Layout",
+            category="View",
+            execute=hooks.on_view_reset_layout,
+        ),
+        WorkbenchCommand(
+            id="view.toggle_fullscreen",
+            title="Toggle Fullscreen",
+            category="View",
+            execute=hooks.on_view_toggle_fullscreen,
+            shortcut="F11",
+        ),
+        WorkbenchCommand(
+            id="plugins.manage",
+            title="Manage Plugins...",
+            category="Plugins",
+            execute=hooks.on_plugins_manage,
+        ),
+        WorkbenchCommand(
+            id="plugins.reload_all",
+            title="Reload All Plugins",
+            category="Plugins",
+            execute=hooks.on_plugins_reload_all,
+        ),
+        WorkbenchCommand(
+            id="help.about",
+            title="About TRsim",
+            category="Help",
+            execute=hooks.on_help_about,
+        ),
+    ):
+        registry.register(cmd)

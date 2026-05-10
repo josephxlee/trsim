@@ -45,9 +45,11 @@ def _seeded_registry() -> tuple[WorkbenchCommandRegistry, dict[str, list[object]
 def test_register_creates_every_phase_4_2_command() -> None:
     reg, _ = _seeded_registry()
     expected = {
+        # Phase 4.2a
         "workspace.switch_to_editor",
         "workspace.switch_to_simulator",
         "palette.open",
+        # Phase 4.2b
         "sim.start",
         "sim.pause",
         "sim.stop",
@@ -58,8 +60,27 @@ def test_register_creates_every_phase_4_2_command() -> None:
         "target.run",
         "target.pause",
         "target.stop",
+        # Phase 4.2c
+        "file.new",
+        "file.open",
+        "file.save",
+        "file.exit",
+        "view.reset_layout",
+        "view.toggle_fullscreen",
+        "plugins.manage",
+        "plugins.reload_all",
+        "help.about",
     }
     assert {cmd.id for cmd in reg.all()} == expected
+
+
+def test_phase_4_2c_shortcuts_match_plan_05() -> None:
+    reg, _ = _seeded_registry()
+    assert reg.get("file.new").shortcut == "Ctrl+N"
+    assert reg.get("file.open").shortcut == "Ctrl+O"
+    assert reg.get("file.save").shortcut == "Ctrl+S"
+    assert reg.get("file.exit").shortcut == "Ctrl+Q"
+    assert reg.get("view.toggle_fullscreen").shortcut == "F11"
 
 
 def test_default_command_hooks_are_noops() -> None:
