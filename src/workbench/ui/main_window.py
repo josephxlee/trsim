@@ -1,4 +1,4 @@
-"""TRsim MainWindow — thin assembler (Phase 4.1 + 4.2a).
+"""TRsim MainWindow — thin assembler (Phase 4.1 + 4.2a + 4.2b).
 
 Owns:
 
@@ -6,12 +6,14 @@ Owns:
 - A central :class:`QStackedWidget` with one page per workspace.
 - A workspace-toggle toolbar (Editor / Simulator radio actions).
 - Ctrl+Shift+E / Ctrl+Shift+S shortcuts for switching.
-- Phase 4.2a — a :class:`WorkbenchCommandRegistry` + :class:`CommandPalette`
-  bound to ``Ctrl+Shift+P``.
+- A :class:`WorkbenchCommandRegistry` seeded by
+  :func:`register_builtin_commands` + a :class:`CommandPalette` bound
+  to ``Ctrl+Shift+P``.
+- A :class:`SimulationToolbar` (outer layer) and
+  :class:`TargetRunToolbar` (inner layer), separated by a toolbar break.
 
 Subsequent Phase 4 sub-phases bolt on:
 
-- Phase 4.2b: Sim / Target run toolbars, Speed selector.
 - Phase 4.2c: MenuBar (File / Edit / View / Run / Plugins / Tools / Help).
 - Phase 4.2d: DockManager + workspace-state persistence.
 - Phase 4.3+: real Editor activities and Simulator panels.
@@ -26,12 +28,14 @@ from PySide6.QtWidgets import QMainWindow, QStackedWidget, QToolBar, QWidget
 
 from workbench import __version__
 from workbench.ui.commands import (
+    CommandHooks,
     CommandPalette,
-    WorkbenchCommand,
     WorkbenchCommandRegistry,
+    register_builtin_commands,
 )
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.simulator.workspace import SimulatorWorkspace
+from workbench.ui.toolbars import SimulationToolbar, TargetRunToolbar
 from workbench.ui.workspace_selector import Workspace, WorkspaceSelector
 
 
@@ -61,10 +65,17 @@ class MainWindow(QMainWindow):
         self.selector.workspace_changed.connect(self._on_workspace_changed)
         self._sync_to_selector()
 
-        self._register_builtin_commands()
+        register_builtin_commands(self.commands, self._build_command_hooks())
         self._palette = CommandPalette(self.commands, self)
         self._palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
         self._palette_shortcut.activated.connect(self.open_command_palette)
+
+        self.addToolBarBreak()
+        self._sim_toolbar = SimulationToolbar(self.commands, self)
+        self.addToolBar(self._sim_toolbar)
+        self.addToolBarBreak()
+        self._target_toolbar = TargetRunToolbar(self.commands, self)
+        self.addToolBar(self._target_toolbar)
 
     # ------------------------------------------------------------------
     # Toolbar / actions
@@ -110,35 +121,15 @@ class MainWindow(QMainWindow):
         self._actions[ws].setChecked(True)
 
     # ------------------------------------------------------------------
-    # Command catalog (Phase 4.2a — minimal seed; 4.2b/c add Sim/Target)
+    # Command catalog
     # ------------------------------------------------------------------
-    def _register_builtin_commands(self) -> None:
-        self.commands.register(
-            WorkbenchCommand(
-                id="workspace.switch_to_editor",
-                title="Switch to Editor Workspace",
-                category="Workspace",
-                execute=self._activate_editor,
-                shortcut="Ctrl+Shift+E",
-            )
-        )
-        self.commands.register(
-            WorkbenchCommand(
-                id="workspace.switch_to_simulator",
-                title="Switch to Simulator Workspace",
-                category="Workspace",
-                execute=self._activate_simulator,
-                shortcut="Ctrl+Shift+S",
-            )
-        )
-        self.commands.register(
-            WorkbenchCommand(
-                id="palette.open",
-                title="Show Command Palette",
-                category="View",
-                execute=self.open_command_palette,
-                shortcut="Ctrl+Shift+P",
-            )
+    def _build_command_hooks(self) -> CommandHooks:
+        # Phase 5 wiring replaces the no-op defaults for sim/target hooks
+        # with calls into SimulationClock / RunManager via CommandBus.
+        return CommandHooks(
+            on_workspace_editor=self._activate_editor,
+            on_workspace_simulator=self._activate_simulator,
+            on_palette_open=self.open_command_palette,
         )
 
     def _activate_editor(self) -> None:
@@ -165,3 +156,11 @@ class MainWindow(QMainWindow):
     def command_palette(self) -> CommandPalette:
         """Return the embedded CommandPalette (test helper)."""
         return self._palette
+
+    def simulation_toolbar(self) -> SimulationToolbar:
+        """Return the SimulationToolbar (test helper)."""
+        return self._sim_toolbar
+
+    def target_run_toolbar(self) -> TargetRunToolbar:
+        """Return the TargetRunToolbar (test helper)."""
+        return self._target_toolbar

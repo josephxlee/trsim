@@ -14,6 +14,11 @@ catalog can include actions with no domain side-effect (``view.toggle_panel``,
 
 from __future__ import annotations
 
+from workbench.ui.commands.builtin import (
+    SIM_SPEEDS,
+    CommandHooks,
+    register_builtin_commands,
+)
 from workbench.ui.commands.palette import CommandPalette
 from workbench.ui.commands.registry import (
     WorkbenchCommand,
@@ -21,7 +26,10 @@ from workbench.ui.commands.registry import (
 )
 
 __all__ = [
+    "SIM_SPEEDS",
+    "CommandHooks",
     "CommandPalette",
     "WorkbenchCommand",
     "WorkbenchCommandRegistry",
+    "register_builtin_commands",
 ]

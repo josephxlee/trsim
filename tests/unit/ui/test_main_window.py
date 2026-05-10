@@ -95,3 +95,41 @@ def test_open_command_palette_shows_dialog(qtbot) -> None:  # type: ignore[no-un
     win.open_command_palette()
     assert palette.isVisible() is True
     palette.close()
+
+
+# ---------- Phase 4.2b — Sim / Target toolbars ----------
+
+
+def test_main_window_mounts_sim_and_target_toolbars(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.toolbars.simulation_toolbar import SimulationToolbar
+    from workbench.ui.toolbars.target_run_toolbar import TargetRunToolbar
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    assert isinstance(win.simulation_toolbar(), SimulationToolbar)
+    assert isinstance(win.target_run_toolbar(), TargetRunToolbar)
+
+
+def test_main_window_registers_full_phase_4_2_command_set(qtbot) -> None:  # type: ignore[no-untyped-def]
+    win = MainWindow()
+    qtbot.addWidget(win)
+    ids = {cmd.id for cmd in win.commands.all()}
+    assert {
+        "sim.start",
+        "sim.pause",
+        "sim.stop",
+        "sim.speed.x1",
+        "sim.speed.x2",
+        "sim.speed.x4",
+        "sim.speed.x8",
+        "target.run",
+        "target.pause",
+        "target.stop",
+    } <= ids
+
+
+def test_sim_lifecycle_button_dispatches_via_registry(qtbot) -> None:  # type: ignore[no-untyped-def]
+    win = MainWindow()
+    qtbot.addWidget(win)
+    # No-op hook for sim.start at Phase 4.2b — must not raise.
+    win.simulation_toolbar().lifecycle_action("sim.start").trigger()
