@@ -1,4 +1,4 @@
-"""TRsim CLI dispatch (Phase 3.7).
+"""TRsim CLI dispatch (Phase 3.7 + 4.1).
 
 Subcommands:
 
@@ -8,6 +8,7 @@ Subcommands:
 - ``trsim profile --scenario <toml> [--frames N] [--output JSON]``:
   exercise the FrameProfiler over ``N`` synthetic frames, emit a
   per-stage avg / p50 / p95 / p99 report.
+- ``trsim ui``: launch the PySide6 MainWindow (Phase 4.1).
 - ``trsim --version``: print the package version.
 
 Phase 3.7 keeps the actual pipeline integration minimal — the
@@ -91,6 +92,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         default=None,
         help="path to write a JSON profile report (default: stdout)",
+    )
+
+    ui_p = sub.add_parser("ui", help="launch the PySide6 MainWindow (Phase 4.1)")
+    ui_p.add_argument(
+        "--workspace",
+        choices=("editor", "simulator"),
+        default="editor",
+        help="initial workspace to show (default: editor)",
     )
 
     return parser
@@ -181,6 +190,22 @@ def _cmd_profile(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ui(args: argparse.Namespace) -> int:
+    """`trsim ui` — launch the PySide6 MainWindow."""
+    # Local import keeps the CLI usable in headless contexts that never
+    # touch the UI subcommand (e.g. CI running `trsim profile`).
+    from PySide6.QtWidgets import QApplication
+
+    from workbench.ui.main_window import MainWindow
+    from workbench.ui.workspace_selector import Workspace
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = MainWindow()
+    window.selector.set_workspace(Workspace(args.workspace))
+    window.show()
+    return int(app.exec())
+
+
 # ---------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------
@@ -193,6 +218,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_run(args)
     if args.command == "profile":
         return _cmd_profile(args)
+    if args.command == "ui":  # pragma: no cover — GUI loop
+        return _cmd_ui(args)
     parser.print_help()
     return 0
 

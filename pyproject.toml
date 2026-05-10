@@ -87,6 +87,7 @@ dev = [
 # Phase 4 에서 Qt 테스트 시작 시 다시 활성, 그 때 ci.yml 에 libegl1 등 system deps 추가 필요
 ui-dev = [
     "pytest-qt>=4.4",                    # Qt 위젯 테스트 (Phase 4)
+    "pyvistaqt>=0.11",                   # PyVista QtInteractor (Phase 4.9)
 ]
 
 # NN 통합 (Phase 6, MVP+α)
