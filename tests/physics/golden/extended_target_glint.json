@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "atol": 0.0,
+    "dataset_id": "physics.reflection.extended_target.glint",
+    "notes": "Closed-form 2-scatterer along-LOS reference. Radar at ENU origin, target at +North 1 km, two scatterers at body offsets (0,0,0) and (1,0,0) m (= along +North at zero attitude), both 0 dBsm = 1 m^2. Amplitude per Mahafza monostatic ~ sqrt(sigma) / R^2. Round-trip phase = 4 pi R / lambda. Apparent centroid = amplitude-weighted barycenter of the two scatterer ENU positions. All expected values were generated bit-for-bit with the same float64 math the function under test uses (c = 299_792_458 m/s exact).",
+    "rtol": 1e-12,
+    "source": "Skolnik Radar Handbook 3e chap 18 (glint) + Mahafza Radar Systems Analysis ch.13 + plan/14 § 14.10.4",
+    "units": {
+      "amp_ratio": "dimensionless",
+      "amplitude_0": "1/m^2",
+      "amplitude_1": "1/m^2",
+      "apparent_north_m": "m",
+      "frequency_hz": "Hz",
+      "glint_north_m": "m",
+      "range_0_m": "m",
+      "range_1_m": "m",
+      "rcs_dbsm": "dBsm",
+      "total_signal_abs": "1/m^2"
+    }
+  },
+  "samples": [
+    {
+      "case_id": "two_scatterer_along_los_xband_9_4ghz",
+      "expected": {
+        "amp_ratio": 0.998002996004994,
+        "amplitude_0": 1e-06,
+        "amplitude_1": 9.98002996004994e-07,
+        "apparent_north_m": 1000.49950025,
+        "glint_north_m": 0.49950024999998277,
+        "total_signal_abs": 1.2248386077146085e-06,
+        "total_signal_imag": 6.876514732465381e-07,
+        "total_signal_real": 1.0135901865596996e-06
+      },
+      "inputs": {
+        "frequency_hz": 9400000000.0,
+        "radar_position_enu_m": [0.0, 0.0, 0.0],
+        "rcs_dbsm_each": 0.0,
+        "scatterer_offsets_body_m": [
+          [0.0, 0.0, 0.0],
+          [1.0, 0.0, 0.0]
+        ],
+        "target_attitude_rad": [0.0, 0.0, 0.0],
+        "target_position_enu_m": [0.0, 1000.0, 0.0]
+      }
+    }
+  ]
+}

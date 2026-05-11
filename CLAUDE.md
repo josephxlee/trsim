@@ -17,11 +17,19 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: Phase 5.4 (planar array / atmosphere ISA / ballistic
-> 중 가벼운 것). 자세한 인계: `docs/sessions/phase_4_ui_layout.md` (Phase
-> 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
-> 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
+> **다음 진입점**: Phase 5.15 (Coherence validator 6 검사) — `docs/
+> sessions/phase_5_verification_kickoff.md` § 4 권고 흐름. Phase 4 /
+> 5.1~5.14 history 는 같은 kickoff doc + dashboard 줄들 참조.
 
+- **Phase 5.14 DONE** — ExtendedTarget multi-scatterer + glint 회귀
+  (plan/14 § 14.10). golden 2-scatterer along-LOS 정확값 (amplitude
+  1e-6 + (R0/R1)² ratio + centroid 1000.4995 + |sum| 1.2248e-6 +
+  total_signal real/imag bit-for-bit). Skolnik glint 한계 invariant:
+  apparent 5-scatterer aircraft 5종 attitude/freq 에서 scatterer ENU
+  bounding box 안 + triangle inequality (|sum|≤Σamp) + total_rcs_dbsm
+  attitude-invariant 4종 + deterministic 회귀 + body-x-aligned roll
+  invariant + symmetric paired freq sweep glint mean ~0. 누적 1164
+  PASS (+19 신규).
 - **Phase 5.13 DONE** — FrameProfiler + StageTimingProbe 검증
   (plan/18 § 18.17). 기본 warmup=10 + negative warmup reject + empty
   stage / negative elapsed reject + stages 알파벳 정렬 + missing
