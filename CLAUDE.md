@@ -22,6 +22,12 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.10 DONE** — CFAR detector 검증 (plan/04 § 4.3 Phase 5 #17,
+  OS-CFAR vs CA-CFAR). alpha_ca_for_pfa Skolnik closed-form 3 case +
+  monotonicity + pfa/n_total rejection. ca_cfar_1d spike detection +
+  pure-noise 2048 cells with alpha(1e-3,32) → fa<20 + edge cells
+  False + 4 input validation. os_cfar_1d clutter-edge spike + 2D
+  shape rejection. 누적 1118 PASS (+16 신규).
 - **Phase 5.9 DONE** — Single-scatterer RCS 분석 검증. sphere
   geometric pi·r² (r=1 → π, r²-scaling) + Rayleigh (r=1cm @ λ=3cm) +
   flat plate 4πA²/λ² + A² scaling + cylinder broadside + L² scaling +
