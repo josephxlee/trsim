@@ -17,10 +17,20 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 7 (DLC 시스템)** 또는 6.5+ 후속 (Pipeline
-> 통합으로 random demo loop → real probe wire, Step 2 UI controller,
-> Training Panel). Phase 6 NN 통합 MVP 7 sub-step 마감.
+> **다음 진입점**: **Phase 7 (DLC 시스템)** 또는 Phase 6 후속
+> (Pipeline 통합 random demo→real probe, Training Panel UI). Step 2
+> controller (6.8) 마감.
 
+- **Phase 6.8 DONE** — Step 2 Evaluation controller (plan/07 § 7.6).
+  `src/workbench/ui/simulator/nn_mode/step2_controller.py`:
+  `NNStep2Controller(panel, datasets, plugins)` 가 dataset / plugin
+  registry 받아 combo 채움 + `run_eval_requested` → pairing_loss
+  (Pairing 행 RMSE 채움, Bias=0.0) + dataset/plugin 미선택 시 err
+  메시지 + `export_report_requested` stub. `register_dataset` /
+  `register_plugin` 동적 추가. 11 pytest-qt tests (combo populate
+  + register / 2 empty-name reject / identity loss 0.000 / wrong
+  loss 1.000 / 2 missing-input error / error recovery / export
+  stub). 누적 **1355 PASS** (+11 신규).
 - **Phase 6.7 DONE** — TrainerService stub (plan/07 § 7.5).
   `src/workbench/app/nn/trainer.py`: `TrainingJob` frozen+slots
   dataclass (training_job.toml 1:1 — job_id/task/dataset_path/

@@ -1,0 +1,199 @@
+"""Step 2 controller wiring tests (Phase 6 후속)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+pytest.importorskip("PySide6")
+
+from workbench.app.nn import DatasetBuilder, NumpyPairingNN
+from workbench.domain.nn import DatasetVariant, FieldSpec, SampleSpec
+from workbench.ui.simulator.nn_mode.step2_controller import NNStep2Controller
+from workbench.ui.simulator.nn_mode.step2_eval import Step2EvalPanel
+
+pytestmark = pytest.mark.qt
+
+
+def _pairing_spec(beat_count: int = 4) -> SampleSpec:
+    return SampleSpec(
+        spec_id="pairing",
+        probe_stage="pairing",
+        inputs=(
+            FieldSpec("up_beats", (beat_count,), "complex64"),
+            FieldSpec("down_beats", (beat_count,), "complex64"),
+        ),
+        labels=(FieldSpec("pair_indices", (beat_count,), "int32"),),
+    )
+
+
+def _build_identity_dataset(tmp_path: Path, n_samples: int = 4) -> Path:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    out = tmp_path / "identity.h5"
+    builder = DatasetBuilder(
+        spec=_pairing_spec(),
+        variant=DatasetVariant(variant_id="A"),
+        dataset_id="identity",
+        output_path=out,
+    )
+    rng = np.random.default_rng(seed=0)
+    diagonal = np.arange(4, dtype=np.int32)
+    for _ in range(n_samples):
+        up = rng.standard_normal(4).astype(np.complex64)
+        builder.append({"up_beats": up, "down_beats": up}, {"pair_indices": diagonal})
+    builder.finalize()
+    return out
+
+
+def _build_wrong_dataset(tmp_path: Path, n_samples: int = 4) -> Path:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    out = tmp_path / "wrong.h5"
+    builder = DatasetBuilder(
+        spec=_pairing_spec(),
+        variant=DatasetVariant(variant_id="A"),
+        dataset_id="wrong",
+        output_path=out,
+    )
+    rng = np.random.default_rng(seed=1)
+    shifted = np.roll(np.arange(4, dtype=np.int32), 1)
+    for _ in range(n_samples):
+        up = rng.standard_normal(4).astype(np.complex64)
+        builder.append({"up_beats": up, "down_beats": up}, {"pair_indices": shifted})
+    builder.finalize()
+    return out
+
+
+def _wire(
+    qtbot: object,
+    *,
+    datasets: dict[str, Path] | None = None,
+    plugins: dict[str, NumpyPairingNN] | None = None,
+) -> tuple[Step2EvalPanel, NNStep2Controller]:
+    panel = Step2EvalPanel()
+    qtbot.addWidget(panel)  # type: ignore[attr-defined]
+    controller = NNStep2Controller(panel, datasets=datasets, plugins=plugins)
+    return panel, controller
+
+
+def _rmse_cell(panel: Step2EvalPanel) -> str:
+    item = panel.error_table().item(0, 1)
+    assert item is not None
+    return item.text()
+
+
+def _select(combo_factory: object, name: str) -> None:
+    combo = combo_factory()  # type: ignore[operator]
+    idx = combo.findText(name)
+    combo.setCurrentIndex(idx)
+
+
+# ---------------------------------------------------------------------
+# Combo population
+# ---------------------------------------------------------------------
+
+
+def test_constructor_populates_combos_from_registries(qtbot: object, tmp_path: Path) -> None:
+    ds = _build_identity_dataset(tmp_path)
+    plug = NumpyPairingNN()
+    panel, controller = _wire(qtbot, datasets={"identity": ds}, plugins={"baseline": plug})
+    assert controller is not None
+    assert panel.dataset_combo().findText("identity") >= 0
+    assert panel.plugin_combo().findText("baseline") >= 0
+
+
+def test_register_dataset_appears_in_combo(qtbot: object, tmp_path: Path) -> None:
+    panel, controller = _wire(qtbot)
+    ds = _build_identity_dataset(tmp_path)
+    controller.register_dataset("identity", ds)
+    assert panel.dataset_combo().findText("identity") >= 0
+
+
+def test_register_plugin_appears_in_combo(qtbot: object) -> None:
+    panel, controller = _wire(qtbot)
+    controller.register_plugin("baseline", NumpyPairingNN())
+    assert panel.plugin_combo().findText("baseline") >= 0
+
+
+def test_register_dataset_rejects_empty_name(qtbot: object, tmp_path: Path) -> None:
+    _, controller = _wire(qtbot)
+    with pytest.raises(ValueError, match=r"non-empty"):
+        controller.register_dataset("", tmp_path / "x.h5")
+
+
+def test_register_plugin_rejects_empty_name(qtbot: object) -> None:
+    _, controller = _wire(qtbot)
+    with pytest.raises(ValueError, match=r"non-empty"):
+        controller.register_plugin("", NumpyPairingNN())
+
+
+# ---------------------------------------------------------------------
+# Run evaluation
+# ---------------------------------------------------------------------
+
+
+def test_run_eval_on_identity_dataset_reports_zero_loss(qtbot: object, tmp_path: Path) -> None:
+    ds = _build_identity_dataset(tmp_path)
+    panel, controller = _wire(
+        qtbot, datasets={"identity": ds}, plugins={"baseline": NumpyPairingNN()}
+    )
+    assert controller is not None
+    _select(panel.dataset_combo, "identity")
+    _select(panel.plugin_combo, "baseline")
+    panel.run_eval_requested.emit()
+    assert _rmse_cell(panel) == "0.000"
+
+
+def test_run_eval_on_wrong_dataset_reports_unit_loss(qtbot: object, tmp_path: Path) -> None:
+    ds = _build_wrong_dataset(tmp_path)
+    panel, controller = _wire(qtbot, datasets={"wrong": ds}, plugins={"baseline": NumpyPairingNN()})
+    assert controller is not None
+    _select(panel.dataset_combo, "wrong")
+    _select(panel.plugin_combo, "baseline")
+    panel.run_eval_requested.emit()
+    assert _rmse_cell(panel) == "1.000"
+
+
+def test_run_eval_without_dataset_emits_error(qtbot: object) -> None:
+    panel, controller = _wire(qtbot, plugins={"baseline": NumpyPairingNN()})
+    assert controller is not None
+    _select(panel.plugin_combo, "baseline")
+    panel.run_eval_requested.emit()
+    assert "err" in _rmse_cell(panel)
+
+
+def test_run_eval_without_plugin_emits_error(qtbot: object, tmp_path: Path) -> None:
+    ds = _build_identity_dataset(tmp_path)
+    panel, controller = _wire(qtbot, datasets={"identity": ds})
+    assert controller is not None
+    _select(panel.dataset_combo, "identity")
+    panel.run_eval_requested.emit()
+    assert "err" in _rmse_cell(panel)
+
+
+def test_run_eval_recovers_after_initial_error(qtbot: object, tmp_path: Path) -> None:
+    """Selecting a valid dataset after an error must overwrite the error
+    cell with the new RMSE.
+    """
+    ds = _build_identity_dataset(tmp_path)
+    panel, controller = _wire(
+        qtbot, datasets={"identity": ds}, plugins={"baseline": NumpyPairingNN()}
+    )
+    assert controller is not None
+    # First trigger an error (no dataset selected).
+    _select(panel.plugin_combo, "baseline")
+    panel.run_eval_requested.emit()
+    assert "err" in _rmse_cell(panel)
+    # Then select the dataset and rerun.
+    _select(panel.dataset_combo, "identity")
+    panel.run_eval_requested.emit()
+    assert _rmse_cell(panel) == "0.000"
+
+
+def test_export_report_signal_is_handled_without_crash(qtbot: object) -> None:
+    """The stub controller must accept the export signal silently."""
+    panel, controller = _wire(qtbot)
+    assert controller is not None
+    panel.export_report_requested.emit()
+    # No assertion; success = no exception.
