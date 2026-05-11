@@ -17,11 +17,37 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: Task B (Variant chain runner) DONE — Step 1 panel
-> 의 "Build mode" 선택으로 SINGLE / CHAIN_4VARIANT 양쪽 동작. 4-tier
-> A/B/C/D HDF5 + manifest TOML 자동 출력. 다음 큰 작업 선택지 C/D
-> (Real TrainerService / Simulator panel mount) 는 사용자 결정 영역.
+> **다음 진입점**: Task C (Real TrainerService backend) DONE — numpy MLP
+> 실제 gradient descent backend 가 fake-loop 옆에 추가. `backend=
+> "numpy_mlp"` 옵션으로 train/val MSE 감소, 실 weights `.npz` 저장.
+> 다음 큰 작업 선택지 D (Simulator panel mount) 는 사용자 결정 영역.
 
+- **Task C (Real TrainerService numpy MLP backend) DONE** — plan/07
+  § 7.5.3. `src/workbench/app/nn/numpy_mlp.py`: pure numpy MLP helper —
+  `NumpyMLPParams` (mutable list weights/biases + Activation Literal),
+  `Activation = Literal["relu","tanh"]`, `init_params(layer_dims, *,
+  activation, rng_seed)` He init (ReLU) / Xavier (tanh), `forward(params,
+  x) → Y_pred` (last layer linear), `mse_loss(pred, target)` mean over
+  batch + features, `train_one_epoch(params, x_train, y_train, *,
+  learning_rate, batch_size, rng) → post-update loss` mini-batch SGD
+  in-place update, `flatten_inputs / flatten_labels(spec, mapping, n)`
+  complex → (re, im) concat 후 (N, D) float32 행렬. `src/workbench/app/
+  nn/trainer.py` 의 `TrainerService(*, epoch_callback=None, backend:
+  TrainingBackend="fake", rng_seed=0)` 추가, `TrainingBackend = Literal[
+  "fake","numpy_mlp"]`. backend="numpy_mlp" 분기: read_dataset →
+  flatten → split (train/val by job fractions, seed reproducible) →
+  init_params(layer_dims=(D_in, *job.hidden, D_out)) → epoch loop
+  (train_one_epoch + val mse + best_val/early_stopping) → weights
+  `.npz` 에 layer_i_W + layer_i_b 저장 (fake 의 layer_i 와 다른 키).
+  fake backend (Phase 6.7) 그대로 유지 (default). 22 새 tests (helper
+  14 + trainer backend 8): layer shape / He init scale / dim 검증 /
+  seed 재현 / forward zero-weights / mse loss / 합성 linear data 위
+  1 epoch + 50 epochs loss 감소 / mismatched axes / non-positive lr /
+  complex flatten / int → float32 / wrong leading axis; default backend
+  fake 검증 / numpy_mlp 가 missing dataset reject / weights save layer_
+  i_W key / val_loss 감소 / epoch callback signature / early stop 발산
+  trigger (warnings filtered) / 0-sample reject / seed 재현. 누적
+  **1554 PASS** (+22 신규). 5 contracts KEPT.
 - **Task B (Variant build runner) DONE** — plan/07 § 7.4.5a.
   `src/workbench/app/nn/variant_runner.py`: `VariantBuildPlan` frozen
   (variant + dataset_filename + scenario + frames, 2 validation) +

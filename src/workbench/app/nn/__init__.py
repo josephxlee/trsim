@@ -21,6 +21,24 @@ from __future__ import annotations
 from workbench.app.nn.data_exporter import read_dataset, write_dataset
 from workbench.app.nn.dataset_builder import DatasetBuilder, ProgressCallback
 from workbench.app.nn.evaluator import NNEvalResult, evaluate, pairing_loss
+from workbench.app.nn.numpy_mlp import (
+    Activation as NumpyMLPActivation,
+)
+from workbench.app.nn.numpy_mlp import (
+    NumpyMLPParams,
+    flatten_inputs,
+    flatten_labels,
+    mse_loss,
+)
+from workbench.app.nn.numpy_mlp import (
+    forward as numpy_mlp_forward,
+)
+from workbench.app.nn.numpy_mlp import (
+    init_params as numpy_mlp_init_params,
+)
+from workbench.app.nn.numpy_mlp import (
+    train_one_epoch as numpy_mlp_train_one_epoch,
+)
 from workbench.app.nn.pairing_nn import NumpyPairingNN
 from workbench.app.nn.pipeline_runner import (
     PairingScenarioSpec,
@@ -30,6 +48,7 @@ from workbench.app.nn.pipeline_runner import (
 from workbench.app.nn.trainer import (
     EpochCallback,
     TrainerService,
+    TrainingBackend,
     TrainingJob,
     TrainingResult,
 )
@@ -45,11 +64,14 @@ __all__ = [
     "DatasetBuilder",
     "EpochCallback",
     "NNEvalResult",
+    "NumpyMLPActivation",
+    "NumpyMLPParams",
     "NumpyPairingNN",
     "PairingScenarioSpec",
     "PipelineRunner",
     "ProgressCallback",
     "TrainerService",
+    "TrainingBackend",
     "TrainingJob",
     "TrainingResult",
     "VariantBuildPlan",
@@ -58,6 +80,12 @@ __all__ = [
     "VariantProgressCallback",
     "default_pairing_scenario",
     "evaluate",
+    "flatten_inputs",
+    "flatten_labels",
+    "mse_loss",
+    "numpy_mlp_forward",
+    "numpy_mlp_init_params",
+    "numpy_mlp_train_one_epoch",
     "pairing_loss",
     "read_dataset",
     "standard_pairing_build_plans",

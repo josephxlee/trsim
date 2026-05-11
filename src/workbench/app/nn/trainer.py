@@ -1,19 +1,19 @@
-"""TrainerService stub for the in-workbench training loop (plan/07 § 7.5).
+"""TrainerService for the in-workbench training loop (plan/07 § 7.5).
 
-Phase 6.7 — schema + service surface only. The MVP runs a fake epoch
-loop (no real gradient descent) so the wider pipeline can exercise:
+Phase 6.7 stubbed the schema + service surface with a fake decay-
+schedule loop. Task C adds a real numpy MLP backend (still pure
+numpy — no Torch / TF / sklearn) selectable via the ``backend``
+constructor argument:
 
-- the :class:`TrainingJob` configuration round-trip (matches the
-  ``training_job.toml`` schema in plan/07 § 7.5.2);
-- the progress-callback contract the UI's Training Panel will hook;
-- the weights-path side effect (writes a placeholder ``.npz`` so
-  downstream plugin lifecycle can find it).
-
-Real gradient descent lives in :ref:`workbench-train` CLI (plan/07
-§ 7.5.4) or layered learners (`workbench.app.nn.learners.*` in a
-later sub-step). Both share the same TrainingJob schema and weights
-output path so the in-workbench Trainer and the external CLI stay
-interchangeable.
+- ``"fake"`` (default, Phase 6.7 behaviour) — emits a deterministic
+  exponential-decay loss schedule and writes a placeholder ``.npz``.
+  Useful for UI smoke tests that should not require an HDF5 dataset.
+- ``"numpy_mlp"`` (task C) — reads the HDF5 dataset pointed at by
+  :attr:`TrainingJob.dataset_path`, flattens its inputs / labels,
+  splits into train / val / test, trains a fully-connected MLP via
+  mini-batch SGD, and writes ``layer_i_W`` / ``layer_i_b`` arrays
+  to the weights ``.npz``. ``best_val_loss`` and ``early_stopped``
+  reflect the actual training curve.
 
 References:
 
@@ -30,9 +30,26 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
+from numpy.typing import NDArray
+
+from workbench.app.nn.data_exporter import read_dataset
+from workbench.app.nn.numpy_mlp import (
+    NumpyMLPParams,
+    flatten_inputs,
+    flatten_labels,
+    forward,
+    init_params,
+    mse_loss,
+    train_one_epoch,
+)
 
 TrainingFramework = Literal["tensorflow", "pytorch", "numpy_only"]
 """Allowed values for ``TrainingJob.framework`` (plan/07 § 7.5.2)."""
+
+TrainingBackend = Literal["fake", "numpy_mlp"]
+"""TrainerService backends. ``"fake"`` keeps the Phase 6.7 behaviour
+(no dataset I/O); ``"numpy_mlp"`` runs the real gradient-descent
+loop introduced in task C."""
 
 EpochCallback = Callable[[int, float, float], None]
 """``callback(epoch, train_loss, val_loss)`` fired after every epoch."""
@@ -157,33 +174,48 @@ class TrainingResult:
 
 
 class TrainerService:
-    """Synchronous training loop driver (plan/07 § 7.5.3 MVP stub).
+    """Synchronous training loop driver (plan/07 § 7.5.3).
 
-    The MVP does not perform real gradient descent — it emits a
-    deterministic exponential-decay loss schedule, writes a
-    placeholder weights file, and reports the trajectory through the
-    epoch callback. This is enough to let the Editor / TrainerPanel
-    code path and the workbench-train CLI integration come up in
-    isolation.
+    Two backends:
 
-    A future sub-step swaps the fake loop for a real backend (numpy
-    MLP / TF / PyTorch); the public surface stays the same so that
-    swap is transparent to callers.
+    - ``"fake"`` — Phase 6.7 deterministic decay loop. No HDF5 read.
+    - ``"numpy_mlp"`` — task C real numpy gradient descent.
+
+    The public surface (``run(job) -> TrainingResult``) is identical
+    across backends; the choice lives on the constructor so callers
+    can swap implementations without rewriting their plumbing.
     """
 
-    def __init__(self, *, epoch_callback: EpochCallback | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        epoch_callback: EpochCallback | None = None,
+        backend: TrainingBackend = "fake",
+        rng_seed: int = 0,
+    ) -> None:
         self._epoch_callback = epoch_callback
+        self._backend = backend
+        self._rng_seed = rng_seed
 
     def run(self, job: TrainingJob) -> TrainingResult:
-        """Execute the (fake) training loop and persist weights.
+        """Execute the configured backend and persist the weights file.
 
         Args:
             job: Configuration record.
 
         Returns:
             :class:`TrainingResult` with per-epoch losses + the path
-            the placeholder weights file was written to.
+            the weights file was written to.
         """
+        if self._backend == "numpy_mlp":
+            return self._run_numpy_mlp(job)
+        return self._run_fake(job)
+
+    # ------------------------------------------------------------------
+    # Fake backend (Phase 6.7)
+    # ------------------------------------------------------------------
+
+    def _run_fake(self, job: TrainingJob) -> TrainingResult:
         train_losses: list[float] = []
         val_losses: list[float] = []
         best_val = float("inf")
@@ -225,6 +257,77 @@ class TrainerService:
             early_stopped=early_stopped,
         )
 
+    # ------------------------------------------------------------------
+    # numpy_mlp backend (task C)
+    # ------------------------------------------------------------------
+
+    def _run_numpy_mlp(self, job: TrainingJob) -> TrainingResult:
+        meta, inputs, labels = read_dataset(job.dataset_path)
+        n_samples = meta.total_samples
+        if n_samples <= 0:
+            msg = f"numpy_mlp backend requires >= 1 sample; dataset has {n_samples}"
+            raise ValueError(msg)
+
+        x = flatten_inputs(meta.spec, inputs, n_samples)
+        y = flatten_labels(meta.spec, labels, n_samples)
+
+        x_train, y_train, x_val, y_val = _split_train_val(
+            x, y, job.train_fraction, job.val_fraction, seed=self._rng_seed
+        )
+
+        layer_dims = _resolve_layer_dims(job, x.shape[1], y.shape[1])
+        activation: Literal["relu", "tanh"] = "tanh" if job.activation == "tanh" else "relu"
+        params = init_params(layer_dims, activation=activation, rng_seed=self._rng_seed)
+
+        rng = np.random.default_rng(self._rng_seed + 1)
+        train_losses: list[float] = []
+        val_losses: list[float] = []
+        best_val = float("inf")
+        best_epoch = 0
+        early_stopped = False
+        epochs_run = 0
+
+        for epoch in range(1, job.epochs + 1):
+            train_loss = train_one_epoch(
+                params,
+                x_train,
+                y_train,
+                learning_rate=job.learning_rate,
+                batch_size=job.batch_size,
+                rng=rng,
+            )
+            val_loss = mse_loss(forward(params, x_val), y_val) if x_val.shape[0] > 0 else train_loss
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
+            epochs_run = epoch
+
+            if val_loss < best_val - 1e-9:
+                best_val = val_loss
+                best_epoch = epoch
+
+            if self._epoch_callback is not None:
+                self._epoch_callback(epoch, train_loss, val_loss)
+
+            if (
+                job.early_stopping_patience > 0
+                and epoch - best_epoch >= job.early_stopping_patience
+            ):
+                early_stopped = True
+                break
+
+        _write_learned_weights(job.weights_path, params)
+
+        return TrainingResult(
+            job_id=job.job_id,
+            completed_epochs=epochs_run,
+            final_train_loss=train_losses[-1],
+            final_val_loss=val_losses[-1],
+            best_val_loss=best_val,
+            best_epoch=best_epoch,
+            weights_path=job.weights_path,
+            early_stopped=early_stopped,
+        )
+
 
 def _decay_loss(epoch: int, *, base: float, decay: float) -> float:
     """Deterministic loss schedule: ``base * decay ** (epoch - 1)``."""
@@ -244,3 +347,56 @@ def _write_placeholder_weights(path: Path, job: TrainingJob) -> None:
         for i, (a, b) in enumerate(zip(job.layer_sizes[:-1], job.layer_sizes[1:], strict=False))
     }
     np.savez(path, **weights)  # type: ignore[arg-type]
+
+
+def _write_learned_weights(path: Path, params: NumpyMLPParams) -> None:
+    """Persist the trained ``NumpyMLPParams`` as ``layer_i_W`` / ``layer_i_b``."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    arrays: dict[str, np.ndarray] = {}
+    for i, (w, b) in enumerate(zip(params.weights, params.biases, strict=True)):
+        arrays[f"layer_{i}_W"] = w
+        arrays[f"layer_{i}_b"] = b
+    np.savez(path, **arrays)  # type: ignore[arg-type]
+
+
+def _split_train_val(
+    x: NDArray[np.float32],
+    y: NDArray[np.float32],
+    train_fraction: float,
+    val_fraction: float,
+    *,
+    seed: int,
+) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]]:
+    """Shuffle ``(x, y)`` and slice the train / val portions.
+
+    The remaining tail (test split) is not returned — the TrainerService
+    MVP only tracks train + val losses. The Step 2 evaluator computes
+    the test loss separately via :func:`workbench.app.nn.evaluate`.
+    """
+    n = x.shape[0]
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(n)
+    n_train = max(1, int(n * train_fraction))
+    n_val = max(0, int(n * val_fraction))
+    if n_train >= n:
+        n_train = max(1, n - 1)
+        n_val = 0
+    elif n_train + n_val >= n:
+        n_val = max(0, n - n_train - 1)
+
+    train_idx = perm[:n_train]
+    val_idx = perm[n_train : n_train + n_val]
+    return x[train_idx], y[train_idx], x[val_idx], y[val_idx]
+
+
+def _resolve_layer_dims(job: TrainingJob, d_in: int, d_out: int) -> tuple[int, ...]:
+    """Anchor :attr:`TrainingJob.layer_sizes` to the data dimensions.
+
+    ``job.layer_sizes[0]`` and ``[-1]`` are treated as suggestions —
+    the actual first / last entries come from the dataset to keep the
+    forward shape sound. Hidden widths pass through.
+    """
+    if len(job.layer_sizes) < 2:
+        return (d_in, d_out)
+    hidden = job.layer_sizes[1:-1]
+    return (d_in, *hidden, d_out)
