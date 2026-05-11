@@ -17,10 +17,29 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: Phase 5.15 (Coherence validator 6 검사) — `docs/
-> sessions/phase_5_verification_kickoff.md` § 4 권고 흐름. Phase 4 /
-> 5.1~5.14 history 는 같은 kickoff doc + dashboard 줄들 참조.
+> **다음 진입점**: Phase 5.19 (multipath / horizon golden 보강 선택)
+> 또는 Phase 6 (NN 통합) — `docs/sessions/phase_5_verification_kickoff.md`
+> § 3 / § 4. 5.15 (coherence_validator) + 5.16 (sample_terrain_safe)
+> 는 구현 미존재로 skip; 5.17 (EKF+UKF scenario) + 5.18 (GNN
+> association) 검증 카테고리는 완료.
 
+- **Phase 5.17 + 5.18 DONE** — Tracker scenario regression.
+  - 5.17 EKF + UKF: CV truth 위에서 F(dt) bit-for-bit 회귀 + 50-frame
+    perfect-measurement 비발산 (pos<7.5m, vel<1.5m/s) + 정보 누적
+    (cov trace 매 update 감소 + 첫 3 step monotonically 감소) + UKF
+    predict ≡ EKF predict on linear CV (atol=1e-9) + UKF update
+    pulls toward perfect measurement + innovation 노름 ½ 이하 감소
+    + EKF/UKF predict negative dt reject. 9 tests.
+  - 5.18 GNN data association: close pair → assigned, far pair →
+    gated out, two-track/two-detection no-double-assignment +
+    물리적 가까운 쪽 winner, two-track/one-detection 가까운 track
+    winner, az ±pi wrap 경계 association, Mahalanobis = 0 for
+    perfect measurement, noise std + gating threshold rejection,
+    DEFAULT_GATING_THRESHOLD_CHI2 ≈ 14.16 (chi-square 3 DOF 99.7%).
+    12 tests. 누적 1185 PASS (+21 신규).
+- **Phase 5.15 + 5.16 SKIP** — coherence_validator + sample_terrain_safe
+  는 plan/11 § 11.7 / § 11.11.7 정의만 있고 `src/workbench/` 코드
+  미구현. Phase 6+ implementation 이후 verification 추가.
 - **Phase 5.14 DONE** — ExtendedTarget multi-scatterer + glint 회귀
   (plan/14 § 14.10). golden 2-scatterer along-LOS 정확값 (amplitude
   1e-6 + (R0/R1)² ratio + centroid 1000.4995 + |sum| 1.2248e-6 +
