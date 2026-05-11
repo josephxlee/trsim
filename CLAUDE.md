@@ -17,11 +17,22 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6.4 (DatasetBuilder + Step 1 UI wiring)**
-> 또는 **6.5 (numpy-only Pairing NN reference)**. 6.1 schema + 6.2
-> NNPluginMixin + 6.3 HDF5 IO 완료. Plan/07 § 7.4.3 의 자동 Dataset
-> Builder (Pipeline 통합) 가 다음 자연스러운 step.
+> **다음 진입점**: **Phase 6.4b (Pipeline probe-hook)** + **6.4c (Step 1
+> UI wiring)** — DatasetBuilder (6.4a) 가 Pipeline 의 stage output 을
+> 어떻게 받는지 + Editor "Build Dataset" 버튼이 DatasetBuilder 를
+> 실제 호출하는 controller. Plan/07 § 7.4.3.
 
+- **Phase 6.4a DONE** — DatasetBuilder streaming class (plan/07 §
+  7.4.3). `src/workbench/app/nn/dataset_builder.py`: spec/variant/
+  dataset_id/output_path/target_samples/progress_callback 생성자 +
+  `append(inputs_record, labels_record)` 매 sample 검증 + progress
+  callback 호출 + `cancel()` / `finalize(scenarios, extra)` ->
+  DatasetMeta + write_dataset 호출. App layer memory 에 list 누적,
+  finalize 시 np.stack 으로 (N, *field.shape) 변환. 11 tests
+  (round-trip / 0-sample edge / progress callback / cancel partial /
+  append after finalize / finalize twice / 3 record-shape-dtype
+  validation / 2 constructor validation). 누적 **1284 PASS**
+  (+11 신규).
 - **Phase 6.3 DONE** — DataExporter HDF5 IO (plan/07 § 7.4.4).
   `src/workbench/app/nn/data_exporter.py`: `write_dataset(path,
   meta, inputs, labels)` + `read_dataset(path) -> (meta, inputs,
