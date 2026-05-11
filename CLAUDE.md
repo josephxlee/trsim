@@ -17,9 +17,23 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6.6 (NNEvaluator 4-error 진단)** 또는
-> Phase 6.7 (TrainerService stub). 6.5 numpy Pairing reference 완료.
+> **다음 진입점**: **Phase 6.7 (TrainerService stub)** 또는 Phase 6
+> wrap-up. 6.6 NNEvaluator 4-error 완료.
 
+- **Phase 6.6 DONE** — NNEvaluator 4-error 진단 (plan/07 § 7.6).
+  `src/workbench/app/nn/evaluator.py`: `NNEvalResult` frozen
+  dataclass (bayes_error / training / dev / test 4-error + 3 gap
+  + diagnosis_hint + dataset_paths) + `pairing_loss(plugin, path)`
+  =1-accuracy GT-valid filter (pair_indices≥0 만 채점) + `evaluate(
+  plugin, training/dev/test, bayes_error=None)` = 4-error 계산 +
+  gap 진단 hint. _GAP_FLAG_THRESHOLD=0.10 over threshold gap 마다
+  bullet ("avoidable bias high" / "variance high" / "data
+  mismatch"); balanced 시 단일 "balanced" 반환. 9 tests in
+  `tests/unit/app/test_nn_evaluator.py` (identity dataset loss=0
+  / wrong-label loss=1 / -1 mask exclude / 4-error all balanced /
+  data mismatch detect / variance detect / bayes avoidable_bias /
+  bayes range reject / dataset_paths round-trip). 누적 **1323
+  PASS** (+9 신규).
 - **Phase 6.5 DONE** — numpy-only Pairing NN reference (plan/07 §
   7.4.5b). `src/workbench/app/nn/pairing_nn.py`: `NumpyPairingNN`
   NNPluginMixin 첫 구체 plugin — Hungarian (scipy linear_sum_

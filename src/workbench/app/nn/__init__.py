@@ -6,21 +6,27 @@
   progress callback + finalize (plan/07 § 7.4.3).
 - Phase 6.5 :class:`NumpyPairingNN` — first NNPluginMixin reference
   baseline (plan/07 § 7.4.5b).
+- Phase 6.6 :class:`NNEvalResult` + :func:`evaluate` + :func:`pairing_loss`
+  — 4-error diagnostic (plan/07 § 7.6).
 
-Higher-level orchestration (NNEvaluator, TrainerService) layers on
-top in later sub-steps.
+Higher-level orchestration (TrainerService) layers on top in later
+sub-steps.
 """
 
 from __future__ import annotations
 
 from workbench.app.nn.data_exporter import read_dataset, write_dataset
 from workbench.app.nn.dataset_builder import DatasetBuilder, ProgressCallback
+from workbench.app.nn.evaluator import NNEvalResult, evaluate, pairing_loss
 from workbench.app.nn.pairing_nn import NumpyPairingNN
 
 __all__ = [
     "DatasetBuilder",
+    "NNEvalResult",
     "NumpyPairingNN",
     "ProgressCallback",
+    "evaluate",
+    "pairing_loss",
     "read_dataset",
     "write_dataset",
 ]
