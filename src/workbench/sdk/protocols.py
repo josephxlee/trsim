@@ -11,7 +11,11 @@ the data types they exchange (Detection / Track / etc.) become concrete.
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from pathlib import Path
+from typing import Literal, Protocol, runtime_checkable
+
+# Framework-origin tag carried by every NN plugin (plan/07 § 7.3.1).
+FrameworkOrigin = Literal["tensorflow", "pytorch", "numpy_only"]
 
 
 @runtime_checkable
@@ -81,3 +85,47 @@ class PhysicsModelProtocol(Protocol):
     Validation Bench ensures only models passing 17+ regression scenarios + analytic
     formula comparison can be used in main simulation (plan/06 § 6.7 v0.40 변경).
     """
+
+
+@runtime_checkable
+class NNPluginMixin(Protocol):
+    """Optional mixin marking a plugin as NN-backed (plan/07 § 7.3.1).
+
+    Concrete plugins combine this mixin with one of the stage Protocols
+    (e.g. ``class MyNNPairing(PairingProtocol, NNPluginMixin)``). The
+    Pipeline still treats the object through its stage Protocol; the
+    learning / visualisation tooling is the only consumer that picks
+    up the NN-specific surface declared here.
+
+    Attributes:
+        model_architecture: Free-form architecture tag
+            (``"mlp_3x64"``, ``"resnet_small"``, custom string).
+        weights_path: On-disk path to the weights file. The
+            workbench loads weights once after ``configure()`` via
+            :meth:`load_weights`.
+        framework_origin: Which ML framework the weights came from.
+            Constrained to :data:`FrameworkOrigin` so the
+            ``workbench-train`` CLI can pick the right importer.
+    """
+
+    model_architecture: str
+    weights_path: Path
+    framework_origin: FrameworkOrigin
+
+    def load_weights(self, path: Path) -> None:
+        """Load the model weights from ``path``.
+
+        Called automatically by the Pipeline right after
+        ``configure()`` so the plugin enters its first frame with the
+        graph already populated. Idempotent — calling twice with the
+        same path must be a no-op.
+        """
+
+    def declare_internal_probes(self) -> dict[str, type]:
+        """Return ``name -> dtype`` for internal observation points.
+
+        Default implementations return ``{}`` (no internal probes).
+        The Probe Panel (plan/07 § 7.3.2) uses the result to register
+        Internal Probe handles for activations / attention weights /
+        feature maps.
+        """

@@ -17,11 +17,24 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6 (NN 통합)** — Pairing NN MVP, Step 1
-> (Dataset Builder) + Step 2 (Eval) wiring (plan/07). UI 는 4.11 끝.
-> Phase 5 전체 마감 (5.1~5.22 done, 5.15/5.16 도 src 구현 + test
-> 완료). 자세한 인계는 `docs/sessions/phase_5_verification_kickoff.md` § 4.
+> **다음 진입점**: **Phase 6.3 (NN Plugin Contract 확장 또는 Pairing
+> NN MVP)** — 6.1 schema + 6.2 NNPluginMixin Protocol 완료. 다음은
+> numpy-only Pairing NN reference impl (plan/07 § 7.4.5b /
+> § 7.4.6 단계적 학습) 또는 DataExporter HDF5 IO (h5py 의존성).
 
+- **Phase 6.1 + 6.2 DONE** — NN 통합 schema + plugin protocol layer.
+  - 6.1 `src/workbench/domain/nn/sample_spec.py` (plan/07 § 7.4.4 /
+    § 7.4.5a): FieldSpec (name/shape/dtype/desc, 15 allowed dtype
+    strings, validation) + SampleSpec (spec_id/probe_stage/inputs/
+    labels + duplicate-name check across inputs+labels) + DatasetVariant
+    (A/B/C/D 4-tier + sea_state[0,9] validation) + DatasetMeta
+    (dataset_id/spec/variant/total_samples/scenarios/extra). 24 tests
+    in `tests/unit/domain/test_nn_sample_spec.py`.
+  - 6.2 `src/workbench/sdk/protocols.py`: NNPluginMixin runtime_checkable
+    Protocol (model_architecture / weights_path / FrameworkOrigin
+    Literal / load_weights / declare_internal_probes). 5 tests in
+    `tests/unit/sdk/test_nn_plugin_mixin.py` (mixin orthogonality
+    + minimal impl runtime_checkable). 누적 **1263 PASS** (+29 신규).
 - **Phase 5.15 + 5.16 DONE** (plan/11 § 11.7 / § 11.11.7 구현 +
   verification). `src/workbench/domain/coherence_validator.py`:
   ValidatorSeverity (INFO/WARN/ERROR) + ValidatorMessage frozen
