@@ -22,6 +22,10 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.7 DONE** — Planar-array element_power 검증. isotropic
+  unity / cos boresight / 30·45·60 deg 정확값 / 90 deg+ back-hemisphere
+  zero / off-axis hypot(theta,phi) 회전 invariant / unknown kind
+  rejection / non-increasing monotonicity. 누적 1076 PASS (+22 신규).
 - **Phase 5.6 DONE** — Monopulse error 검증 (plan/08 § 8.5a.4).
   pure-real channel → slope·ratio 회수, imaginary delta → zero error,
   sigma 위상 회전 invariant, slope 2배 → error 2배, slope≤0 / |sigma|=0
