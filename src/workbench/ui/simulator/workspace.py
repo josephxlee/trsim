@@ -1,4 +1,4 @@
-"""Simulator Workspace shell (Phase 4.9 + 4.10, plan/05 § 5.2).
+"""Simulator Workspace shell (Phase 4.9 + 4.10 + task D, plan/05 § 5.2).
 
 Phase 4.10 layout:
 
@@ -9,14 +9,26 @@ Phase 4.10 layout:
     |               +--------------------+              |              |
     |               | FFT | RangeDoppler |              |              |
     +---------------+--------------------+--------------+--------------+
-    | Tabs: Run | Stage I/O                                              |
+    | Tabs: Run | Stage I/O | Profiler | [DLC panels...]                |
     +-----------------------------------------------------------------+
 
 Live PyVista canvas in Scene3D + cross-hair canvas in Scope arrive
 in Phase 4.10.x.
+
+Task D adds optional DLC panel mounting via :class:`workbench.ui.
+panel_registry.PanelRegistry`. Plugins registered under workspace
+``"simulator"`` are instantiated lazily and appended to the bottom
+tab widget. The label is ``"[DLC] <pkg>: <ClassName>"`` so the user
+can tell built-in panels apart from third-party ones at a glance.
+Mount errors (constructor raised, plugin returned a non-widget) are
+captured in :attr:`SimulatorWorkspace.dlc_mount_errors` instead of
+aborting workspace creation.
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -26,6 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.ui.panel_registry import PanelRegistration, PanelRegistry
 from workbench.ui.simulator.panels import (
     FFTPanel,
     PluginManagerPanel,
@@ -39,10 +52,29 @@ from workbench.ui.simulator.panels import (
 from workbench.ui.simulator.profiler_panel import ProfilerPanel
 
 
+@dataclass(frozen=True, slots=True)
+class DLCMountError:
+    """One DLC panel that failed to mount on the Simulator workspace.
+
+    Attributes:
+        registration: The :class:`PanelRegistration` that triggered the
+            failure (carries panel_class + source_package_id).
+        message: Human-readable English failure reason.
+    """
+
+    registration: PanelRegistration
+    message: str
+
+
 class SimulatorWorkspace(QWidget):
     """Composite simulator view with eight runtime panels."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        panel_registry: PanelRegistry | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("SimulatorWorkspace")
 
@@ -112,6 +144,62 @@ class SimulatorWorkspace(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(outer)
 
+        self._dlc_panels: list[QWidget] = []
+        self._dlc_mount_errors: list[DLCMountError] = []
+        if panel_registry is not None:
+            self.mount_dlc_panels(panel_registry.get_panels_for_workspace("simulator"))
+
+    # ------------------------------------------------------------------
+    # DLC panel mounting (task D)
+    # ------------------------------------------------------------------
+    def mount_dlc_panels(self, registrations: Iterable[PanelRegistration]) -> int:
+        """Instantiate every ``registration`` and append it as a bottom tab.
+
+        The label format is ``"[DLC] <pkg>: <ClassName>"`` for plugin
+        panels and ``"[DLC] <ClassName>"`` for built-in workspace tags
+        with an empty package id.
+
+        Mount failures (constructor raised, factory returned a non-
+        :class:`QWidget`) are captured in :attr:`dlc_mount_errors`
+        without aborting the loop — one broken DLC must not take down
+        the whole Simulator workspace.
+
+        Returns:
+            Number of panels successfully appended.
+        """
+        added = 0
+        for reg in registrations:
+            try:
+                widget = reg.panel_class(self)
+            except Exception as exc:
+                self._dlc_mount_errors.append(
+                    DLCMountError(registration=reg, message=f"constructor failed: {exc}")
+                )
+                continue
+            if not isinstance(widget, QWidget):
+                self._dlc_mount_errors.append(
+                    DLCMountError(
+                        registration=reg,
+                        message="panel_class did not return a QWidget instance",
+                    )
+                )
+                continue
+            label = _dlc_tab_label(reg)
+            self._bottom_tabs.addTab(widget, label)
+            self._dlc_panels.append(widget)
+            added += 1
+        return added
+
+    @property
+    def dlc_panels(self) -> tuple[QWidget, ...]:
+        """Tuple of every DLC panel currently mounted (insertion order)."""
+        return tuple(self._dlc_panels)
+
+    @property
+    def dlc_mount_errors(self) -> tuple[DLCMountError, ...]:
+        """Tuple of DLC panels that failed to mount."""
+        return tuple(self._dlc_mount_errors)
+
     # ------------------------------------------------------------------
     # Test helpers / Phase 5+ wiring
     # ------------------------------------------------------------------
@@ -144,3 +232,10 @@ class SimulatorWorkspace(QWidget):
 
     def bottom_tabs(self) -> QTabWidget:
         return self._bottom_tabs
+
+
+def _dlc_tab_label(reg: PanelRegistration) -> str:
+    name = reg.panel_class.__name__
+    if reg.source_package_id:
+        return f"[DLC] {reg.source_package_id}: {name}"
+    return f"[DLC] {name}"

@@ -63,9 +63,10 @@ class MainWindow(QMainWindow):
         self._dlc_runtime = dlc_runtime
 
         self._stack = QStackedWidget(self)
+        sim_panel_registry = dlc_runtime.panel_registry if dlc_runtime is not None else None
         self._pages: dict[Workspace, QWidget] = {
             Workspace.EDITOR: EditorWorkspace(),
-            Workspace.SIMULATOR: SimulatorWorkspace(),
+            Workspace.SIMULATOR: SimulatorWorkspace(panel_registry=sim_panel_registry),
         }
         for ws in (Workspace.EDITOR, Workspace.SIMULATOR):
             self._stack.addWidget(self._pages[ws])

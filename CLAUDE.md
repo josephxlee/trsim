@@ -17,11 +17,35 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: Task C (Real TrainerService backend) DONE — numpy MLP
-> 실제 gradient descent backend 가 fake-loop 옆에 추가. `backend=
-> "numpy_mlp"` 옵션으로 train/val MSE 감소, 실 weights `.npz` 저장.
-> 다음 큰 작업 선택지 D (Simulator panel mount) 는 사용자 결정 영역.
+> **다음 진입점**: Task D (Simulator panel mount) DONE — DLC panel
+> 들이 SimulatorWorkspace bottom_tabs 에 "[DLC] pkg: Class" 라벨로
+> 자동 mount. MainWindow(dlc_runtime=...) 가 entire 4-layer 흐름
+> end-to-end. Phase 7 finale + Wave 2 작업 D 까지 끝. 다음 작업 후보:
+> NN training panel 4.11 통합, σ_glint RMS 정량 (5.21 후속), high-g
+> UKF/EKF RMSE 정량 (5.22 후속), multipath/horizon golden 추가
+> (5.19/5.20 후속), workbench-train CLI subprocess wrapping (Task C
+> 후속) 등.
 
+- **Task D (Simulator panel mount) DONE** — plan/17 § 17.4.4 +
+  plan/05 § 5.2. `src/workbench/ui/simulator/workspace.py`:
+  `SimulatorWorkspace(*, panel_registry: PanelRegistry | None = None)`
+  생성 시 panel_registry 가 있으면 자동으로 `get_panels_for_workspace
+  ("simulator")` 호출 → `mount_dlc_panels(registrations)` 가 각
+  registration.panel_class(self) 인스턴스 생성 → bottom_tabs.addTab
+  with "[DLC] <pkg>: <Class>" 라벨 (source_package_id 비어있으면
+  "[DLC] <Class>"). 생성자 예외 / non-QWidget 반환 모두
+  `DLCMountError` 로 누적 (frozen dataclass: registration + message)
+  + 다른 panel 진행 — 하나 깨져도 workspace 자체는 살아있음.
+  `dlc_panels` / `dlc_mount_errors` property 노출. `src/workbench/
+  ui/main_window.py` 가 `dlc_runtime.panel_registry` 를
+  `SimulatorWorkspace(panel_registry=...)` 로 주입. 11 tests in
+  `tests/unit/ui/simulator/test_workspace_dlc_mount.py` (no-registry
+  default / 1 panel happy path / 2-panel 순서 / editor-tagged skip /
+  empty pkg label / raise constructor isolate / non-QWidget reject /
+  mixed good+bad / explicit mount API / QLabel subclass accept) +
+  `test_main_window_dlc.py` 에 main_window 통합 1 추가 (DLC plugin
+  end-to-end SimulatorWorkspace 까지 라우팅). 누적 **1565 PASS**
+  (+11 신규). 5 contracts KEPT.
 - **Task C (Real TrainerService numpy MLP backend) DONE** — plan/07
   § 7.5.3. `src/workbench/app/nn/numpy_mlp.py`: pure numpy MLP helper —
   `NumpyMLPParams` (mutable list weights/biases + Activation Literal),

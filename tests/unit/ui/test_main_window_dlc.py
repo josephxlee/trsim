@@ -60,3 +60,34 @@ def test_main_window_without_runtime_leaves_sidebar_empty(qtbot) -> None:  # typ
     sidebar = editor.resource_browser()  # type: ignore[attr-defined]
     for cat in UICategory:
         assert sidebar.category_node(cat).childCount() == 0
+
+
+def test_main_window_routes_dlc_panel_into_simulator_workspace(  # type: ignore[no-untyped-def]
+    qtbot,
+    tmp_path: Path,
+) -> None:
+    from PySide6.QtWidgets import QWidget
+
+    from workbench.ui.panel_registry import PanelRegistry
+
+    class _DLCSimPanel(QWidget):
+        pass
+
+    registry = PanelRegistry()
+    registry.register(
+        _DLCSimPanel,
+        workspace="simulator",
+        dock_area="right",
+        source_package_id="dlc-via-mw",
+    )
+
+    paths = DLCPaths(packages_root=tmp_path / "ghost", user_root=None, builtin_root=None)
+    runtime = build_dlc_runtime(paths=paths, panel_registry=registry)
+
+    win = MainWindow(dlc_runtime=runtime)
+    qtbot.addWidget(win)
+
+    sim = win.page(Workspace.SIMULATOR)
+    assert sim.dlc_panels  # type: ignore[attr-defined]
+    assert isinstance(sim.dlc_panels[0], _DLCSimPanel)  # type: ignore[attr-defined]
+    assert sim.bottom_tabs().tabText(3) == "[DLC] dlc-via-mw: _DLCSimPanel"  # type: ignore[attr-defined]
