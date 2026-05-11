@@ -19,9 +19,20 @@
 
 > **다음 진입점**: **Phase 6 (NN 통합)** — Pairing NN MVP, Step 1
 > (Dataset Builder) + Step 2 (Eval) wiring (plan/07). UI 는 4.11 끝.
-> Phase 5 전체 마감 (5.1~5.22 done, 5.15/5.16 skip). 자세한 인계는
-> `docs/sessions/phase_5_verification_kickoff.md` § 4.
+> Phase 5 전체 마감 (5.1~5.22 done, 5.15/5.16 도 src 구현 + test
+> 완료). 자세한 인계는 `docs/sessions/phase_5_verification_kickoff.md` § 4.
 
+- **Phase 5.15 + 5.16 DONE** (plan/11 § 11.7 / § 11.11.7 구현 +
+  verification). `src/workbench/domain/coherence_validator.py`:
+  ValidatorSeverity (INFO/WARN/ERROR) + ValidatorMessage frozen
+  dataclass + `validate_map` (terrain ⊂ bounds + sea cell elevation
+  ≤ sea_surface + all-land/all-sea INFO) + `validate_targets`
+  (waypoint ∈ bounds + airborne altitude > terrain + surface near
+  sea_surface) + `validate_buildings` (base ∈ bounds) + `has_errors`
+  Run-gate. `src/workbench/domain/simulation_domain.py`:
+  `sample_terrain_safe` bilinear interp + sea-cell snap to
+  sea_surface.z + bounds-outside None. 15 + 9 tests. 누적 **1234
+  PASS** (+24 신규).
 - **Phase 5.19~5.22 DONE** — Phase 5 마감 batch.
   - 5.19 + 5.20 Multipath + horizon golden 회귀 (`tests/physics/
     test_multipath_horizon_golden.py` + `golden/multipath_horizon.json`):

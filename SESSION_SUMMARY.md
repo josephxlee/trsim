@@ -1,9 +1,9 @@
 # TRsim — 세션 요약 (v0.40 기준)
 
-**마지막 갱신**: 2026-05-11 — Phase 5 마감 (5.1~5.22, 5.15/5.16 skip)
+**마지막 갱신**: 2026-05-11 — Phase 5 마감 (5.1~5.22 + 5.15/5.16 all done)
 **직전 완료 버전**: v0.40 (v0.39 + Physics Lab — 5번째 차별점)
-**현재 main**: Phase 5.22 (UKF/EKF maneuver) batch
-**누적 test**: 1210 PASS local, 5 contracts KEPT
+**현재 main**: Phase 5.15 + 5.16 (coherence + simulation_domain)
+**누적 test**: 1234 PASS local, 5 contracts KEPT
 
 ---
 
@@ -371,10 +371,9 @@ import-linter / pytest 매 commit green.
 - **Phase 4** UI 골격 — Editor 5 Activity + Resource Browser +
   Simulator 8 panel + Profiler tab. 12 sub-phase (4.1~4.12), +190 ui
   tests. 누적 998 PASS.
-- **Phase 5** 물리 검증 프레임워크 마감 — 16 카테고리 (14 physics +
-  app/timing 3 + domain tracker 3), +212 verification tests.
-  5.15/5.16 (coherence_validator / simulation_domain) 은 plan 만
-  있고 src 미구현으로 skip. 누적 **1210 PASS**.
+- **Phase 5** 물리 검증 프레임워크 마감 — 18 카테고리 (14 physics +
+  app/timing 3 + domain 5), +236 verification tests. 5.15/5.16 도
+  src 신규 구현 후 verification 완료. 누적 **1234 PASS**.
 
 ### Phase 5 카테고리 14종 누적
 | sub-phase | 산출 | tests |
@@ -398,8 +397,10 @@ import-linter / pytest 매 commit green.
 | 5.19 + 5.20 | Multipath + horizon golden 회귀 | 14 |
 | 5.21 | σ_glint Monte Carlo (Skolnik rule) | 6 |
 | 5.22 | EKF + UKF maneuver scenario | 5 |
+| 5.15 | coherence_validator (src 신규 + test) | 15 |
+| 5.16 | simulation_domain.sample_terrain_safe (src 신규 + test) | 9 |
 
-5.15 / 5.16 skip — 구현 미존재 (Phase 6+ 의 task). 누적 +212 신규.
+Phase 5 전체 마감 — 누적 +236 신규 (998 → 1234 PASS).
 
 ### 다음 진입점 권고 (Phase 6 또는 5.15/5.16 코드 구현)
 - **Phase 6 (NN 통합)** — Pairing NN MVP, Step 1 (Dataset Builder)
