@@ -17,11 +17,23 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6.4b (Pipeline probe-hook)** + **6.4c (Step 1
-> UI wiring)** — DatasetBuilder (6.4a) 가 Pipeline 의 stage output 을
-> 어떻게 받는지 + Editor "Build Dataset" 버튼이 DatasetBuilder 를
-> 실제 호출하는 controller. Plan/07 § 7.4.3.
+> **다음 진입점**: **Phase 6.4c (Step 1 UI wiring)** — Editor
+> "Build Dataset" 버튼이 DatasetBuilder + Pipeline probe 를 wiring
+> 하는 controller. Phase 6.4a + 6.4b 완료.
 
+- **Phase 6.4b DONE** — Pipeline probe-hook (plan/07 § 7.4.3).
+  `src/workbench/domain/pipeline.py`: `ProbeCallback = Callable[[str,
+  Mapping[str, Any]], None]` type + `step(..., probes=None)` 추가.
+  4 stage hooks ("predict" / "associate" / "update" / "spawn") 매
+  frame 매 stage 후 등록 callback 호출. payload dict 는 stage 별:
+  predict→`predicted_tracks/dt_s`, associate→`predicted_tracks/
+  detections/result`, update→`updated_tracks/associations`,
+  spawn→`spawned_tracks/spawn_detection_indices`. probes=None 후방
+  호환. 알 수 없는 stage 이름은 silently ignored (DLC forward
+  compat). 9 tests in `tests/unit/domain/test_pipeline_probes.py`
+  (backward compat + 4 stage payload + 4-stage 순서 + spawn 매
+  frame 호출 + exception 전파 + unknown stage 무시). 누적 **1293
+  PASS** (+9 신규).
 - **Phase 6.4a DONE** — DatasetBuilder streaming class (plan/07 §
   7.4.3). `src/workbench/app/nn/dataset_builder.py`: spec/variant/
   dataset_id/output_path/target_samples/progress_callback 생성자 +

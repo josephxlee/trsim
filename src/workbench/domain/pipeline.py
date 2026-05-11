@@ -28,12 +28,14 @@ Track lifecycle (MVP — minimal, expand at Phase 3):
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 
 from workbench.domain.platform import TrackerKind
-from workbench.domain.tracker.data_associator import associate
+from workbench.domain.tracker.data_associator import AssociationResult, associate
 from workbench.domain.tracker.ekf import EKFConfig
 from workbench.domain.tracker.ekf import predict as ekf_predict
 from workbench.domain.tracker.ekf import update as ekf_update
@@ -46,6 +48,23 @@ from workbench.domain.tracker.track_state import (
 from workbench.domain.tracker.ukf import UKFConfig
 from workbench.domain.tracker.ukf import predict as ukf_predict
 from workbench.domain.tracker.ukf import update as ukf_update
+
+ProbeCallback = Callable[[str, Mapping[str, Any]], None]
+"""Stage-output probe signature ``(stage_name, payload_dict)`` (plan/07 § 7.4.3).
+
+``stage_name`` is one of ``"predict"`` / ``"associate"`` / ``"update"``
+/ ``"spawn"`` for the tracker Pipeline. ``payload_dict`` carries the
+stage's relevant state — see :func:`step` for the per-stage keys.
+
+The probe layer keeps the domain Pipeline framework-agnostic: callers
+that want to record NN training samples wrap an
+:class:`workbench.app.nn.DatasetBuilder.append` call inside a probe
+function and pass it via ``probes={"associate": fn}`` to :func:`step`.
+Probe exceptions are NOT caught — a buggy probe surfaces as a
+RuntimeError from the originating frame so the user sees it
+immediately. The probe set is read once per frame call, so adding /
+removing probes happens at the next frame, not mid-step.
+"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,6 +155,7 @@ def step(
     next_track_id: int,
     dt_s: float,
     config: PipelineConfig,
+    probes: Mapping[str, ProbeCallback] | None = None,
 ) -> tuple[list[TrackState], int]:
     """One pipeline frame: predict + associate + update + lifecycle.
 
@@ -146,6 +166,23 @@ def step(
             unchanged if no new track spawned, otherwise incremented.
         dt_s: Frame duration [s]. Must be > 0.
         config: Pipeline tuning.
+        probes: Optional ``stage_name -> callback`` mapping. After each
+            stage the matching callback is invoked with a snapshot
+            payload (see per-stage keys below). NN data-collection
+            wraps this hook (plan/07 § 7.4.3).
+
+    Payload keys per stage:
+
+    - ``"predict"``: ``{"predicted_tracks": list[TrackState], "dt_s":
+      float}``.
+    - ``"associate"``: ``{"predicted_tracks": list[TrackState],
+      "detections": list[Detection], "result": AssociationResult}``.
+    - ``"update"``: ``{"updated_tracks": list[TrackState],
+      "associations": dict[int, int]}``. Coasted / aged tracks live
+      inside ``updated_tracks`` already; the dict identifies which
+      indices actually received a detection update.
+    - ``"spawn"``: ``{"spawned_tracks": list[TrackState],
+      "spawn_detection_indices": list[int]}``.
 
     Returns:
         ``(updated_tracks, next_track_id_after_spawn)``. LOST tracks
@@ -166,15 +203,21 @@ def step(
         predicted = [ukf_predict(t, dt_s, config.ukf_config) for t in tracks]
     else:
         predicted = [ekf_predict(t, dt_s, config.ekf_config) for t in tracks]
+    _emit_probe(probes, "predict", {"predicted_tracks": predicted, "dt_s": dt_s})
 
     # 2. Associate.
     range_std, az_std, el_std = _measurement_noise_for_associate(config)
-    assoc = associate(
+    assoc: AssociationResult = associate(
         tracks=predicted,
         detections=detections,
         range_noise_std_m=range_std,
         az_noise_std_rad=az_std,
         el_noise_std_rad=el_std,
+    )
+    _emit_probe(
+        probes,
+        "associate",
+        {"predicted_tracks": predicted, "detections": detections, "result": assoc},
     )
 
     # 3. Update assigned tracks; coast / age unassigned ones.
@@ -208,10 +251,44 @@ def step(
                     consecutive_misses=misses,
                 )
             )
+    _emit_probe(
+        probes,
+        "update",
+        {"updated_tracks": next_tracks, "associations": dict(assoc.track_to_detection)},
+    )
 
     # 4. Spawn a TENTATIVE track for each unassociated detection.
+    spawned: list[TrackState] = []
     for j in assoc.unassigned_detections:
-        next_tracks.append(_spawn_track(next_track_id, detections[j], config))
+        new_track = _spawn_track(next_track_id, detections[j], config)
+        next_tracks.append(new_track)
+        spawned.append(new_track)
         next_track_id += 1
+    _emit_probe(
+        probes,
+        "spawn",
+        {
+            "spawned_tracks": spawned,
+            "spawn_detection_indices": list(assoc.unassigned_detections),
+        },
+    )
 
     return next_tracks, next_track_id
+
+
+def _emit_probe(
+    probes: Mapping[str, ProbeCallback] | None,
+    stage: str,
+    payload: Mapping[str, Any],
+) -> None:
+    """Fire ``probes[stage]`` if registered; do nothing otherwise.
+
+    Probe exceptions propagate to the caller — a buggy NN probe must
+    surface immediately, not silently corrupt a long-running build.
+    """
+    if probes is None:
+        return
+    callback = probes.get(stage)
+    if callback is None:
+        return
+    callback(stage, payload)
