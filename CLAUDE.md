@@ -17,9 +17,24 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6.7 (TrainerService stub)** 또는 Phase 6
-> wrap-up. 6.6 NNEvaluator 4-error 완료.
+> **다음 진입점**: **Phase 7 (DLC 시스템)** 또는 6.5+ 후속 (Pipeline
+> 통합으로 random demo loop → real probe wire, Step 2 UI controller,
+> Training Panel). Phase 6 NN 통합 MVP 7 sub-step 마감.
 
+- **Phase 6.7 DONE** — TrainerService stub (plan/07 § 7.5).
+  `src/workbench/app/nn/trainer.py`: `TrainingJob` frozen+slots
+  dataclass (training_job.toml 1:1 — job_id/task/dataset_path/
+  weights_path/train_fraction/val_fraction/architecture/layer_sizes/
+  activation/framework/optimizer/lr/batch_size/epochs/early_stopping/
+  metrics_path; 9 validation rules) + `TrainingResult` (completed
+  epochs/final losses/best val/best epoch/early_stopped) +
+  `TrainerService(epoch_callback)` fake exponential-decay loss
+  schedule + placeholder .npz weights save (layer pair zeros).
+  실제 gradient descent 는 후속 sub-step / workbench-train CLI;
+  schema + service surface 만 MVP. 21 tests in `tests/unit/app/
+  test_nn_trainer.py` (default 생성 / 8 validation / 5 run / 2
+  weights round-trip / job_id echo / 2 monotonicity). 누적 **1344
+  PASS** (+21 신규).
 - **Phase 6.6 DONE** — NNEvaluator 4-error 진단 (plan/07 § 7.6).
   `src/workbench/app/nn/evaluator.py`: `NNEvalResult` frozen
   dataclass (bayes_error / training / dev / test 4-error + 3 gap

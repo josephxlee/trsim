@@ -1,9 +1,9 @@
 # TRsim — 세션 요약 (v0.40 기준)
 
-**마지막 갱신**: 2026-05-11 — Phase 5 마감 (5.1~5.22 + 5.15/5.16 all done)
+**마지막 갱신**: 2026-05-11 — Phase 5 + Phase 6 마감
 **직전 완료 버전**: v0.40 (v0.39 + Physics Lab — 5번째 차별점)
-**현재 main**: Phase 5.15 + 5.16 (coherence + simulation_domain)
-**누적 test**: 1234 PASS local, 5 contracts KEPT
+**현재 main**: Phase 6.7 (TrainerService stub) — NN 통합 MVP 7 sub-step
+**누적 test**: 1344 PASS local, 5 contracts KEPT
 
 ---
 
@@ -423,3 +423,70 @@ Phase 5 전체 마감 — 누적 +236 신규 (998 → 1234 PASS).
    RNG seed 고정 안 해도 perfect-measurement 시나리오로 충분 검증.
 5. **bindfs 잘림 발생 0** — 이 세션은 모든 commit 에서 tail 검사
    통과.
+
+---
+
+## 19. Phase 6 NN 통합 MVP (2026-05-11)
+
+Phase 5 마감 직후 같은 세션. 7 sub-step (6.1~6.7) — schema layer
+부터 TrainerService stub 까지. 누적 1234 → 1344 PASS (+110 신규).
+5 contracts KEPT 매 commit.
+
+### Sub-step 한 줄 요약
+
+| sub | 모듈 | tests | 핵심 |
+|---|---|---|---|
+| 6.1 | `domain/nn/sample_spec.py` | 24 | FieldSpec / SampleSpec / DatasetVariant / DatasetMeta frozen schema |
+| 6.2 | `sdk/protocols.py` NNPluginMixin | 5 | runtime_checkable Protocol + FrameworkOrigin Literal |
+| 6.3 | `app/nn/data_exporter.py` | 10 | write_dataset / read_dataset HDF5 (meta/schema/variant JSON attrs + inputs/labels groups) |
+| 6.4a | `app/nn/dataset_builder.py` | 11 | streaming append + progress callback + cancel/finalize |
+| 6.4b | `domain/pipeline.py` probes | 9 | step() 4-stage probe hook (predict/associate/update/spawn) |
+| 6.4c | `ui/simulator/nn_mode/step1_controller.py` | 8 | Editor "Build Dataset" 버튼 → DatasetBuilder (pytest-qt) |
+| 6.5 | `app/nn/pairing_nn.py` | 13 | NumpyPairingNN NNPluginMixin 첫 reference (Hungarian baseline) |
+| 6.6 | `app/nn/evaluator.py` | 9 | 4-error 진단 (training/dev/test/bayes + avoidable_bias/variance/data_mismatch + diagnosis hint) |
+| 6.7 | `app/nn/trainer.py` | 21 | TrainingJob schema + TrainerService fake-loop + placeholder weights |
+
+### 파이프라인 전체 흐름 (현재 상태)
+
+```
+Editor Step 1 panel  ←  scenario / probe / frames / output path
+    ↓ build_requested
+NNStep1Controller (6.4c)
+    ↓ creates
+DatasetBuilder (6.4a)  ←  현재 random demo loop (real Pipeline 통합은 6.4b probe wire 후속)
+    ↓ progress_callback → panel.set_status
+    ↓ finalize → write_dataset
+write_dataset (6.3) → HDF5 file
+    ↓
+Editor Step 2 (controller wiring 후속)
+    ↓ evaluate (6.6)
+NNEvalResult → 4-error 진단 table
+    ↑ plugin = NumpyPairingNN (6.5) 또는 학습된 NN
+    ↑ 학습은 TrainerService (6.7) 또는 workbench-train CLI
+```
+
+### 다음 진입점 권고
+- **Phase 7 (DLC 시스템)** — `.trsim-pkg` packaging, PackageManager,
+  ResourceLibrary 3-source 통합 (plan/17).
+- **Phase 6 후속** — 6.4c random demo loop → 실제 Pipeline.step()
+  probe wire, Step 2 UI controller wiring, Training Panel UI.
+
+### Phase 6 운영 학습
+1. **Schema → IO → Service → UI** 흐름이 자연스러움. 도메인 layer
+   schema (6.1) 부터 → SDK Protocol (6.2) → IO (6.3) →
+   streaming service (6.4a) → Pipeline hook (6.4b) → UI wiring
+   (6.4c) → reference plugin (6.5) → evaluator (6.6) → trainer
+   (6.7). 매 sub-step 가 다음 step 의 dependency 만 추가.
+2. **NN 첫 구체 plugin = closed-form baseline** — "no-NN" reference
+   가 학습된 weights 평가의 zero point. NumpyPairingNN 가 Hungarian
+   로 동작하지만 NNPluginMixin 만족 → 인터페이스 일관성 검증.
+3. **fake-loop stub 가 합리적 MVP** — TrainerService 가 실제 학습
+   안 하지만 UI / config / weights 경로 contract 검증. 외부
+   workbench-train CLI 가 같은 schema 로 swap-in 가능.
+4. **HDF5 의 strict-shape 검증이 디버그 비용 절약** — DataExporter
+   가 write 전 shape/dtype 검사로 partial file 방지. DatasetBuilder
+   도 per-sample append 검증 — 디버그 시 어느 sample 에서 fail
+   했는지 명확.
+5. **itertools.pairwise vs zip(strict=True)** — 길이 다른 list
+   에서 `zip(a, a[1:], strict=True)` 가 ValueError 던짐 (5.17 +
+   6.7 둘 다 함정). `itertools.pairwise(a)` 가 표준.
