@@ -17,9 +17,19 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 7.2 (PackageManager)** 또는 **task 4
-> (Variant manifest)**. Phase 7.1 manifest schema 완료.
+> **다음 진입점**: **task 4 (Variant 4-tier manifest)** 또는 Phase 7
+> 후속 (PluginLoader / ResourceLibrary 3-source). Phase 7.1 + 7.2 완료.
 
+- **Phase 7.2 DONE** — PackageManager scan (plan/17 § 17.4.2).
+  `src/workbench/app/dlc/package_manager.py`: `LoadedPackage`
+  (manifest + root) + `PackageLoadError` + `PackageManager(packages_
+  root).scan()` — 각 하위 디렉토리의 manifest.toml load,
+  duplicate package_id reject (first wins), missing manifest /
+  invalid TOML 은 load_errors 에 누적, get / installed_ids /
+  load_errors property, rescan 가 이전 state 교체. 13 tests
+  (missing root / empty / file-not-dir / single / 3-pack sorted /
+  installed_ids / get hit+miss / missing manifest / invalid id /
+  duplicate id / 2 rescan). 누적 **1433 PASS** (+13 신규).
 - **Phase 7.1 DONE** — DLC manifest.toml schema (plan/17 § 17.2.4).
   `src/workbench/domain/dlc/`: `PackageMeta` (id kebab-case +
   SemVer version + license 필수) + `CompatibilitySpec` (trsim_min
