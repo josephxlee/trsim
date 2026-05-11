@@ -17,11 +17,22 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6.5 (numpy-only Pairing NN reference) 또는
-> 6.6 (NNEvaluator 4-error)** — Phase 6.4 (DatasetBuilder + Pipeline
-> probe + Step 1 UI) 완료. 다음은 Pairing NN reference 구현 또는 Step
-> 2 Eval panel 의 4-error 분석 (plan/07 § 7.6).
+> **다음 진입점**: **Phase 6.6 (NNEvaluator 4-error 진단)** 또는
+> Phase 6.7 (TrainerService stub). 6.5 numpy Pairing reference 완료.
 
+- **Phase 6.5 DONE** — numpy-only Pairing NN reference (plan/07 §
+  7.4.5b). `src/workbench/app/nn/pairing_nn.py`: `NumpyPairingNN`
+  NNPluginMixin 첫 구체 plugin — Hungarian (scipy linear_sum_
+  assignment) on `|up_beat[i] - down_beat[j]|` 비용. model_arch
+  "numpy_nearest_neighbor_pairing" / framework_origin "numpy_only"
+  / load_weights records path (no-op) / declare_internal_probes →
+  `{"distance_matrix": np.ndarray}` / predict (up, down) →
+  int32 pair_indices, -1 for unmatched. last_distance_matrix
+  property 가 Probe Panel 노출. 13 tests in `tests/unit/app/
+  test_nn_pairing.py` (mixin runtime check / 기본 속성 / load
+  weights / probe declaration / 6 predict 정확성 (single / identity
+  / 글로벌 최적 / 비대칭 / empty 양쪽 / probe record) / 2 input
+  validation). 누적 **1314 PASS** (+13 신규).
 - **Phase 6.4c DONE** — Step 1 Editor controller (plan/07 § 7.4.3).
   `src/workbench/ui/simulator/nn_mode/step1_controller.py`:
   NNStep1Controller(panel, seed) 가 `build_requested` →
