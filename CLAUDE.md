@@ -22,6 +22,10 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.12 DONE** — FrameBoundaryDetector 검증. 기본 frame_id=0
+  + on_track_output 증가 + reset 0 복귀 + 명시 초기 frame_id 42
+  부터 시작 + 매 호출 True 반환 invariant (MVP). 누적 1133 PASS
+  (+6 신규).
 - **Phase 5.11 DONE** — PerformanceClock 검증 (plan/18 § 18.16).
   생성자 reject + factory 두 종 (from_target_latency_ms /
   from_frame_rate_hz) + budget exhausted → sleep 0 + short frame
