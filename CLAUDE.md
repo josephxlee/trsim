@@ -17,14 +17,24 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: Task D (Simulator panel mount) DONE — DLC panel
-> 들이 SimulatorWorkspace bottom_tabs 에 "[DLC] pkg: Class" 라벨로
-> 자동 mount. MainWindow(dlc_runtime=...) 가 entire 4-layer 흐름
-> end-to-end. Phase 7 finale + Wave 2 작업 D 까지 끝. 다음 작업 후보:
-> NN training panel 4.11 통합, σ_glint RMS 정량 (5.21 후속), high-g
-> UKF/EKF RMSE 정량 (5.22 후속), multipath/horizon golden 추가
-> (5.19/5.20 후속), workbench-train CLI subprocess wrapping (Task C
-> 후속) 등.
+> **MVP 가동 완료** — `python -m workbench ui` 한 줄로 Editor +
+> Simulator + DLC auto-load 흐름 동작. 사용 가이드는
+> `docs/MVP_USAGE.md`. CLI `trsim ui [--no-dlc] [--workspace ...]` 가
+> 기본 진입점. 다음 후속 (MVP+α): NN Training Panel main_window
+> 통합 / `trsim install` CLI / `trsim sdk build` CLI / σ_glint RMS
+> 정량 / high-g UKF/EKF RMSE 정량 / Adam optimiser / workbench-train
+> subprocess wrapping.
+
+- **MVP wrap-up DONE** — CLI ui DLC 자동 로드. `src/workbench/cli/
+  main.py`: `ui` subparser 에 `--no-dlc` flag + `--workspace` 유지 +
+  `build_ui_window(args) -> MainWindow` factory 분리 (event loop 진입
+  없이 testable) + `_cmd_ui` 가 `build_dlc_runtime()` (default ~/.
+  trsim/) 로 DLCRuntime 자동 mount → MainWindow(dlc_runtime=...).
+  `docs/MVP_USAGE.md` 신규 (8 섹션: 환경 / UI 가동 / NN dataset /
+  학습 / 평가 / DLC 만들기 / 비-UI CLI / 검증). README.md status
+  부분 갱신. 5 새 tests (parser default / simulator workspace /
+  --no-dlc flag / no-dlc 시 dlc_runtime None / paths injected via
+  monkeypatch). 누적 **1570 PASS** (+5 신규). 5 contracts KEPT.
 
 - **Task D (Simulator panel mount) DONE** — plan/17 § 17.4.4 +
   plan/05 § 5.2. `src/workbench/ui/simulator/workspace.py`:

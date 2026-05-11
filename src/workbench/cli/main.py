@@ -1,4 +1,4 @@
-"""TRsim CLI dispatch (Phase 3.7 + 4.1).
+"""TRsim CLI dispatch (Phase 3.7 + 4.1 + MVP wrap-up).
 
 Subcommands:
 
@@ -8,12 +8,18 @@ Subcommands:
 - ``trsim profile --scenario <toml> [--frames N] [--output JSON]``:
   exercise the FrameProfiler over ``N`` synthetic frames, emit a
   per-stage avg / p50 / p95 / p99 report.
-- ``trsim ui``: launch the PySide6 MainWindow (Phase 4.1).
+- ``trsim ui [--workspace ...] [--no-dlc]``: launch the PySide6
+  MainWindow with ``~/.trsim/`` packages + resources auto-loaded
+  through :class:`workbench.ui.dlc_bootstrap.DLCRuntime`. Pass
+  ``--no-dlc`` to start with an empty runtime (handy for debugging).
 - ``trsim --version``: print the package version.
 
-Phase 3.7 keeps the actual pipeline integration minimal — the
-plumbing is wired but the per-frame body is a placeholder. Phase 4 /
-later sub-phases swap in the real RadarPipeline.step() call.
+The most common MVP launch is::
+
+    python -m workbench ui
+
+which opens the Editor + Simulator workspaces with ``~/.trsim/``
+packages and resources auto-loaded.
 """
 
 from __future__ import annotations
@@ -100,6 +106,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("editor", "simulator"),
         default="editor",
         help="initial workspace to show (default: editor)",
+    )
+    ui_p.add_argument(
+        "--no-dlc",
+        action="store_true",
+        help="skip the ~/.trsim/ DLC auto-load (start with an empty runtime)",
     )
 
     return parser
@@ -190,18 +201,39 @@ def _cmd_profile(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_ui(args: argparse.Namespace) -> int:
-    """`trsim ui` — launch the PySide6 MainWindow."""
-    # Local import keeps the CLI usable in headless contexts that never
-    # touch the UI subcommand (e.g. CI running `trsim profile`).
-    from PySide6.QtWidgets import QApplication
+def build_ui_window(args: argparse.Namespace) -> object:
+    """Construct (but do not show / exec) the :class:`MainWindow`.
 
+    Splits the UI subcommand body so tests can assert window state
+    without entering the Qt event loop. The return type is left as
+    :class:`object` so callers that never touch the UI do not need
+    to import PySide6 for type checking.
+    """
+    # Local imports keep the CLI usable in headless contexts that
+    # never touch the UI subcommand (e.g. CI running `trsim profile`).
+    from workbench.ui.dlc_bootstrap import build_dlc_runtime
     from workbench.ui.main_window import MainWindow
     from workbench.ui.workspace_selector import Workspace
 
-    app = QApplication.instance() or QApplication(sys.argv)
-    window = MainWindow()
+    runtime = None if args.no_dlc else build_dlc_runtime()
+    window = MainWindow(dlc_runtime=runtime)
     window.selector.set_workspace(Workspace(args.workspace))
+    return window
+
+
+def _cmd_ui(args: argparse.Namespace) -> int:
+    """`trsim ui` — launch the PySide6 MainWindow.
+
+    By default the entry point assembles a :class:`DLCRuntime` from
+    ``~/.trsim/`` (see :func:`workbench.app.dlc_runtime.default_dlc_
+    paths`) so any installed ``.trsim-pkg`` packages and user
+    resources show up immediately. ``--no-dlc`` opts out.
+    """
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = build_ui_window(args)
+    assert isinstance(window, QWidget)
     window.show()
     return int(app.exec())
 

@@ -21,7 +21,9 @@ Where MATLAB Phased Array Toolbox is comprehensive but proprietary, and Stone So
 
 ## Status
 
-**Pre-alpha.** Active design phase. The `plan/` directory contains the full design documentation (versions 0.13 → 0.37, including consistency review and Phase 0 infrastructure).
+**Pre-alpha — MVP boot-up complete (2026-05-11).** Phase 0~7 reference implementation lands the Editor + Simulator workspaces, the NN dataset / training / eval pipeline, and the DLC (`.trsim-pkg`) auto-load flow. Cumulative 1570 PASS tests, 5 import-linter contracts KEPT, ruff/mypy strict clean.
+
+To launch the MVP: `python -m workbench ui` — see [`docs/MVP_USAGE.md`](docs/MVP_USAGE.md) for the full walk-through (UI, NN training, DLC install).
 
 A reference implementation will start once Phase 0 begins. See [`plan/04_migration.md`](plan/04_migration.md).
 
