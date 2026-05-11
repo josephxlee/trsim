@@ -17,9 +17,19 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 7 (DLC 시스템, task 1)** 또는 **task 4
-> (Variant manifest)**. task 2 + task 3 (Training Panel UI) 완료.
+> **다음 진입점**: **Phase 7.2 (PackageManager)** 또는 **task 4
+> (Variant manifest)**. Phase 7.1 manifest schema 완료.
 
+- **Phase 7.1 DONE** — DLC manifest.toml schema (plan/17 § 17.2.4).
+  `src/workbench/domain/dlc/`: `PackageMeta` (id kebab-case +
+  SemVer version + license 필수) + `CompatibilitySpec` (trsim_min
+  SemVer 필수, max free-form "1.x" 허용) + `PythonDeps`
+  (extra_requires tuple) + `PackageManifest` (4 block 묶음) +
+  `load_manifest_from_toml(path)` Python 3.11+ stdlib `tomllib`
+  read-only parser. 28 tests (PackageMeta validation 13 / Compat
+  validation 4 / TOML round-trip 4 / 누락 section reject 2 /
+  invalid id propagate 1 / FileNotFound 1 / PythonDeps + manifest
+  default 3). 누적 **1420 PASS** (+28 신규).
 - **Task 3 (Training Panel UI) DONE** — plan/07 § 7.5.3.
   `src/workbench/ui/nn_training/`: `TrainingPanel` Qt widget (job
   config form 6 필드 + progress 4 라벨 + log + Run/Stop signals) +
