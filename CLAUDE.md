@@ -17,12 +17,30 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: Phase 5.19 (multipath / horizon golden 보강 선택)
-> 또는 Phase 6 (NN 통합) — `docs/sessions/phase_5_verification_kickoff.md`
-> § 3 / § 4. 5.15 (coherence_validator) + 5.16 (sample_terrain_safe)
-> 는 구현 미존재로 skip; 5.17 (EKF+UKF scenario) + 5.18 (GNN
-> association) 검증 카테고리는 완료.
+> **다음 진입점**: **Phase 6 (NN 통합)** — Pairing NN MVP, Step 1
+> (Dataset Builder) + Step 2 (Eval) wiring (plan/07). UI 는 4.11 끝.
+> Phase 5 전체 마감 (5.1~5.22 done, 5.15/5.16 skip). 자세한 인계는
+> `docs/sessions/phase_5_verification_kickoff.md` § 4.
 
+- **Phase 5.19~5.22 DONE** — Phase 5 마감 batch.
+  - 5.19 + 5.20 Multipath + horizon golden 회귀 (`tests/physics/
+    test_multipath_horizon_golden.py` + `golden/multipath_horizon.json`):
+    two-ray delta / phi / F²/F⁴ (free/sea/PEC) bit-for-bit rtol=1e-12
+    + lobing landmarks (last null / first peak = 2x) + 4/3-earth Re_eff
+    + 10m geometric horizon + two-point radio horizon 4/3 + sum-of-
+    single-horizons invariant. 14 tests.
+  - 5.21 ExtendedTarget σ_glint Monte Carlo 회귀
+    (`tests/physics/test_extended_target_glint_rms.py`): Skolnik
+    rule-of-thumb formula closed-form + 500-sample attitude/freq
+    sweep per-axis std < L/(2√N) bound + |glint| < L convex hull
+    + L/R symmetric body E-axis mean ~0 + deterministic seed
+    invariant + different-seed divergence. 6 tests.
+  - 5.22 Tracker maneuver scenario 회귀 (`tests/unit/domain/
+    test_tracker_maneuver_scenario.py`): settled CV innovation → 0
+    + velocity-step maneuver detection signature (post-step innov
+    > 100x pre) + EKF/UKF RMSE 비율 0.95~1.05 (CV F-matrix 지배)
+    + 높은 process noise → post-maneuver error 감소 + deterministic
+    재현. 5 tests. 누적 **1210 PASS** (+25 신규).
 - **Phase 5.17 + 5.18 DONE** — Tracker scenario regression.
   - 5.17 EKF + UKF: CV truth 위에서 F(dt) bit-for-bit 회귀 + 50-frame
     perfect-measurement 비발산 (pos<7.5m, vel<1.5m/s) + 정보 누적
