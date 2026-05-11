@@ -1,7 +1,9 @@
 # TRsim — 세션 요약 (v0.40 기준)
 
-**마지막 갱신**: 2026-05-08 — Phase 2.5 + 2.6 + Cowork→Claude Code 이전
+**마지막 갱신**: 2026-05-11 — Phase 5 verification framework 마무리
 **직전 완료 버전**: v0.40 (v0.39 + Physics Lab — 5번째 차별점)
+**현재 main**: `c9a68d2` Phase 5.18 GNN data association
+**누적 test**: 1185 PASS local, 5 contracts KEPT
 
 ---
 
@@ -348,3 +350,72 @@ v0.41 까지 ~100. 이번 세션 신규 결정:
 - 첫 dataclass = PositionENU/VelocityENU/Time, frozen+slots
 - 첫 Protocol = 11 (DetectorProtocol ~ PhysicsModelProtocol), `@runtime_checkable`
 - importlinter Phase 0 시점: Contract 1-4 활성, 5/6 비활성 (Phase 4/6 활성)
+
+---
+
+## 18. Phase 1~5 누적 milestone (2026-05-04 ~ 2026-05-11)
+
+Phase 0.4 → Phase 5.18 까지 약 1 주, 누적 commit ~60, 누적 test
+1185 PASS local, 5 contracts KEPT 매 commit. ruff / mypy strict /
+import-linter / pytest 매 commit green.
+
+### Phase 단위 한 줄 요약
+
+- **Phase 1** Primitives — `physics/` 첫 모듈 (fmcw / antenna / ray_tracing
+  / geometry / radar_equation / multipath / horizon). +47 physics tests.
+- **Phase 2** Domain — 11 contract Protocol → concrete dataclasses
+  (target / map / scenario / detector / tracker / data_associator).
+  +800 tests 누적.
+- **Phase 3** App layer — `app/` (pipeline / timing / cli).
+  +50 tests, CLI `trsim run / profile`.
+- **Phase 4** UI 골격 — Editor 5 Activity + Resource Browser +
+  Simulator 8 panel + Profiler tab. 12 sub-phase (4.1~4.12), +190 ui
+  tests. 누적 998 PASS.
+- **Phase 5** 물리 검증 프레임워크 — 14 카테고리 (12 physics + 2 domain),
+  +187 verification tests. 5.15/5.16 (coherence_validator /
+  simulation_domain) 은 plan 만 있고 src 미구현으로 skip.
+  누적 **1185 PASS**.
+
+### Phase 5 카테고리 14종 누적
+| sub-phase | 산출 | tests |
+|---|---|---|
+| 5.1 | Golden infra (`tests/physics/golden_dataset.py`) | 9 |
+| 5.2 | FMCW propagation | 8 |
+| 5.3 | Parabolic antenna | 11 |
+| 5.4 | ISA atmosphere + rain | 13 |
+| 5.5 | Dynamics forces (gravity/drag) | 6 |
+| 5.6 | Monopulse error | 9 |
+| 5.7 | Planar array element_power | 22 |
+| 5.8 | Ballistic analytic vs RK4 | 12 |
+| 5.9 | Single-scatterer RCS | 14 |
+| 5.10 | CFAR detector (CA + OS) | 16 |
+| 5.11 | PerformanceClock | 9 |
+| 5.12 | FrameBoundaryDetector | 6 |
+| 5.13 | FrameProfiler + StageTimingProbe | 12 |
+| 5.14 | ExtendedTarget multi-scatterer + glint | 19 |
+| 5.17 | EKF + UKF scenario regression | 9 |
+| 5.18 | GNN data association regression | 12 |
+
+5.15 / 5.16 skip — 구현 미존재 (Phase 6+ 의 task).
+
+### 다음 진입점 권고 (Phase 6 또는 5.15/5.16 코드 구현)
+- **Phase 6 (NN 통합)** — Pairing NN MVP, Step 1 (Dataset Builder)
+  + Step 2 (Eval) wiring. UI 는 4.11 끝, 도메인 + dataset 형식
+  (plan/07).
+- **5.15 + 5.16 도메인 구현** — `coherence_validator.py` +
+  `simulation_domain.py` 를 plan/11 § 11.7 / § 11.11.7 에 따라
+  신규 작성. 작성 시점에 verification 도 따라감.
+
+### Phase 5 운영 학습 (이번 세션)
+1. **Plan-only 카테고리 발견 시 skip** — kickoff doc 의 카테고리 list
+   는 "verifiable" 가정. src/ 에 코드 없으면 verification 의 의미
+   없음. Phase 6+ implementation task 로 옮김 (5.15/5.16 사례).
+2. **물리 검증 패턴 안정화** — golden JSON closed-form + invariant +
+   validation 3 layer. 매 phase 8-22 tests 적당.
+3. **기존 unit test 와 중복 회피** — Phase 5.x 는 multi-frame
+   scenario / 글로벌 invariant / golden geometry 위주. Phase 2~3 의
+   단일 호출 unit test 와 다른 각도.
+4. **EKF/UKF/GNN 시나리오는 deterministic + closed-form 가능** —
+   RNG seed 고정 안 해도 perfect-measurement 시나리오로 충분 검증.
+5. **bindfs 잘림 발생 0** — 이 세션은 모든 commit 에서 tail 검사
+   통과.
