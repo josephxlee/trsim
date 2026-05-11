@@ -22,6 +22,13 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.8 DONE** — Ballistic analytic vs RK4 회귀 (plan/14 §
+  14.5.3). vacuum free-fall 1s/2s position+velocity rtol=1e-12 + 수직
+  fall horizontal 성분 invariant + sim_t 증가 + upward throw 왕복
+  invariant + apex velocity zero / 높이 = v0²/(2g) + drag=0 일 때
+  atm 무관 + drag>0 일 때 vacuum 보다 천천히 + BallisticDynamics
+  validation + 45° 사선 throw range = v0²sin(2θ)/g. 누적 1088 PASS
+  (+12 신규).
 - **Phase 5.7 DONE** — Planar-array element_power 검증. isotropic
   unity / cos boresight / 30·45·60 deg 정확값 / 90 deg+ back-hemisphere
   zero / off-axis hypot(theta,phi) 회전 invariant / unknown kind
