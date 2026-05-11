@@ -36,6 +36,10 @@ from workbench.ui.commands import (
     WorkbenchCommandRegistry,
     register_builtin_commands,
 )
+from workbench.ui.dlc_bootstrap import (
+    DLCRuntime,
+    populate_resource_browser_from_library,
+)
 from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
 from workbench.ui.editor.workspace import EditorWorkspace
@@ -48,7 +52,7 @@ from workbench.ui.workspace_selector import Workspace, WorkspaceSelector
 class MainWindow(QMainWindow):
     """Thin shell that swaps Workspace pages in a QStackedWidget."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, dlc_runtime: DLCRuntime | None = None) -> None:
         super().__init__()
         self.setWindowTitle(f"TRsim {__version__}")
         self.resize(1280, 800)
@@ -56,6 +60,7 @@ class MainWindow(QMainWindow):
         self.selector = WorkspaceSelector()
         self.commands = WorkbenchCommandRegistry()
         self.docks = DockManager(host=self)
+        self._dlc_runtime = dlc_runtime
 
         self._stack = QStackedWidget(self)
         self._pages: dict[Workspace, QWidget] = {
@@ -86,6 +91,12 @@ class MainWindow(QMainWindow):
         self.addToolBarBreak()
         self._target_toolbar = TargetRunToolbar(self.commands, self)
         self.addToolBar(self._target_toolbar)
+
+        if self._dlc_runtime is not None:
+            populate_resource_browser_from_library(
+                self._editor_page().resource_browser(),
+                self._dlc_runtime.app.resource_library,
+            )
 
     # ------------------------------------------------------------------
     # Toolbar / actions
@@ -211,3 +222,7 @@ class MainWindow(QMainWindow):
     def dock_manager(self) -> DockManager:
         """Return the DockManager (test helper)."""
         return self.docks
+
+    def dlc_runtime(self) -> DLCRuntime | None:
+        """Return the bound :class:`DLCRuntime`, or ``None``."""
+        return self._dlc_runtime

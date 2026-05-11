@@ -17,12 +17,33 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: 세션 인계 — `docs/sessions/phase_5_6_7_2026_05_11_
-> handoff.md` 참조. Phase 5 마감 + Phase 6 NN MVP + Phase 7 DLC 시스템
-> 모두 완료 (21 commits, 1484 PASS). 다음 큰 작업 선택지 A~D
-> (main_window wire-up / Variant build runner / Real TrainerService /
-> Resource Browser 연결) 는 사용자 결정 영역.
+> **다음 진입점**: Phase 7.6 DONE — main_window DLC bootstrap (옵션 A).
+> ResourceLibrary→Editor sidebar 자동 feed 동작, PanelRegistry 가
+> trsim.ui.panels DLC 자동 등록. 다음 큰 작업 선택지 B/C/D (Variant
+> build runner / Real TrainerService / Simulator panel mount) 는
+> 사용자 결정 영역.
 
+- **Phase 7.6 DONE** — DLC runtime bootstrap (plan/17 § 17.4 finale).
+  `src/workbench/app/dlc_runtime.py`: `DLCPaths` frozen (packages_root
+  + user_root|None + builtin_root|None) + `default_dlc_paths(home=)`
+  factory (~/.trsim/{packages,resources}) + `DLCAppRuntime` frozen
+  (paths + PackageManager + PluginLoader + ResourceLibrary) +
+  `build_dlc_app_runtime(paths)` (scan → load_all → library assembly,
+  side-effect 0 on missing root). `src/workbench/ui/dlc_bootstrap.py`:
+  `DLCRuntime` frozen (app + PanelRegistry) + `build_dlc_runtime(*,
+  paths/app_runtime/panel_registry)` 3-way input + `populate_resource_
+  browser_from_library(sidebar, library)` (4 카테고리 app→UI enum
+  mapping: SCENARIOS→SCENARIO / MAPS→MAP / RADARS→RADAR / TARGETS→
+  TARGETS, USER+PACKAGE→NORMAL status, BUILTIN→BUILTIN status, clear-
+  before-add refresh). `src/workbench/ui/main_window.py` 가
+  `__init__(*, dlc_runtime=None)` opt-in keyword + 생성 후 editor
+  sidebar 자동 populate. 21 tests (app 9 + ui bootstrap 8 + main_window
+  DLC 4): empty/missing root / user 단독 / builtin 단독 / user shadow
+  builtin / UI panel plugin 자동 등록 / category mapping 4종 / builtin
+  status prefix / clear-before-add refresh. 누적 **1505 PASS** (+21
+  신규). 5 contracts KEPT (app/dlc_runtime → app.dlc + app.resources,
+  ui/dlc_bootstrap → app + ui.editor + ui.panel_registry, contract 1
+  위반 0).
 - **Phase 7.3 + 7.4 + 7.5 DONE** — Plugin Loader + ResourceLibrary
   + Panel Registry (plan/17 § 17.4).
   - 7.3 `app/dlc/plugin_loader.py`: entry_point string `module:attr`
