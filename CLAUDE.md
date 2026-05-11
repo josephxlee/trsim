@@ -17,9 +17,20 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **task 4 (Variant 4-tier manifest)** 또는 Phase 7
-> 후속 (PluginLoader / ResourceLibrary 3-source). Phase 7.1 + 7.2 완료.
+> **다음 진입점**: **Phase 7.3+ (PluginLoader / ResourceLibrary
+> 3-source)** 또는 Variant build runner (multi-variant 자동 build).
+> task 2→3→1→4 모두 완료.
 
+- **Task 4 (Variant 4-tier manifest) DONE** — plan/07 § 7.4.5a.
+  `src/workbench/domain/nn/variant_manifest.py`: `VariantEntry`
+  (DatasetVariant + dataset_path) + `VariantsManifest` (spec_id +
+  entries, duplicate variant_id reject) + `standard_pairing_
+  variants()` 4-tier preset (A ideal / B attitude / C sidelobe /
+  D full realistic) + `write_variants_manifest` (manual TOML
+  string, backslash/quote escape, POSIX path normalisation) +
+  `load_variants_manifest` (tomllib + per-field validation).
+  14 tests (preset 4 + manifest validation 4 + write/read round-
+  trip 2 + load failure 4). 누적 **1447 PASS** (+14 신규).
 - **Phase 7.2 DONE** — PackageManager scan (plan/17 § 17.4.2).
   `src/workbench/app/dlc/package_manager.py`: `LoadedPackage`
   (manifest + root) + `PackageLoadError` + `PackageManager(packages_

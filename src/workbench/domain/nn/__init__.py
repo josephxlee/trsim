@@ -17,10 +17,22 @@ from workbench.domain.nn.sample_spec import (
     FieldSpec,
     SampleSpec,
 )
+from workbench.domain.nn.variant_manifest import (
+    VariantEntry,
+    VariantsManifest,
+    load_variants_manifest,
+    standard_pairing_variants,
+    write_variants_manifest,
+)
 
 __all__ = [
     "DatasetMeta",
     "DatasetVariant",
     "FieldSpec",
     "SampleSpec",
+    "VariantEntry",
+    "VariantsManifest",
+    "load_variants_manifest",
+    "standard_pairing_variants",
+    "write_variants_manifest",
 ]
