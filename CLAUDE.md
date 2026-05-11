@@ -22,6 +22,10 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.6 DONE** — Monopulse error 검증 (plan/08 § 8.5a.4).
+  pure-real channel → slope·ratio 회수, imaginary delta → zero error,
+  sigma 위상 회전 invariant, slope 2배 → error 2배, slope≤0 / |sigma|=0
+  rejection, sum_amplitude = |sigma|. 누적 1054 PASS (+9 신규).
 - **Phase 5.5 DONE** — Dynamics forces 검증 (gravity / drag, golden).
   gravity_force 선형 mass scaling + drag_force zero-velocity / 100mps
   east 정확값 + 임의 3 velocity 에서 drag·velocity 내적 <= 0 (kinetic
