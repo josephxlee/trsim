@@ -22,6 +22,11 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.9 DONE** — Single-scatterer RCS 분석 검증. sphere
+  geometric pi·r² (r=1 → π, r²-scaling) + Rayleigh (r=1cm @ λ=3cm) +
+  flat plate 4πA²/λ² + A² scaling + cylinder broadside + L² scaling +
+  trihedral corner + a⁴ scaling + dBsm round-trip (1↔0, 10↔10, full
+  round). 누적 1102 PASS (+14 신규).
 - **Phase 5.8 DONE** — Ballistic analytic vs RK4 회귀 (plan/14 §
   14.5.3). vacuum free-fall 1s/2s position+velocity rtol=1e-12 + 수직
   fall horizontal 성분 invariant + sim_t 증가 + upward throw 왕복
