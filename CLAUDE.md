@@ -22,6 +22,13 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.13 DONE** — FrameProfiler + StageTimingProbe 검증
+  (plan/18 § 18.17). 기본 warmup=10 + negative warmup reject + empty
+  stage / negative elapsed reject + stages 알파벳 정렬 + missing
+  stage KeyError + below-warmup → NaN percentile + uniform 2ms 100
+  sample → avg/p50/p95/p99 all 2.0 ms + report_all + reset.
+  StageTimingProbe 1ms sleep → 1 sample 기록 + 예외 발생 시에도
+  sample 기록 (worst case capture). 누적 1145 PASS (+12 신규).
 - **Phase 5.12 DONE** — FrameBoundaryDetector 검증. 기본 frame_id=0
   + on_track_output 증가 + reset 0 복귀 + 명시 초기 frame_id 42
   부터 시작 + 매 호출 True 반환 invariant (MVP). 누적 1133 PASS
