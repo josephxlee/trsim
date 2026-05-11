@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "atol": 0.0,
+    "dataset_id": "dynamics.forces.exact",
+    "notes": "Closed-form gravity F = -m*g e_up and drag F = -0.5 rho v^2 C_d A v_hat. Reference values evaluated with g=9.80665 and the default ISA rho at sea level. Tolerance 1e-9 leaves headroom for IEEE 754 rounding inside the matrix-vector product but catches constant drift.",
+    "rtol": 1e-9,
+    "source": "plan/14 § 14.2.1 (gravity), § 14.2.2 (drag)",
+    "units": {
+      "altitude_m": "m",
+      "drag_coef": "linear",
+      "force_n": "N",
+      "mass_kg": "kg",
+      "reference_area_m2": "m^2",
+      "velocity_enu_mps": "m/s"
+    }
+  },
+  "samples": [
+    {
+      "case_id": "gravity_10kg",
+      "expected": {"force_n": [0.0, 0.0, -98.06649999999999]},
+      "inputs": {"mass_kg": 10.0}
+    },
+    {
+      "case_id": "gravity_500kg",
+      "expected": {"force_n": [0.0, 0.0, -4903.325]},
+      "inputs": {"mass_kg": 500.0}
+    },
+    {
+      "case_id": "drag_zero_velocity_yields_zero",
+      "expected": {"force_n": [0.0, 0.0, 0.0]},
+      "inputs": {
+        "altitude_m": 0.0,
+        "drag_coef": 0.4,
+        "reference_area_m2": 0.05,
+        "velocity_enu_mps": [0.0, 0.0, 0.0]
+      }
+    },
+    {
+      "case_id": "drag_100mps_east_at_sea_level",
+      "expected": {"force_n": [-122.49781262066516, -0.0, -0.0]},
+      "inputs": {
+        "altitude_m": 0.0,
+        "drag_coef": 0.4,
+        "reference_area_m2": 0.05,
+        "velocity_enu_mps": [100.0, 0.0, 0.0]
+      }
+    }
+  ]
+}

@@ -22,6 +22,10 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.5 DONE** — Dynamics forces 검증 (gravity / drag, golden).
+  gravity_force 선형 mass scaling + drag_force zero-velocity / 100mps
+  east 정확값 + 임의 3 velocity 에서 drag·velocity 내적 <= 0 (kinetic
+  energy 감소 invariant). 누적 1045 PASS (+6 신규).
 - **Phase 5.4 DONE** — ISA atmosphere + rain attenuation 검증 (golden).
   Temperature lapse (sea/1km/11km), pressure (sea/1km/5km), density
   (sea/1km), rain_attenuation_dbpkm (10GHz 4mm/h) + 회귀 invariant
