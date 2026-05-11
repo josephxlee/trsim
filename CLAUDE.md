@@ -17,11 +17,20 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6.3 (NN Plugin Contract 확장 또는 Pairing
-> NN MVP)** — 6.1 schema + 6.2 NNPluginMixin Protocol 완료. 다음은
-> numpy-only Pairing NN reference impl (plan/07 § 7.4.5b /
-> § 7.4.6 단계적 학습) 또는 DataExporter HDF5 IO (h5py 의존성).
+> **다음 진입점**: **Phase 6.4 (DatasetBuilder + Step 1 UI wiring)**
+> 또는 **6.5 (numpy-only Pairing NN reference)**. 6.1 schema + 6.2
+> NNPluginMixin + 6.3 HDF5 IO 완료. Plan/07 § 7.4.3 의 자동 Dataset
+> Builder (Pipeline 통합) 가 다음 자연스러운 step.
 
+- **Phase 6.3 DONE** — DataExporter HDF5 IO (plan/07 § 7.4.4).
+  `src/workbench/app/nn/data_exporter.py`: `write_dataset(path,
+  meta, inputs, labels)` + `read_dataset(path) -> (meta, inputs,
+  labels)`. HDF5 root attrs `meta_json` / `schema_json` /
+  `variant_json` (JSON serialisation) + `inputs/<field>` /
+  `labels/<field>` datasets per FieldSpec. 검증 (missing/extra
+  field, wrong shape, wrong dtype) 가 file open 전에 실행 →
+  partial file 생성 0. 10 tests: round-trip arrays/meta/spec/variant
+  + 0-sample edge + 4 validation. 누적 **1273 PASS** (+10 신규).
 - **Phase 6.1 + 6.2 DONE** — NN 통합 schema + plugin protocol layer.
   - 6.1 `src/workbench/domain/nn/sample_spec.py` (plan/07 § 7.4.4 /
     § 7.4.5a): FieldSpec (name/shape/dtype/desc, 15 allowed dtype
