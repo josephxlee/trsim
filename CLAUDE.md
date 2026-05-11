@@ -17,10 +17,23 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 6.4c (Step 1 UI wiring)** — Editor
-> "Build Dataset" 버튼이 DatasetBuilder + Pipeline probe 를 wiring
-> 하는 controller. Phase 6.4a + 6.4b 완료.
+> **다음 진입점**: **Phase 6.5 (numpy-only Pairing NN reference) 또는
+> 6.6 (NNEvaluator 4-error)** — Phase 6.4 (DatasetBuilder + Pipeline
+> probe + Step 1 UI) 완료. 다음은 Pairing NN reference 구현 또는 Step
+> 2 Eval panel 의 4-error 분석 (plan/07 § 7.6).
 
+- **Phase 6.4c DONE** — Step 1 Editor controller (plan/07 § 7.4.3).
+  `src/workbench/ui/simulator/nn_mode/step1_controller.py`:
+  NNStep1Controller(panel, seed) 가 `build_requested` →
+  DatasetBuilder 생성 + target frames 만큼 random Pairing sample
+  append + finalize, `cancel_requested` → builder.cancel(). 입력
+  validation (frames non-int / negative / output path empty) +
+  status/log 업데이트 + progress callback wiring. **scenario +
+  Pipeline 통합은 6.5+ 에서 random sample loop 를 실제 step()
+  probe 로 교체.** 8 pytest-qt tests in `tests/unit/ui/simulator/
+  test_nn_step1_controller.py` (round-trip 6 sample 파일 / status
+  + log / 3 input validation / cancel-no-build / 0-sample / 두 번
+  consecutive build overwrite). 누적 **1301 PASS** (+8 신규).
 - **Phase 6.4b DONE** — Pipeline probe-hook (plan/07 § 7.4.3).
   `src/workbench/domain/pipeline.py`: `ProbeCallback = Callable[[str,
   Mapping[str, Any]], None]` type + `step(..., probes=None)` 추가.
