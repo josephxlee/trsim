@@ -33,6 +33,13 @@ from workbench.app.nn.trainer import (
     TrainingJob,
     TrainingResult,
 )
+from workbench.app.nn.variant_runner import (
+    VariantBuildPlan,
+    VariantBuildResult,
+    VariantBuildRunner,
+    VariantProgressCallback,
+    standard_pairing_build_plans,
+)
 
 __all__ = [
     "DatasetBuilder",
@@ -45,9 +52,14 @@ __all__ = [
     "TrainerService",
     "TrainingJob",
     "TrainingResult",
+    "VariantBuildPlan",
+    "VariantBuildResult",
+    "VariantBuildRunner",
+    "VariantProgressCallback",
     "default_pairing_scenario",
     "evaluate",
     "pairing_loss",
     "read_dataset",
+    "standard_pairing_build_plans",
     "write_dataset",
 ]

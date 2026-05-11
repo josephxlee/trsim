@@ -1,6 +1,18 @@
-"""NN Mode Step 1 - Dataset Builder (Phase 4.11, plan/07 § 7.x)."""
+"""NN Mode Step 1 - Dataset Builder (Phase 4.11 + task B, plan/07 § 7.4.5a).
+
+Task B adds a "Build mode" picker so the panel can drive either:
+
+- ``SINGLE`` — one variant (the default, behaviour from Phase 4.11) +
+  the on-disk path is the literal HDF5 file the user typed.
+- ``CHAIN_4VARIANT`` — :func:`workbench.app.nn.standard_pairing_build_
+  plans` four-tier (A/B/C/D) chain. The on-disk path is treated as
+  the output **directory** (or the directory containing the typed
+  file); per-variant filenames come from the standard preset.
+"""
 
 from __future__ import annotations
+
+from enum import StrEnum
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -15,6 +27,19 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+
+class Step1BuildMode(StrEnum):
+    """Step 1 build selector — single variant vs. 4-variant chain."""
+
+    SINGLE = "single"
+    CHAIN_4VARIANT = "chain_4variant"
+
+
+_BUILD_MODE_LABELS: dict[Step1BuildMode, str] = {
+    Step1BuildMode.SINGLE: "Single variant",
+    Step1BuildMode.CHAIN_4VARIANT: "All 4 variants (A/B/C/D)",
+}
 
 
 class Step1DatasetPanel(QWidget):
@@ -46,13 +71,18 @@ class Step1DatasetPanel(QWidget):
         self._probe_combo = QComboBox(box)
         self._probe_combo.setObjectName("NNStep1Probe")
         self._probe_combo.addItems(["Pairing", "Tracker", "Detector"])
+        self._build_mode_combo = QComboBox(box)
+        self._build_mode_combo.setObjectName("NNStep1BuildMode")
+        for mode in (Step1BuildMode.SINGLE, Step1BuildMode.CHAIN_4VARIANT):
+            self._build_mode_combo.addItem(_BUILD_MODE_LABELS[mode], mode.value)
         self._frames_edit = QLineEdit("200", box)
         self._frames_edit.setObjectName("NNStep1Frames")
         self._output_edit = QLineEdit("./datasets/dataset_v1.h5", box)
         self._output_edit.setObjectName("NNStep1OutputPath")
         form.addRow("Scenario", self._scenario_combo)
         form.addRow("Probe stage", self._probe_combo)
-        form.addRow("Frames", self._frames_edit)
+        form.addRow("Build mode", self._build_mode_combo)
+        form.addRow("Frames (per variant)", self._frames_edit)
         form.addRow("Output path", self._output_edit)
         return box
 
@@ -100,6 +130,20 @@ class Step1DatasetPanel(QWidget):
     def append_log(self, line: str) -> None:
         self._log.addItem(line)
 
+    def current_build_mode(self) -> Step1BuildMode:
+        """Return the currently selected :class:`Step1BuildMode`."""
+        data = self._build_mode_combo.currentData()
+        if isinstance(data, str):
+            return Step1BuildMode(data)
+        # Fall back to enum-by-index (covers tests that set combo via
+        # ``setCurrentIndex`` without populating userData).
+        return list(Step1BuildMode)[self._build_mode_combo.currentIndex()]
+
+    def set_build_mode(self, mode: Step1BuildMode) -> None:
+        """Programmatic mirror of selecting a build mode in the combo."""
+        idx = list(Step1BuildMode).index(mode)
+        self._build_mode_combo.setCurrentIndex(idx)
+
     # ------------------------------------------------------------------
     # Test helpers
     # ------------------------------------------------------------------
@@ -108,6 +152,9 @@ class Step1DatasetPanel(QWidget):
 
     def probe_combo(self) -> QComboBox:
         return self._probe_combo
+
+    def build_mode_combo(self) -> QComboBox:
+        return self._build_mode_combo
 
     def frames_edit(self) -> QLineEdit:
         return self._frames_edit

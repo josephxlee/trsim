@@ -17,12 +17,33 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: Phase 7.6 DONE — main_window DLC bootstrap (옵션 A).
-> ResourceLibrary→Editor sidebar 자동 feed 동작, PanelRegistry 가
-> trsim.ui.panels DLC 자동 등록. 다음 큰 작업 선택지 B/C/D (Variant
-> build runner / Real TrainerService / Simulator panel mount) 는
-> 사용자 결정 영역.
+> **다음 진입점**: Task B (Variant chain runner) DONE — Step 1 panel
+> 의 "Build mode" 선택으로 SINGLE / CHAIN_4VARIANT 양쪽 동작. 4-tier
+> A/B/C/D HDF5 + manifest TOML 자동 출력. 다음 큰 작업 선택지 C/D
+> (Real TrainerService / Simulator panel mount) 는 사용자 결정 영역.
 
+- **Task B (Variant build runner) DONE** — plan/07 § 7.4.5a.
+  `src/workbench/app/nn/variant_runner.py`: `VariantBuildPlan` frozen
+  (variant + dataset_filename + scenario + frames, 2 validation) +
+  `VariantBuildResult` frozen (plan + dataset_path + frames_executed +
+  cancelled) + `standard_pairing_build_plans(target_count, frames_per_
+  variant, scenario=None)` 4-tier preset (A/B/C/D 동일 scenario 공유) +
+  `VariantBuildRunner(*, spec, plans, output_root, manifest_filename=None,
+  dataset_id_prefix="", progress_callback=None)` chain build (per-variant
+  DatasetBuilder + PipelineRunner.run_pairing_dataset + builder.finalize
+  → VariantEntry 누적 → VariantsManifest 생성 + write_variants_
+  manifest, 0 entries 면 manifest=None 반환). cancel() 가 current
+  builder 까지 propagate. 18 tests (plan validation 3 / preset 4 /
+  runner constructor 2 / happy path 5 / cancellation 3 / manifest_path
+  surface 1). `src/workbench/ui/simulator/nn_mode/step1_dataset.py`:
+  `Step1BuildMode` StrEnum (SINGLE / CHAIN_4VARIANT) + 새 "Build mode"
+  combo row + `current_build_mode()` / `set_build_mode()` 접근자.
+  `step1_controller.py` 가 mode 별 `_run_single` (기존) vs `_run_chain`
+  (output_path → output_root, standard_pairing_build_plans, manifest
+  + 4 dataset 로그). Cancel 도 variant_runner 우선 처리. 9 신규 tests
+  (panel default mode / chain 4×h5 + manifest / per-variant id /
+  log summary / status done / 2 validation / SINGLE 모드 복귀
+  round-trip). 누적 **1532 PASS** (+27 신규). 5 contracts KEPT.
 - **Phase 7.6 DONE** — DLC runtime bootstrap (plan/17 § 17.4 finale).
   `src/workbench/app/dlc_runtime.py`: `DLCPaths` frozen (packages_root
   + user_root|None + builtin_root|None) + `default_dlc_paths(home=)`
