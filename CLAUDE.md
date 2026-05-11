@@ -17,10 +17,11 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **main_window wire-up** (PackageManager →
-> PluginLoader → ResourceLibrary → PanelRegistry → Editor / Simulator
-> UI) 또는 Variant build runner (multi-Variant 자동 build). Phase 7
-> 전체 (7.1~7.5) 완료.
+> **다음 진입점**: 세션 인계 — `docs/sessions/phase_5_6_7_2026_05_11_
+> handoff.md` 참조. Phase 5 마감 + Phase 6 NN MVP + Phase 7 DLC 시스템
+> 모두 완료 (21 commits, 1484 PASS). 다음 큰 작업 선택지 A~D
+> (main_window wire-up / Variant build runner / Real TrainerService /
+> Resource Browser 연결) 는 사용자 결정 영역.
 
 - **Phase 7.3 + 7.4 + 7.5 DONE** — Plugin Loader + ResourceLibrary
   + Panel Registry (plan/17 § 17.4).

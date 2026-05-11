@@ -1,9 +1,10 @@
 # TRsim — 세션 요약 (v0.40 기준)
 
-**마지막 갱신**: 2026-05-11 — Phase 5 + Phase 6 마감
+**마지막 갱신**: 2026-05-11 — Phase 5 + Phase 6 + Phase 7 마감
 **직전 완료 버전**: v0.40 (v0.39 + Physics Lab — 5번째 차별점)
-**현재 main**: Phase 6.7 (TrainerService stub) — NN 통합 MVP 7 sub-step
-**누적 test**: 1344 PASS local, 5 contracts KEPT
+**현재 main**: `be41394` Phase 7.3+7.4+7.5 — DLC 시스템 마감
+**누적 test**: 1484 PASS local, 5 contracts KEPT
+**인계 doc**: `docs/sessions/phase_5_6_7_2026_05_11_handoff.md`
 
 ---
 
@@ -490,3 +491,43 @@ NNEvalResult → 4-error 진단 table
 5. **itertools.pairwise vs zip(strict=True)** — 길이 다른 list
    에서 `zip(a, a[1:], strict=True)` 가 ValueError 던짐 (5.17 +
    6.7 둘 다 함정). `itertools.pairwise(a)` 가 표준.
+
+---
+
+## 20. Phase 7 DLC 시스템 마감 (2026-05-11, 같은 세션)
+
+Phase 6 NN MVP 직후 자동 진행. 5 sub-step + task 2/3/4 추가.
+
+### sub-step 한 줄 (commits)
+
+- **Task 2** `ef42b02` Real Pipeline probe wire — 6.4c random demo →
+  scenario-driven PipelineRunner + FMCW Triangle closed-form GT (3
+  target diagonal).
+- **Task 3** `64cb09f` Training Panel UI + controller — TrainerService
+  fake-loop wire.
+- **Phase 7.1** `f75d9d7` `.trsim-pkg` manifest.toml schema (kebab-case
+  package_id + SemVer + license + tomllib reader).
+- **Phase 7.2** `10848b9` PackageManager scan (duplicate package_id
+  first-winner + load_errors + rescan).
+- **Task 4** `730eed0` Variant 4-tier manifest (A/B/C/D preset + TOML
+  write/read).
+- **Phase 7.3+7.4+7.5** `be41394` PluginLoader (entry_point importlib
+  + path slot resolve) + ResourceLibrary 3-source (User > Package >
+  Built-in + shadowed_by_source) + PanelRegistry (workspace/dock_area
+  + register_dlc_plugins).
+
+### 누적 통계
+
+- Phase 5 끝 → Phase 6 마감 → Phase 7 마감 = 21 commits / +486 tests
+  (998 → 1484 PASS)
+- ruff / mypy strict / import-linter 5 contracts KEPT 매 commit
+- bindfs 잘림 0
+- 인계 doc: `docs/sessions/phase_5_6_7_2026_05_11_handoff.md`
+
+### 다음 세션 권고
+
+선택지 A~D (handoff doc § 6 참조):
+- A main_window wire-up
+- B Variant build runner
+- C Real TrainerService backend
+- D Resource Browser 데이터 source 연결
