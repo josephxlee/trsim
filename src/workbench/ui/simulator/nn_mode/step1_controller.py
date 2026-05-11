@@ -1,65 +1,84 @@
-"""Step 1 Dataset Builder controller (Phase 6.4c, plan/07 § 7.4.3).
+"""Step 1 Dataset Builder controller (Phase 6.4c + task 2, plan/07 § 7.4.3).
 
 Wires :class:`workbench.ui.simulator.nn_mode.step1_dataset.Step1DatasetPanel`
-to a real :class:`workbench.app.nn.DatasetBuilder`.
+to a real scenario-driven :class:`workbench.app.nn.PipelineRunner` that
+generates Pairing samples via the FMCW Triangle physics and the
+hardcoded default scenario.
 
-Scope (MVP):
+Scope (current MVP):
 
 - The controller listens to the panel's ``build_requested`` /
   ``cancel_requested`` signals.
-- ``Build Dataset`` opens a :class:`DatasetBuilder`, appends a
-  user-configured number of dummy Pairing samples (no scenario / no
-  Pipeline integration yet), finalises the file, and reports the
-  output path in the panel's log.
-- ``Cancel`` flips the in-flight builder's cancelled flag so the
-  next append rejects; if no build is in flight it just logs.
+- ``Build Dataset`` opens a :class:`DatasetBuilder`, runs
+  :meth:`PipelineRunner.run_pairing_dataset` for ``target`` frames
+  using :func:`default_pairing_scenario`, finalises the file, and
+  reports the result in the panel log.
+- ``Cancel`` flips the in-flight builder's cancelled flag; the runner
+  reads ``builder.is_cancelled`` between frames and breaks out cleanly.
 
-Real scenario + Pipeline integration (Phase 6.5+) replaces the dummy
-sample loop with a Pipeline run that pipes
-:func:`workbench.domain.pipeline.step` probes into the same
-``builder.append``. The signal / controller wiring stays the same.
-
-The controller never touches Qt outside the panel API — it stores no
-QObjects beyond the connected panel — so unit tests can run without
-a real event loop.
+A future sub-step will let the panel pick the scenario from the
+Editor's ScenarioComposer (Phase 4.5) instead of hardcoding
+``default_pairing_scenario``. The signal / controller wiring stays
+the same.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
-
-from workbench.app.nn import DatasetBuilder
+from workbench.app.nn import (
+    DatasetBuilder,
+    PipelineRunner,
+    default_pairing_scenario,
+)
 from workbench.domain.nn import DatasetVariant, FieldSpec, SampleSpec
 from workbench.ui.simulator.nn_mode.step1_dataset import Step1DatasetPanel
 
+_BUFFER_SIZE = 16
+"""SampleSpec up_beats / down_beats / pair_indices leading axis length.
+
+Padding slots beyond the active target count carry zeros (beats) /
+``-1`` (GT). :func:`pairing_loss` excludes ``-1`` from the
+denominator so a fixed-size buffer is safe for variable target counts.
+"""
+
 
 def _default_pairing_spec() -> SampleSpec:
-    """Pairing SampleSpec used by the demo build (plan/07 § 7.4.5b)."""
+    """Pairing SampleSpec used by the dataset build (plan/07 § 7.4.5b)."""
     return SampleSpec(
         spec_id="pairing",
         probe_stage="pairing",
         inputs=(
-            FieldSpec("up_beats", (16,), "complex64", "Up-sweep beat list"),
-            FieldSpec("down_beats", (16,), "complex64", "Down-sweep beat list"),
+            FieldSpec("up_beats", (_BUFFER_SIZE,), "complex64", "Up-sweep beat list"),
+            FieldSpec("down_beats", (_BUFFER_SIZE,), "complex64", "Down-sweep beat list"),
         ),
-        labels=(FieldSpec("pair_indices", (16,), "int32", "GT pair index per up beat"),),
+        labels=(FieldSpec("pair_indices", (_BUFFER_SIZE,), "int32", "GT pair index per up beat"),),
     )
 
 
 class NNStep1Controller:
-    """Glue between the Step 1 panel and the DatasetBuilder.
+    """Glue between the Step 1 panel and the DatasetBuilder + PipelineRunner.
 
     Attributes:
         panel: The panel this controller drives.
-        seed: RNG seed for the dummy demo samples (deterministic
-            tests).
+        target_count: Number of targets in the hardcoded default
+            scenario (1..3). Future sub-step replaces this with a
+            user-picked scenario.
     """
 
-    def __init__(self, panel: Step1DatasetPanel, *, seed: int = 0) -> None:
+    def __init__(
+        self,
+        panel: Step1DatasetPanel,
+        *,
+        target_count: int = 3,
+        seed: int = 0,
+    ) -> None:
+        # seed kept on the constructor surface for backward compat
+        # with earlier random-loop tests; the scenario-driven build is
+        # deterministic so the value is unused.
+        del seed
         self.panel = panel
-        self._rng = np.random.default_rng(seed=seed)
+        self.target_count = target_count
         self._builder: DatasetBuilder | None = None
 
         self.panel.build_requested.connect(self._on_build)
@@ -102,16 +121,18 @@ class NNStep1Controller:
         self.panel.set_status(f"building: 0/{target}")
         self.panel.append_log(f"Build started: {output_path}")
 
+        scenario = default_pairing_scenario(target_count=self.target_count)
+        runner = PipelineRunner(builder=self._builder, scenario=scenario)
+
         try:
-            for _ in range(target):
-                if self._builder.is_cancelled:
-                    break
-                self._builder.append(*self._random_pairing_sample())
-        except RuntimeError as exc:
+            runner.run_pairing_dataset(n_frames=target)
+        except (ValueError, RuntimeError) as exc:
             self.panel.append_log(f"Build interrupted: {exc}")
         finally:
-            assert self._builder is not None
-            meta = self._builder.finalize(scenarios=("demo",))
+            meta = self._builder.finalize(
+                scenarios=("default_pairing_scenario",),
+                extra={"target_count": str(self.target_count)},
+            )
             self.panel.set_status(
                 f"done: {meta.total_samples}/{target} samples -> {output_path.name}"
             )
@@ -125,7 +146,7 @@ class NNStep1Controller:
             self.panel.append_log("Cancel: no build in flight")
             return
         self._builder.cancel()
-        self.panel.append_log("Cancel requested; stopping at next append")
+        self.panel.append_log("Cancel requested; stopping at next frame")
 
     # ------------------------------------------------------------------
     # Helpers
@@ -136,15 +157,3 @@ class NNStep1Controller:
             self.panel.set_status(f"building: {n_appended} samples")
         else:
             self.panel.set_status(f"building: {n_appended}/{target}")
-
-    def _random_pairing_sample(
-        self,
-    ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
-        inputs = {
-            "up_beats": self._rng.standard_normal(16).astype(np.complex64),
-            "down_beats": self._rng.standard_normal(16).astype(np.complex64),
-        }
-        labels = {
-            "pair_indices": self._rng.integers(0, 16, size=16).astype(np.int32),
-        }
-        return inputs, labels

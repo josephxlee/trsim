@@ -11,6 +11,9 @@
 - Phase 6.7 :class:`TrainingJob` + :class:`TrainingResult` +
   :class:`TrainerService` — training-loop schema + fake-loop service
   stub (plan/07 § 7.5).
+- Phase 6 후속 :class:`PairingScenarioSpec` + :class:`PipelineRunner`
+  + :func:`default_pairing_scenario` — scenario-driven Pairing dataset
+  build (plan/07 § 7.4.3).
 """
 
 from __future__ import annotations
@@ -19,6 +22,11 @@ from workbench.app.nn.data_exporter import read_dataset, write_dataset
 from workbench.app.nn.dataset_builder import DatasetBuilder, ProgressCallback
 from workbench.app.nn.evaluator import NNEvalResult, evaluate, pairing_loss
 from workbench.app.nn.pairing_nn import NumpyPairingNN
+from workbench.app.nn.pipeline_runner import (
+    PairingScenarioSpec,
+    PipelineRunner,
+    default_pairing_scenario,
+)
 from workbench.app.nn.trainer import (
     EpochCallback,
     TrainerService,
@@ -31,10 +39,13 @@ __all__ = [
     "EpochCallback",
     "NNEvalResult",
     "NumpyPairingNN",
+    "PairingScenarioSpec",
+    "PipelineRunner",
     "ProgressCallback",
     "TrainerService",
     "TrainingJob",
     "TrainingResult",
+    "default_pairing_scenario",
     "evaluate",
     "pairing_loss",
     "read_dataset",

@@ -17,10 +17,23 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 7 (DLC 시스템)** 또는 Phase 6 후속
-> (Pipeline 통합 random demo→real probe, Training Panel UI). Step 2
-> controller (6.8) 마감.
+> **다음 진입점**: **Training Panel UI (task 3)** 또는 **Phase 7
+> (DLC 시스템, task 1)**. task 2 (real Pipeline probe wire) 완료 —
+> 6.4c controller random demo → scenario-driven PipelineRunner +
+> FMCW Triangle closed-form GT.
 
+- **Task 2 (Phase 6 후속) DONE** — Real Pipeline probe wire (plan/07
+  § 7.4.3 / § 7.4.5b). `src/workbench/app/nn/pipeline_runner.py`:
+  `PairingScenarioSpec` frozen schema (targets_initial_state /
+  dt_s / carrier_freq / bandwidth / sweep_period + 6 validation) +
+  `PipelineRunner(builder, scenario, probe_callback)` 매 frame:
+  target range propagate (CV) → `fmcw_triangle_beats` (Phase 1) →
+  up/down beats + GT diagonal pair_indices, 패딩 -1 + zero → probe
+  callback → builder.append. cancel 검사 probe 후 + frame 시작 시.
+  `default_pairing_scenario(target_count)` 3-target preset.
+  6.4c controller 의 random demo loop 를 PipelineRunner 호출로 교체.
+  18 PipelineRunner tests + 6.4c test 1개 GT diagonal 검증 추가.
+  누적 **1373 PASS** (+18 신규).
 - **Phase 6.8 DONE** — Step 2 Evaluation controller (plan/07 § 7.6).
   `src/workbench/ui/simulator/nn_mode/step2_controller.py`:
   `NNStep2Controller(panel, datasets, plugins)` 가 dataset / plugin

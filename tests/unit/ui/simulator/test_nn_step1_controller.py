@@ -40,6 +40,14 @@ def test_build_requested_writes_dataset_with_target_samples(qtbot: object, tmp_p
     assert meta.spec.spec_id == "pairing"
     assert inputs["up_beats"].shape == (6, 16)
     assert labels["pair_indices"].shape == (6, 16)
+    # Scenario-driven build emits diagonal GT for active targets
+    # (default 3) and -1 padding for slots 3..15.
+    gt0 = labels["pair_indices"][0]
+    assert int(gt0[0]) == 0
+    assert int(gt0[1]) == 1
+    assert int(gt0[2]) == 2
+    assert int(gt0[3]) == -1
+    assert int(gt0[15]) == -1
 
 
 def test_build_requested_updates_status_and_log(qtbot: object, tmp_path: Path) -> None:
