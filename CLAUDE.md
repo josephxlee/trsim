@@ -17,11 +17,19 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Training Panel UI (task 3)** 또는 **Phase 7
-> (DLC 시스템, task 1)**. task 2 (real Pipeline probe wire) 완료 —
-> 6.4c controller random demo → scenario-driven PipelineRunner +
-> FMCW Triangle closed-form GT.
+> **다음 진입점**: **Phase 7 (DLC 시스템, task 1)** 또는 **task 4
+> (Variant manifest)**. task 2 + task 3 (Training Panel UI) 완료.
 
+- **Task 3 (Training Panel UI) DONE** — plan/07 § 7.5.3.
+  `src/workbench/ui/nn_training/`: `TrainingPanel` Qt widget (job
+  config form 6 필드 + progress 4 라벨 + log + Run/Stop signals) +
+  `NNTrainingController` 가 train_requested → TrainingJob 생성
+  (validation: 빈 job_id/dataset/weights + non-int epochs +
+  non-float lr + 0 epochs reject) → TrainerService(epoch_callback).
+  run() → epoch 별 panel 업데이트. stop 은 stub (TrainerService MVP
+  cancellation 없음). 19 pytest-qt tests (9 panel default/setter/
+  signal + 10 controller happy/validation/stop). 누적 **1392 PASS**
+  (+19 신규).
 - **Task 2 (Phase 6 후속) DONE** — Real Pipeline probe wire (plan/07
   § 7.4.3 / § 7.4.5b). `src/workbench/app/nn/pipeline_runner.py`:
   `PairingScenarioSpec` frozen schema (targets_initial_state /
