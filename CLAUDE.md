@@ -22,6 +22,11 @@
 > 4 ALL DONE) + `docs/sessions/phase_5_verification_kickoff.md` (Phase
 > 5.1~5.3 + 16+ 남은 카테고리 + 패턴).
 
+- **Phase 5.11 DONE** — PerformanceClock 검증 (plan/18 § 18.16).
+  생성자 reject + factory 두 종 (from_target_latency_ms /
+  from_frame_rate_hz) + budget exhausted → sleep 0 + short frame
+  pad ~ budget (5ms~50ms 대역) + factory round-trip (40ms ↔ 25Hz).
+  누적 1127 PASS (+9 신규).
 - **Phase 5.10 DONE** — CFAR detector 검증 (plan/04 § 4.3 Phase 5 #17,
   OS-CFAR vs CA-CFAR). alpha_ca_for_pfa Skolnik closed-form 3 case +
   monotonicity + pfa/n_total rejection. ca_cfar_1d spike detection +
