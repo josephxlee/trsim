@@ -17,10 +17,25 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **다음 진입점**: **Phase 7.3+ (PluginLoader / ResourceLibrary
-> 3-source)** 또는 Variant build runner (multi-variant 자동 build).
-> task 2→3→1→4 모두 완료.
+> **다음 진입점**: **main_window wire-up** (PackageManager →
+> PluginLoader → ResourceLibrary → PanelRegistry → Editor / Simulator
+> UI) 또는 Variant build runner (multi-Variant 자동 build). Phase 7
+> 전체 (7.1~7.5) 완료.
 
+- **Phase 7.3 + 7.4 + 7.5 DONE** — Plugin Loader + ResourceLibrary
+  + Panel Registry (plan/17 § 17.4).
+  - 7.3 `app/dlc/plugin_loader.py`: entry_point string `module:attr`
+    importlib.util.spec_from_file_location + ``trsim.resources.*``
+    path slot 디렉토리 resolve, slot prefix invalid / module 없음 /
+    attribute 없음 / dir 없음 → load_errors 누적, 13 tests.
+  - 7.4 `app/resources/library.py`: ResourceLibrary 3-source
+    (User > Package > Built-in priority + shadowed_by_source 보고),
+    ResourceCategory enum 4종 (maps/radars/targets/scenarios),
+    dotfile skip, 11 tests.
+  - 7.5 `ui/panel_registry.py`: PanelRegistry register / clear /
+    workspace 필터 + register_dlc_plugins (PluginLoader 결과의
+    trsim.ui.panels 자동 등록, default simulator/right), 13 tests.
+  - 누적 **1484 PASS** (+37 신규).
 - **Task 4 (Variant 4-tier manifest) DONE** — plan/07 § 7.4.5a.
   `src/workbench/domain/nn/variant_manifest.py`: `VariantEntry`
   (DatasetVariant + dataset_path) + `VariantsManifest` (spec_id +

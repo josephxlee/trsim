@@ -14,5 +14,17 @@ from workbench.app.dlc.package_manager import (
     PackageLoadError,
     PackageManager,
 )
+from workbench.app.dlc.plugin_loader import (
+    LoadedPlugin,
+    PluginLoader,
+    PluginLoadError,
+)
 
-__all__ = ["LoadedPackage", "PackageLoadError", "PackageManager"]
+__all__ = [
+    "LoadedPackage",
+    "LoadedPlugin",
+    "PackageLoadError",
+    "PackageManager",
+    "PluginLoadError",
+    "PluginLoader",
+]
