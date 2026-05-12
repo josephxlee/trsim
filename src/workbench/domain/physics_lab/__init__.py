@@ -32,11 +32,16 @@ from workbench.domain.physics_lab.test_objects import (
     Wall,
     default_library,
 )
+from workbench.domain.physics_lab.time_modes import (
+    TIME_MODES_IN_DISPLAY_ORDER,
+    TimeMode,
+)
 
 __all__ = [
     "BOUNCING_BALL_PARAM_SPECS",
     "SLIDER_TICK_RESOLUTION",
     "TEST_OBJECT_KINDS",
+    "TIME_MODES_IN_DISPLAY_ORDER",
     "Cone",
     "Cube",
     "Cylinder",
@@ -47,6 +52,7 @@ __all__ = [
     "Point",
     "Sphere",
     "TestObject",
+    "TimeMode",
     "Trihedral",
     "VisualKind",
     "Wall",

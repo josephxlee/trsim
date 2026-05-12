@@ -26,6 +26,7 @@ from collections.abc import Iterable
 import pyqtgraph as pg
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import (
+    QComboBox,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -41,10 +42,12 @@ from workbench.app.physics_lab import (
     BouncingBallSimulator,
     BouncingBallState,
     PhysicsClock,
+    analytic_peak_height_m,
 )
 from workbench.domain.physics_lab import (
     BOUNCING_BALL_PARAM_SPECS,
     TestObject,
+    TimeMode,
     default_library,
 )
 from workbench.ui.physics_lab.auto_parameters import AutoParametersWidget
@@ -333,7 +336,24 @@ class CodePreview(QWidget):
 
 
 class BouncingBallPlot(QWidget):
-    """pyqtgraph plot of ``y(t)`` (height in metres vs. time in seconds)."""
+    """pyqtgraph plot of ``y(t)`` (height in metres vs. time in seconds).
+
+    PL-9.1e — supports multiple named curves on the same axes for the
+    Compare and Sweep modes. The original single-curve API (``append``
+    / ``set_history`` / ``clear_history`` / ``history_length``) still
+    operates on the implicit ``"primary"`` curve so existing callers
+    do not change.
+
+    Extra curves:
+        :meth:`add_overlay_curve(name, color)` — register a new curve.
+        :meth:`append_to(name, t, y)` — extend it.
+        :meth:`set_history_of(name, times, ys)` — replace its samples.
+        :meth:`remove_overlay_curve(name)` — drop the curve + the
+            backing buffers.
+        :meth:`overlay_names()` — names of all curves except primary.
+    """
+
+    PRIMARY_CURVE: str = "primary"
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -351,33 +371,111 @@ class BouncingBallPlot(QWidget):
         self._plot.setLabel("left", "height", units="m")
         self._plot.setLabel("bottom", "time", units="s")
         self._plot.showGrid(x=True, y=True, alpha=0.3)
-        self._curve = self._plot.plot([], [], pen=pg.mkPen(width=2))
         layout.addWidget(self._plot, 1)
 
-        self._times: list[float] = []
-        self._ys: list[float] = []
+        # Curve registry. The primary curve is always present.
+        self._curves: dict[str, pg.PlotDataItem] = {}
+        self._histories: dict[str, tuple[list[float], list[float]]] = {}
+        self._add_curve(self.PRIMARY_CURVE, color=None, width=2)
+
+    def _add_curve(
+        self,
+        name: str,
+        *,
+        color: str | None,
+        width: int = 2,
+    ) -> pg.PlotDataItem:
+        pen = pg.mkPen(width=width) if color is None else pg.mkPen(color, width=width)
+        curve = self._plot.plot([], [], pen=pen, name=name)
+        self._curves[name] = curve
+        self._histories[name] = ([], [])
+        return curve
+
+    # ------------------------------------------------------------------
+    # Primary-curve API (back-compat with PL-D)
+    # ------------------------------------------------------------------
 
     def append(self, time_s: float, y_m: float) -> None:
-        """Append one (t, y) sample and redraw."""
-        self._times.append(time_s)
-        self._ys.append(y_m)
-        self._curve.setData(self._times, self._ys)
+        """Append one (t, y) sample to the primary curve and redraw."""
+        self.append_to(self.PRIMARY_CURVE, time_s, y_m)
 
     def set_history(self, times: Iterable[float], ys: Iterable[float]) -> None:
-        self._times = list(times)
-        self._ys = list(ys)
-        self._curve.setData(self._times, self._ys)
+        self.set_history_of(self.PRIMARY_CURVE, times, ys)
 
     def clear_history(self) -> None:
-        self._times.clear()
-        self._ys.clear()
-        self._curve.setData([], [])
+        self.clear_history_of(self.PRIMARY_CURVE)
 
     def history_length(self) -> int:
-        return len(self._times)
+        return self.history_length_of(self.PRIMARY_CURVE)
 
     def plot_widget(self) -> pg.PlotWidget:
         return self._plot
+
+    # ------------------------------------------------------------------
+    # Multi-curve API (PL-9.1e Compare + Sweep)
+    # ------------------------------------------------------------------
+
+    def add_overlay_curve(self, name: str, *, color: str) -> None:
+        """Register a new named overlay curve in addition to ``primary``.
+
+        Raises ValueError on duplicate or reserved ``primary`` name.
+        """
+        if name == self.PRIMARY_CURVE:
+            msg = f"{self.PRIMARY_CURVE!r} is the implicit primary curve"
+            raise ValueError(msg)
+        if name in self._curves:
+            msg = f"BouncingBallPlot: curve {name!r} already exists"
+            raise ValueError(msg)
+        self._add_curve(name, color=color)
+
+    def remove_overlay_curve(self, name: str) -> None:
+        """Drop a named overlay (no-op on missing / primary)."""
+        if name == self.PRIMARY_CURVE or name not in self._curves:
+            return
+        self._plot.removeItem(self._curves[name])
+        del self._curves[name]
+        del self._histories[name]
+
+    def overlay_names(self) -> tuple[str, ...]:
+        return tuple(n for n in self._curves if n != self.PRIMARY_CURVE)
+
+    def all_curve_names(self) -> tuple[str, ...]:
+        return tuple(self._curves.keys())
+
+    def append_to(self, name: str, time_s: float, y_m: float) -> None:
+        """Append one (t, y) sample to a named curve and redraw."""
+        if name not in self._curves:
+            msg = f"BouncingBallPlot: unknown curve {name!r}"
+            raise ValueError(msg)
+        times, ys = self._histories[name]
+        times.append(time_s)
+        ys.append(y_m)
+        self._curves[name].setData(times, ys)
+
+    def set_history_of(
+        self,
+        name: str,
+        times: Iterable[float],
+        ys: Iterable[float],
+    ) -> None:
+        if name not in self._curves:
+            msg = f"BouncingBallPlot: unknown curve {name!r}"
+            raise ValueError(msg)
+        ts = list(times)
+        vs = list(ys)
+        self._histories[name] = (ts, vs)
+        self._curves[name].setData(ts, vs)
+
+    def clear_history_of(self, name: str) -> None:
+        if name not in self._curves:
+            return
+        self._histories[name] = ([], [])
+        self._curves[name].setData([], [])
+
+    def history_length_of(self, name: str) -> int:
+        if name not in self._histories:
+            return 0
+        return len(self._histories[name][0])
 
 
 # ---------------------------------------------------------------------
@@ -462,6 +560,11 @@ class BouncingBallController(QObject):
     so SimulatorWorkspace-style swap-outs stay possible.
     """
 
+    # Plot curve names + display colours for the Compare / Sweep modes.
+    COMPARE_ANALYTIC_CURVE: str = "analytic_peak"
+    SWEEP_RESTITUTION_VALUES: tuple[float, ...] = (0.3, 0.5, 0.7, 0.9)
+    _SWEEP_COLOURS: tuple[str, ...] = ("#d62728", "#2ca02c", "#1f77b4", "#9467bd")
+
     def __init__(
         self,
         *,
@@ -477,6 +580,7 @@ class BouncingBallController(QObject):
         step_back_button: QPushButton | None = None,
         step_forward_button: QPushButton | None = None,
         frame_readout: QLabel | None = None,
+        mode_combo: QComboBox | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -493,6 +597,12 @@ class BouncingBallController(QObject):
         self._step_back_btn = step_back_button
         self._step_fwd_btn = step_forward_button
         self._frame_readout = frame_readout
+        self._mode_combo = mode_combo
+        self._mode: TimeMode = TimeMode.RUN
+        # Sweep mode keeps one extra simulator per restitution value
+        # plus the curve name it draws into.
+        self._sweep_simulators: list[BouncingBallSimulator] = []
+        self._sweep_curve_names: list[str] = []
 
         # PL-9.1b — frame history. Each call to ``step_forward_once`` /
         # the play timer appends one :class:`BouncingBallState`; the
@@ -531,6 +641,11 @@ class BouncingBallController(QObject):
             self._frame_slider.setValue(0)
             self._frame_slider.valueChanged.connect(self._on_frame_slider_changed)
 
+        # PL-9.1e — mode combo. ``currentTextChanged`` routes to
+        # ``set_mode`` which clears + replays per-mode overlays.
+        if self._mode_combo is not None:
+            self._mode_combo.currentTextChanged.connect(lambda text: self.set_mode(TimeMode(text)))
+
         # Seed the plot with the initial state at t=0 so the user
         # sees the ball position even before pressing Play.
         self._plot.append(self.simulator.state.time_s, self.simulator.state.position_m)
@@ -559,8 +674,147 @@ class BouncingBallController(QObject):
         self._history_index = 0
         self._plot.clear_history()
         self._plot.append(self.simulator.state.time_s, self.simulator.state.position_m)
+        # Mode-specific overlays start from a clean slate after a stop.
+        if self._mode == TimeMode.COMPARE:
+            self._reset_compare_overlay()
+        elif self._mode == TimeMode.SWEEP:
+            self._reset_sweep_overlay()
         self._refresh_frame_ui()
         self._refresh_status()
+
+    # ------------------------------------------------------------------
+    # Mode surface (PL-9.1e)
+    # ------------------------------------------------------------------
+
+    @property
+    def mode(self) -> TimeMode:
+        return self._mode
+
+    def set_mode(self, mode: TimeMode) -> None:
+        """Switch between Static / Run / Compare / Sweep.
+
+        Always pauses + resets the simulator so each mode starts from
+        a clean ``t=0`` state. Mode-specific overlay curves are torn
+        down on exit and rebuilt on entry.
+        """
+        if mode == self._mode:
+            return
+        prev = self._mode
+        # Tear down previous mode's overlays.
+        if prev == TimeMode.COMPARE:
+            self._teardown_compare_overlay()
+        elif prev == TimeMode.SWEEP:
+            self._teardown_sweep_overlay()
+        self._mode = mode
+        # Reset to t=0 — the new mode rebuilds from a clean state.
+        self.stop()
+        self._apply_transport_enabled(enabled=mode != TimeMode.STATIC)
+        if mode == TimeMode.STATIC:
+            # Time controls disabled; plot shows seed state only.
+            pass
+        elif mode == TimeMode.COMPARE:
+            self._setup_compare_overlay()
+        elif mode == TimeMode.SWEEP:
+            self._setup_sweep_overlay()
+        # Reflect the mode in the combo (no-op when the combo emitted
+        # the change in the first place because the value already matches).
+        if self._mode_combo is not None and self._mode_combo.currentText() != mode.value:
+            self._mode_combo.setCurrentText(mode.value)
+
+    def _apply_transport_enabled(self, *, enabled: bool) -> None:
+        for btn in (self._play_btn, self._pause_btn, self._stop_btn):
+            btn.setEnabled(enabled)
+        if self._frame_slider is not None:
+            self._frame_slider.setEnabled(enabled)
+        if self._step_fwd_btn is not None:
+            self._step_fwd_btn.setEnabled(enabled)
+        if self._step_back_btn is not None:
+            self._step_back_btn.setEnabled(enabled and self._history_index > 0)
+
+    # ---- Compare-mode overlay (analytic peak-height markers) -------
+
+    def _setup_compare_overlay(self) -> None:
+        self._plot.add_overlay_curve(self.COMPARE_ANALYTIC_CURVE, color="#ff7f0e")
+        self._refresh_compare_overlay()
+
+    def _teardown_compare_overlay(self) -> None:
+        self._plot.remove_overlay_curve(self.COMPARE_ANALYTIC_CURVE)
+
+    def _reset_compare_overlay(self) -> None:
+        self._plot.clear_history_of(self.COMPARE_ANALYTIC_CURVE)
+        self._refresh_compare_overlay()
+
+    def _refresh_compare_overlay(self) -> None:
+        """Plot the analytic peak height per bounce up to ``N=20`` and
+        let the user visually compare the simulated bouncing decay
+        against the closed-form ``h_n = r^(2n) * h_0`` curve.
+        """
+        if self.COMPARE_ANALYTIC_CURVE not in self._plot.all_curve_names():
+            return
+        h0 = self.simulator.initial_height_m
+        r = self.simulator.restitution
+        max_bounce = 20
+        times: list[float] = []
+        heights: list[float] = []
+        # Approximate landing time of bounce n as ``2 * sum_{k<n} v_k / g``
+        # where v_k = sqrt(2 * g * h_k). The series telescopes to
+        # ``t_n = sqrt(2*h0/g) * (1 + 2*sum_{k=1..n} r^k)`` — useful as
+        # a marker x-axis without the per-step roundoff of the
+        # simulated trajectory.
+        import math
+
+        g = self.simulator.gravity_m_s2
+        t_first = math.sqrt(2.0 * h0 / g)
+        for n in range(max_bounce + 1):
+            h_n = analytic_peak_height_m(h0, r, n)
+            if n == 0:
+                t = 0.0
+            else:
+                # Sum of r^k for k=1..n.
+                geom = sum(r**k for k in range(1, n + 1))
+                t = t_first * (1.0 + 2.0 * geom)
+            times.append(t)
+            heights.append(h_n)
+        self._plot.set_history_of(self.COMPARE_ANALYTIC_CURVE, times, heights)
+
+    # ---- Sweep-mode overlays (one trajectory per restitution) -------
+
+    def _setup_sweep_overlay(self) -> None:
+        self._sweep_simulators = []
+        self._sweep_curve_names = []
+        for r_value, colour in zip(
+            self.SWEEP_RESTITUTION_VALUES,
+            self._SWEEP_COLOURS,
+            strict=True,
+        ):
+            sim = BouncingBallSimulator(
+                gravity_m_s2=self.simulator.gravity_m_s2,
+                restitution=r_value,
+                initial_height_m=self.simulator.initial_height_m,
+                initial_velocity_m_s=self.simulator.initial_velocity_m_s,
+            )
+            name = f"sweep_r{int(r_value * 100)}"
+            self._plot.add_overlay_curve(name, color=colour)
+            self._plot.append_to(name, sim.state.time_s, sim.state.position_m)
+            self._sweep_simulators.append(sim)
+            self._sweep_curve_names.append(name)
+
+    def _teardown_sweep_overlay(self) -> None:
+        for name in self._sweep_curve_names:
+            self._plot.remove_overlay_curve(name)
+        self._sweep_simulators = []
+        self._sweep_curve_names = []
+
+    def _reset_sweep_overlay(self) -> None:
+        for sim, name in zip(self._sweep_simulators, self._sweep_curve_names, strict=True):
+            sim.reset()
+            self._plot.clear_history_of(name)
+            self._plot.append_to(name, sim.state.time_s, sim.state.position_m)
+
+    def _step_sweep_simulators(self, dt_s: float) -> None:
+        for sim, name in zip(self._sweep_simulators, self._sweep_curve_names, strict=True):
+            state = sim.step(dt_s)
+            self._plot.append_to(name, state.time_s, state.position_m)
 
     # ------------------------------------------------------------------
     # Frame history surface (PL-9.1b)
@@ -627,6 +881,8 @@ class BouncingBallController(QObject):
         If the cursor was mid-history (because the user stepped back
         and then resumed Play / Step Forward), the future frames are
         discarded — Play branches a new timeline from the cursor.
+        Sweep-mode siblings also step in lock-step so the user can see
+        all N restitution trajectories progress together.
         """
         if self._history_index < len(self._history) - 1:
             self._history = self._history[: self._history_index + 1]
@@ -639,6 +895,8 @@ class BouncingBallController(QObject):
         self._history.append(state)
         self._history_index = len(self._history) - 1
         self._plot.append(state.time_s, state.position_m)
+        if self._mode == TimeMode.SWEEP and self._sweep_simulators:
+            self._step_sweep_simulators(dt_s)
         self._refresh_frame_ui()
         self._refresh_status()
 

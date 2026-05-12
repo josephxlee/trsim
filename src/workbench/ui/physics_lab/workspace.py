@@ -39,6 +39,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -50,6 +51,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.domain.physics_lab import TIME_MODES_IN_DISPLAY_ORDER, TimeMode
 from workbench.ui.physics_lab.bouncing_ball_demo import (
     BouncingBallController,
     BouncingBallPlot,
@@ -97,9 +99,19 @@ class _TimeControls(QWidget):
         root.setContentsMargins(8, 4, 8, 4)
         root.setSpacing(4)
 
-        # ---- Row 1: Play / Pause / Stop + status label.
+        # ---- Row 1: Mode | Play / Pause / Stop + status label.
         row1 = QHBoxLayout()
         row1.setSpacing(6)
+        self._mode_label = QLabel("Mode:", self)
+        self._mode_label.setObjectName("PhysicsLabModeLabel")
+        self._mode_combo = QComboBox(self)
+        self._mode_combo.setObjectName("PhysicsLabModeCombo")
+        for mode in TIME_MODES_IN_DISPLAY_ORDER:
+            self._mode_combo.addItem(mode.value)
+        self._mode_combo.setCurrentText(TimeMode.RUN.value)
+        row1.addWidget(self._mode_label)
+        row1.addWidget(self._mode_combo)
+        row1.addSpacing(8)
         self._play_btn = QPushButton("Play", self)
         self._play_btn.setObjectName("PhysicsLabPlayBtn")
         self._pause_btn = QPushButton("Pause", self)
@@ -162,6 +174,9 @@ class _TimeControls(QWidget):
 
     def frame_readout(self) -> QLabel:
         return self._frame_readout
+
+    def mode_combo(self) -> QComboBox:
+        return self._mode_combo
 
 
 class PhysicsLabWorkspace(QWidget):
@@ -258,6 +273,7 @@ class PhysicsLabWorkspace(QWidget):
             step_back_button=self._time_controls.step_back_button(),
             step_forward_button=self._time_controls.step_forward_button(),
             frame_readout=self._time_controls.frame_readout(),
+            mode_combo=self._time_controls.mode_combo(),
             parent=self,
         )
 
