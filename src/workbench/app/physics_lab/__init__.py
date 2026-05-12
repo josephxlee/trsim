@@ -19,6 +19,11 @@ from workbench.app.physics_lab.bouncing_ball import (
     analytic_peak_height_m,
 )
 from workbench.app.physics_lab.clock import ClockTick, PhysicsClock
+from workbench.app.physics_lab.models import (
+    BouncingBallModel,
+    FreeSpaceLossModel,
+    GravityOnlyModel,
+)
 from workbench.app.physics_lab.parameter_fitter import (
     FitConfig,
     FitResult,
@@ -26,11 +31,14 @@ from workbench.app.physics_lab.parameter_fitter import (
 )
 
 __all__ = [
+    "BouncingBallModel",
     "BouncingBallSimulator",
     "BouncingBallState",
     "ClockTick",
     "FitConfig",
     "FitResult",
+    "FreeSpaceLossModel",
+    "GravityOnlyModel",
     "PhysicsClock",
     "analytic_peak_height_m",
     "fit_bouncing_ball",

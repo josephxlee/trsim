@@ -11,11 +11,26 @@ the data types they exchange (Detection / Track / etc.) become concrete.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
+
+from workbench.domain.physics_lab import PhysicsParam
 
 # Framework-origin tag carried by every NN plugin (plan/07 § 7.3.1).
 FrameworkOrigin = Literal["tensorflow", "pytorch", "numpy_only"]
+
+# Physics model categories surfaced in the Library (plan/19 § 19.8.1).
+PhysicsModelCategory = Literal[
+    "dynamics",
+    "rf_propagation",
+    "rcs",
+    "atmosphere",
+    "antenna",
+    "other",
+]
+PhysicsModelTimeMode = Literal["static", "dynamic"]
+PhysicsModelVisualization = Literal["2d", "3d", "both", "none"]
 
 
 @runtime_checkable
@@ -79,12 +94,75 @@ class DUTAdapterProtocol(Protocol):
 
 @runtime_checkable
 class PhysicsModelProtocol(Protocol):
-    """Physics model plugin for Physics Lab Validation Bench (plan/19 § 19.8, v0.40).
+    """Physics model plugin for Physics Lab (plan/19 § 19.8, v0.40).
 
-    Categories: ``propagation``, ``reflection``, ``dynamics``, ``atmosphere``, ``antenna``.
-    Validation Bench ensures only models passing 17+ regression scenarios + analytic
-    formula comparison can be used in main simulation (plan/06 § 6.7 v0.40 변경).
+    Implementations supply a name + a category + a parameter spec
+    list + a ``compute`` method that maps an input state-dict to an
+    output state-dict. The Physics Lab Library lists every registered
+    model under the ``Models`` category, the Parameters pane auto-
+    generates sliders from :attr:`parameters`, and the Validation
+    Bench feeds measured data into :meth:`compute` to score the
+    model against truth.
+
+    plan/06 § 6.7 v0.40: user-defined physics-model plugins **are**
+    allowed (reversed from the v0.27..v0.39 ban) because the
+    Validation Bench gates which plugins reach the main simulation.
+
+    All members are properties or zero-arg methods so the
+    ``runtime_checkable`` :func:`isinstance` check stays cheap.
     """
+
+    @property
+    def name(self) -> str:
+        """Display label + lookup key. Must be unique inside a Library."""
+        ...
+
+    @property
+    def category(self) -> PhysicsModelCategory:
+        """Which physical domain the model lives in."""
+        ...
+
+    @property
+    def parameters(self) -> Sequence[PhysicsParam]:
+        """Parameter specs the Auto-Parameters widget uses for sliders."""
+        ...
+
+    @property
+    def time_mode(self) -> PhysicsModelTimeMode:
+        """``"static"`` = single-shot function (no ``dt`` argument).
+        ``"dynamic"`` = needs ``dt`` and integrates state forward.
+        """
+        ...
+
+    @property
+    def visualization(self) -> PhysicsModelVisualization:
+        """Preferred Library viz when this model is selected."""
+        ...
+
+    def compute(
+        self,
+        state: Mapping[str, Any],
+        params: Mapping[str, float],
+        dt_s: float | None,
+    ) -> Mapping[str, Any]:
+        """Run one evaluation.
+
+        Args:
+            state: Input state. For ``time_mode == "static"`` this is
+                usually empty; for ``"dynamic"`` it carries the
+                previous frame.
+            params: Current slider values keyed by
+                :attr:`PhysicsParam.name`.
+            dt_s: ``None`` when ``time_mode == "static"``; the step
+                size otherwise.
+
+        Returns:
+            New state mapping. Static models return the result of the
+            computation (e.g. ``{"rcs_m2": 25.4}``); dynamic models
+            return the propagated state (e.g. ``{"y_m": ..., "v_m_s":
+            ...}``).
+        """
+        ...
 
 
 @runtime_checkable
