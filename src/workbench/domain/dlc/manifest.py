@@ -170,10 +170,23 @@ def load_manifest_from_toml(path: Path | str) -> PackageManifest:
         ValueError: For missing top-level sections, schema violations
             (covered by the dataclass __post_init__ rules), or invalid
             TOML.
+
+    Notes:
+        Strips a leading UTF-8 BOM (``EF BB BF``) before handing the
+        bytes to :mod:`tomllib`. Windows PowerShell 5.1's
+        ``Out-File -Encoding utf8`` writes the BOM by default and
+        ``tomllib`` rejects it with "Invalid statement (at line 1,
+        column 1)" — seen during MVP_GUIDE § 4.1 manifest authoring.
     """
     path_obj = Path(path)
-    with path_obj.open("rb") as handle:
-        blob = tomllib.load(handle)
+    raw = path_obj.read_bytes()
+    if raw.startswith(b"\xef\xbb\xbf"):
+        raw = raw[3:]
+    try:
+        blob = tomllib.loads(raw.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        msg = f"{path_obj}: manifest is not valid UTF-8 ({exc})"
+        raise ValueError(msg) from exc
     return _manifest_from_blob(blob, source=str(path_obj))
 
 

@@ -118,6 +118,20 @@ def test_write_preserves_dataset_path_value(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------
 
 
+def test_variants_manifest_with_utf8_bom_parses(tmp_path: Path) -> None:
+    """PowerShell 5.1 ``Out-File -Encoding utf8`` writes a BOM and tomllib
+    would otherwise reject the file. Mirrors the DLC manifest fix.
+    """
+    out = tmp_path / "pairing_variants_manifest.toml"
+    manifest = VariantsManifest(spec_id="pairing", entries=standard_pairing_variants())
+    write_variants_manifest(out, manifest)
+    bommed = b"\xef\xbb\xbf" + out.read_bytes()
+    out.write_bytes(bommed)
+    loaded = load_variants_manifest(out)
+    assert loaded.spec_id == "pairing"
+    assert len(loaded.entries) == 4
+
+
 def test_load_missing_manifest_section_raises(tmp_path: Path) -> None:
     f = tmp_path / "bad.toml"
     f.write_text("[[variants]]\nvariant_id = 'A'\n", encoding="utf-8")
@@ -129,8 +143,7 @@ def test_load_variants_with_wrong_sea_state_type_rejected(tmp_path: Path) -> Non
     """``sea_state = "high"`` is a TOML string, not an int."""
     f = tmp_path / "bad.toml"
     f.write_text(
-        '[manifest]\nspec_id = "pairing"\n'
-        '[[variants]]\nvariant_id = "A"\nsea_state = "high"\n',
+        '[manifest]\nspec_id = "pairing"\n[[variants]]\nvariant_id = "A"\nsea_state = "high"\n',
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match=r"sea_state"):

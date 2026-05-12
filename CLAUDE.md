@@ -27,6 +27,21 @@
 > workbench-train subprocess wrapping / Physics Lab workspace
 > (v0.40 Phase 9).
 
+- **TOML BOM tolerance + MVP_GUIDE PowerShell 5.1 fix DONE** — 사용자
+  MVP_GUIDE § 4.1 의 `Out-File -Encoding utf8` 가 PowerShell 5.1 에서
+  UTF-8 **BOM** 으로 저장 → tomllib 가 `Invalid statement (at line 1,
+  column 1)` 거부 → DLC tab silent fail. `domain/dlc/manifest.py` 의
+  `load_manifest_from_toml` + `domain/nn/variant_manifest.py` 의
+  `load_variants_manifest` 가 read_bytes → BOM strip (`b"\\xef\\xbb\\xbf"`
+  prefix 검사) → `tomllib.loads(decode("utf-8"))` 으로 변경.
+  UnicodeDecodeError 는 ValueError("not valid UTF-8") 로 wrap.
+  3 신규 tests (DLC manifest BOM 통과 / DLC manifest cp949-like
+  invalid UTF-8 reject / variants manifest BOM 통과). `docs/MVP_GUIDE.
+  md` § 0.0 갱신 (uv venv `No module named pip` 대처 3-way),
+  § 4.1 PowerShell 명령 `[System.IO.File]::WriteAllText` +
+  `UTF8Encoding($false)` 로 변경 (BOM 없는 UTF-8), § 4.3 user
+  resource 명령 동일 변경, § 7 실패 대처표 2 행 추가. 누적 **1583
+  PASS** (+3 신규). 5 contracts KEPT.
 - **DLC silent-fail fix DONE** — 사용자 MVP_GUIDE § 4.1+4.2 따라 sample
   DLC 만들었지만 tab 안 등장. 두 가지 root cause:
   - **PluginLoader slash-path 미처리**: plan/17 § 17.2.4 표준이

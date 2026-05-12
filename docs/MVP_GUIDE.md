@@ -19,12 +19,31 @@
 
 ```powershell
 git pull --ff-only
-.\.venv\Scripts\python.exe -m pip install -e . --no-deps
 ```
 
-**기대**: `Already up to date.` 또는 fast-forward 메시지 + `pip` 가
-console-script wrapper 재생성. console script entry point 가 변경된
-적이 있으면 (`trsim ui --no-dlc` 추가 등) 이 reinstall 이 필수.
+**기대**: `Already up to date.` 또는 fast-forward 메시지.
+
+console-script wrapper 재생성이 필요할 때 (entry point 자체가 새로
+추가됐을 때) `pip install -e . --no-deps` 도 함께 실행하면 좋지만,
+editable install 의 entry point 가 `workbench.__main__:main` 으로
+고정이라 **소스 변경만으로 trsim.exe 가 새 코드를 호출함** — pull 만
+해도 대개 충분.
+
+`No module named pip` 에러가 나는 venv (uv 로 만든 venv 등) 는 다음
+중 하나:
+
+```powershell
+# (a) ensurepip — venv 안에 pip 부트스트랩
+.\.venv\Scripts\python.exe -m ensurepip --upgrade
+
+# (b) reinstall 없이 pull 만 — entry point 변동 없으면 OK
+git pull --ff-only
+
+# (c) venv 재생성 (Python 3.11+ 의 표준 venv 도구로 pip 포함)
+Remove-Item -Recurse -Force .venv
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
 
 실패 시: `git status` 로 local 미커밋 변경 있는지 확인 후 stash /
 commit / rebase 선택.
@@ -251,11 +270,18 @@ mount + populate 두 단계 모두 skip.
 
 ### 4.1 sample DLC 만들기
 
+> **중요**: PowerShell 5.1 의 `Out-File -Encoding utf8` 은 UTF-8
+> **with BOM** 으로 저장 → Python `tomllib` 가 `Invalid statement (at
+> line 1, column 1)` 로 거부. 아래 명령은 `[System.IO.File]::
+> WriteAllText` + `UTF8Encoding($false)` 로 BOM 없는 UTF-8 저장
+> (PowerShell 5.1 / 7 양쪽 동작). DLC 매니페스트 reader 가 BOM 만나면
+> 자동 strip 하지만, 일관성 위해 BOM 안 쓰는 게 표준.
+
 ```powershell
 $pkg = "$env:USERPROFILE\.trsim\packages\demo-panel"
 New-Item -ItemType Directory -Force -Path "$pkg\ui" | Out-Null
 
-@'
+$manifest = @'
 [package]
 id = "demo-panel"
 name = "Demo Panel DLC"
@@ -267,9 +293,11 @@ trsim_min_version = "0.35.0"
 
 [entry_points]
 "trsim.ui.panels" = "ui/diagnostic_panel:DiagnosticPanel"
-'@ | Out-File -Encoding utf8 "$pkg\manifest.toml"
+'@
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText("$pkg\manifest.toml", $manifest, $utf8NoBom)
 
-@'
+$panel = @'
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 class DiagnosticPanel(QWidget):
@@ -277,8 +305,18 @@ class DiagnosticPanel(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Hello from demo-panel DLC"))
-'@ | Out-File -Encoding utf8 "$pkg\ui\diagnostic_panel.py"
+'@
+[System.IO.File]::WriteAllText("$pkg\ui\diagnostic_panel.py", $panel, $utf8NoBom)
 ```
+
+**BOM 확인** (선택):
+
+```powershell
+(Get-Content -Encoding Byte -TotalCount 3 "$pkg\manifest.toml") -join ','
+```
+
+`239,187,191` 이면 BOM 있음 (실패). 첫 글자의 ASCII 코드 (예: `91` =
+`[`) 이면 BOM 없음 (정상).
 
 **manifest 필드 의미**:
 - `[package]` — 4 필드 필수 (id kebab-case / name / version SemVer /
@@ -319,10 +357,16 @@ class DiagnosticPanel(QWidget):
 
 ```powershell
 New-Item -ItemType Directory -Force -Path $env:USERPROFILE\.trsim\resources\radars | Out-Null
-@'
+$radar = @'
 id = "kuband_naval"
 carrier_freq_hz = 9.4e9
-'@ | Out-File -Encoding utf8 $env:USERPROFILE\.trsim\resources\radars\kuband_naval.toml
+'@
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText(
+    "$env:USERPROFILE\.trsim\resources\radars\kuband_naval.toml",
+    $radar,
+    $utf8NoBom
+)
 
 .\.venv\Scripts\trsim.exe ui
 ```
@@ -563,6 +607,8 @@ fallback 통과 = OK)
 
 | 증상 | 원인 후보 | 조치 |
 |---|---|---|
+| `No module named pip` | uv venv 등 pip 없는 venv | § 0.0 (a) `ensurepip --upgrade` 또는 (c) venv 재생성 |
+| `package error ... Invalid statement (at line 1, column 1)` | manifest.toml UTF-8 BOM | § 4.1 의 `[System.IO.File]::WriteAllText` + `UTF8Encoding($false)` 로 재작성. v0.X 부터 reader 가 BOM strip 하지만 일관성 위해 BOM 안 씀이 표준 |
 | `trsim ui --help` 에 `--no-dlc` 없음 | trsim.exe 가 옛 entry point | § 0.0 의 `pip install -e . --no-deps` |
 | pytest 1484 PASS (1576 기대) | local main 이 origin/main 뒤쳐짐 | § 0.0 의 `git pull --ff-only` |
 | Ctrl+Shift+E/S/P 안 됨 | toolbar QAction + menu QAction 단축키 충돌 (rev1) | rev2 push 됐음. § 0.0 pull 으로 해결 |

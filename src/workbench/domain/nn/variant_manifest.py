@@ -219,9 +219,18 @@ def load_variants_manifest(path: Path | str) -> VariantsManifest:
             validation failures (empty variant_id, sea_state out of
             range, etc.).
     """
+    # Strip UTF-8 BOM the same way as the DLC manifest reader —
+    # PowerShell 5.1's ``Out-File -Encoding utf8`` writes one, and
+    # ``tomllib`` would otherwise reject it.
     path_obj = Path(path)
-    with path_obj.open("rb") as handle:
-        blob = tomllib.load(handle)
+    raw = path_obj.read_bytes()
+    if raw.startswith(b"\xef\xbb\xbf"):
+        raw = raw[3:]
+    try:
+        blob = tomllib.loads(raw.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        msg = f"{path_obj}: variants manifest is not valid UTF-8 ({exc})"
+        raise ValueError(msg) from exc
     return _manifest_from_blob(blob, source=str(path_obj))
 
 

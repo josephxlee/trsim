@@ -176,6 +176,27 @@ def test_minimal_manifest_round_trip(tmp_path: Path) -> None:
     assert manifest.python.extra_requires == ()
 
 
+def test_manifest_with_utf8_bom_parses(tmp_path: Path) -> None:
+    """PowerShell 5.1 ``Out-File -Encoding utf8`` writes a BOM and tomllib
+    would otherwise reject the file with "Invalid statement (at line 1,
+    column 1)" — surfaced during MVP_GUIDE § 4.1 manifest authoring.
+    """
+    path = tmp_path / "manifest.toml"
+    body_bytes = b"\xef\xbb\xbf" + _MINIMAL_MANIFEST_TOML.encode("utf-8")
+    path.write_bytes(body_bytes)
+    manifest = load_manifest_from_toml(path)
+    assert manifest.package.package_id == "minimal-pkg"
+
+
+def test_manifest_invalid_utf8_rejected(tmp_path: Path) -> None:
+    """A manifest written in cp949 / latin-1 surfaces a clean error."""
+    path = tmp_path / "manifest.toml"
+    # 0xFF is invalid as the first byte of a UTF-8 sequence.
+    path.write_bytes(b"\xff\xfe[package]\n")
+    with pytest.raises(ValueError, match=r"not valid UTF-8"):
+        load_manifest_from_toml(path)
+
+
 def test_missing_package_section_rejected(tmp_path: Path) -> None:
     path = _write(tmp_path, '[compatibility]\ntrsim_min_version = "0.35.0"\n')
     with pytest.raises(ValueError, match=r"\[package\]"):
