@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QProgressBar,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -97,9 +98,19 @@ class Step1DatasetPanel(QWidget):
         v = QVBoxLayout(box)
         self._status_label = QLabel("Status: idle")
         self._status_label.setObjectName("NNStep1Status")
+        # 0..100 progress bar driven by the controller's per-frame
+        # callback. ``setFormat`` shows the percentage inside the bar
+        # so it's legible even on a dark theme.
+        self._progress_bar = QProgressBar(box)
+        self._progress_bar.setObjectName("NNStep1ProgressBar")
+        self._progress_bar.setRange(0, 100)
+        self._progress_bar.setValue(0)
+        self._progress_bar.setFormat("%p%")
+        self._progress_bar.setTextVisible(True)
         self._log = QListWidget(box)
         self._log.setObjectName("NNStep1Log")
         v.addWidget(self._status_label)
+        v.addWidget(self._progress_bar)
         v.addWidget(self._log, 1)
         return box
 
@@ -131,6 +142,15 @@ class Step1DatasetPanel(QWidget):
 
     def set_status(self, status: str) -> None:
         self._status_label.setText(f"Status: {status}")
+
+    def set_progress(self, percent: float) -> None:
+        """Update the build progress bar (0..100, clamped)."""
+        clamped = max(0.0, min(100.0, float(percent)))
+        self._progress_bar.setValue(int(clamped))
+
+    def reset_progress(self) -> None:
+        """Set the progress bar back to 0% (called at build start)."""
+        self._progress_bar.setValue(0)
 
     def append_log(self, line: str) -> None:
         self._log.addItem(line)
@@ -172,3 +192,6 @@ class Step1DatasetPanel(QWidget):
 
     def log_list(self) -> QListWidget:
         return self._log
+
+    def progress_bar(self) -> QProgressBar:
+        return self._progress_bar

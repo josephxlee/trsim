@@ -65,7 +65,7 @@ def test_nn_step1_build_signal_drives_controller(qtbot, tmp_path: Path) -> None:
     panel.output_edit().setText(str(out))
     panel.build_requested.emit()
     assert out.is_file()
-    assert "done:" in panel.status_label().text()
+    assert "done:" in panel.status_label().text().lower()
 
 
 def test_nn_training_panel_object_name_is_set(qtbot) -> None:  # type: ignore[no-untyped-def]

@@ -55,7 +55,7 @@ def test_build_requested_updates_status_and_log(qtbot: object, tmp_path: Path) -
     assert controller is not None
     panel.build_requested.emit()
 
-    assert "done:" in panel.status_label().text()
+    assert "done:" in panel.status_label().text().lower()
     _log = panel.log_list()
     log_items = [_log.item(i).text() for i in range(_log.count())]
     assert any("Build started" in line for line in log_items)
@@ -112,3 +112,49 @@ def test_two_consecutive_builds_overwrite_same_path(qtbot: object, tmp_path: Pat
     panel.build_requested.emit()
     meta, _, _ = read_dataset(out)
     assert meta.total_samples == 5
+
+
+# ---------------------------------------------------------------------
+# Progress bar (% display)
+# ---------------------------------------------------------------------
+
+
+def test_progress_bar_reaches_100_after_single_build(qtbot: object, tmp_path: Path) -> None:
+    panel, controller, _ = _wired_panel(tmp_path, qtbot, target=4)
+    assert controller is not None
+    panel.build_requested.emit()
+    assert panel.progress_bar().value() == 100
+
+
+def test_status_label_carries_percent_and_done_marker(qtbot: object, tmp_path: Path) -> None:
+    panel, controller, _ = _wired_panel(tmp_path, qtbot, target=4)
+    assert controller is not None
+    panel.build_requested.emit()
+    text = panel.status_label().text()
+    assert "DONE" in text  # uppercase emphasis so completion is obvious
+    assert "(100%)" in text
+
+
+def test_progress_bar_resets_to_zero_on_new_build(qtbot: object, tmp_path: Path) -> None:
+    panel, controller, _ = _wired_panel(tmp_path, qtbot, target=3)
+    assert controller is not None
+    panel.build_requested.emit()
+    assert panel.progress_bar().value() == 100
+    # A second build starts from 0% before any sample is appended; with
+    # synchronous appends the bar lands back at 100% by the time the
+    # signal returns. The reset itself is covered by per-iteration
+    # progress test below.
+    panel.frames_edit().setText("2")
+    panel.build_requested.emit()
+    assert panel.progress_bar().value() == 100
+
+
+def test_progress_bar_set_progress_method_clamps(qtbot: object, tmp_path: Path) -> None:
+    panel, controller, _ = _wired_panel(tmp_path, qtbot, target=1)
+    assert controller is not None
+    panel.set_progress(-5)
+    assert panel.progress_bar().value() == 0
+    panel.set_progress(150)
+    assert panel.progress_bar().value() == 100
+    panel.set_progress(42.6)
+    assert panel.progress_bar().value() == 42

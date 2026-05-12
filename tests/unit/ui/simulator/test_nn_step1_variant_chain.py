@@ -100,8 +100,10 @@ def test_chain_build_status_lands_on_done(qtbot: object, tmp_path: Path) -> None
     panel, controller, _ = _wire(tmp_path, qtbot, frames=1)
     assert controller is not None
     panel.build_requested.emit()
-    assert "done" in panel.status_label().text()
+    assert "done" in panel.status_label().text().lower()
     assert "4/4 variants" in panel.status_label().text()
+    assert "(100%)" in panel.status_label().text()
+    assert panel.progress_bar().value() == 100
 
 
 # ---------------------------------------------------------------------

@@ -136,7 +136,8 @@ class NNStep1Controller:
             target_samples=target,
             progress_callback=self._on_progress,
         )
-        self.panel.set_status(f"building: 0/{target}")
+        self.panel.reset_progress()
+        self.panel.set_status(f"building: 0/{target} (0%)")
         self.panel.append_log(f"Build started: {output_path}")
 
         scenario = default_pairing_scenario(target_count=self.target_count)
@@ -151,8 +152,10 @@ class NNStep1Controller:
                 scenarios=("default_pairing_scenario",),
                 extra={"target_count": str(self.target_count)},
             )
+            pct = _percent(meta.total_samples, target)
+            self.panel.set_progress(pct)
             self.panel.set_status(
-                f"done: {meta.total_samples}/{target} samples -> {output_path.name}"
+                f"DONE: {meta.total_samples}/{target} samples ({pct:.0f}%) -> {output_path.name}"
             )
             self.panel.append_log(
                 f"Build complete: {meta.total_samples} samples written to {output_path}"
@@ -181,7 +184,9 @@ class NNStep1Controller:
             output_root=output_root,
             progress_callback=self._on_variant_progress,
         )
-        self.panel.set_status(f"chain build: 0/4 variants ({frames_per_variant} each)")
+        self._chain_total_plans = len(plans)
+        self.panel.reset_progress()
+        self.panel.set_status(f"chain build: 0/{len(plans)} variants (0%)")
         self.panel.append_log(f"Chain build started under {output_root}")
 
         try:
@@ -196,8 +201,11 @@ class NNStep1Controller:
             self.panel.set_status("cancelled before any variant finalised")
             self.panel.append_log("Chain build cancelled before any variant finalised")
         else:
+            pct = _percent(completed, len(plans))
+            self.panel.set_progress(pct)
             self.panel.set_status(
-                f"done: {completed}/{len(plans)} variants -> {manifest.spec_id}_variants_manifest.toml"
+                f"DONE: {completed}/{len(plans)} variants ({pct:.0f}%) -> "
+                f"{manifest.spec_id}_variants_manifest.toml"
             )
             for r in results:
                 tag = " (cancelled)" if r.cancelled else ""
@@ -238,10 +246,12 @@ class NNStep1Controller:
         return Path(output_text)
 
     def _on_progress(self, n_appended: int, target: int | None) -> None:
-        if target is None:
+        if target is None or target <= 0:
             self.panel.set_status(f"building: {n_appended} samples")
-        else:
-            self.panel.set_status(f"building: {n_appended}/{target}")
+            return
+        pct = _percent(n_appended, target)
+        self.panel.set_progress(pct)
+        self.panel.set_status(f"building: {n_appended}/{target} ({pct:.0f}%)")
 
     def _on_variant_progress(
         self,
@@ -250,6 +260,25 @@ class NNStep1Controller:
         n_appended: int,
         target: int,
     ) -> None:
+        # Overall progress = (completed variants + in-flight fraction)
+        # / total variants. ``self._chain_total_plans`` is always set
+        # right before the variant runner kicks off.
+        total_plans = getattr(self, "_chain_total_plans", 4)
+        in_flight = (n_appended / target) if target > 0 else 0.0
+        overall = (index + in_flight) / total_plans * 100.0
+        self.panel.set_progress(overall)
         self.panel.set_status(
-            f"variant {plan.variant.variant_id} ({index + 1}/4): {n_appended}/{target}"
+            f"variant {plan.variant.variant_id} ({index + 1}/{total_plans}): "
+            f"{n_appended}/{target} (overall {overall:.0f}%)"
         )
+
+
+def _percent(numerator: int, denominator: int) -> float:
+    """Return ``numerator / denominator * 100`` clamped to [0, 100].
+
+    Returns 0.0 when ``denominator <= 0`` so an empty build does not
+    crash the progress label.
+    """
+    if denominator <= 0:
+        return 0.0
+    return max(0.0, min(100.0, numerator / denominator * 100.0))
