@@ -9,6 +9,7 @@
       "F2": "dimensionless",
       "F4": "dimensionless",
       "Re_eff_m": "m",
+      "bulge_m": "m",
       "d_radio_m": "m",
       "delta_m": "m",
       "first_peak_m": "m",
@@ -75,6 +76,94 @@
       "inputs": {
         "h1_m": 10.0,
         "h2_m": 50.0,
+        "k_factor": 1.3333333333333333
+      }
+    },
+    {
+      "case_id": "two_ray_h1_10_h2_200_R_20km_sband",
+      "expected": {
+        "F2_free": 1.0,
+        "F2_pec": 6.511227422434374e-05,
+        "F2_sea": 0.0025618566605130066,
+        "F4_pec": 4.239608254666138e-09,
+        "F4_sea": 6.563109549014855e-06,
+        "delta_m": 0.19998997575748945,
+        "phi_rad": 12.574439853947151
+      },
+      "inputs": {
+        "frequency_hz": 3000000000.0,
+        "ground_distance_m": 20000.0,
+        "h1_m": 10.0,
+        "h2_m": 200.0
+      }
+    },
+    {
+      "case_id": "two_ray_h1_15_h2_80_R_15km_kuband",
+      "expected": {
+        "F2_pec": 3.939901721125453,
+        "F2_sea": 3.7454066350691804,
+        "F4_pec": 15.522825572127307,
+        "delta_m": 0.15999764449952636,
+        "phi_rad": 53.65284267973235
+      },
+      "inputs": {
+        "frequency_hz": 16000000000.0,
+        "ground_distance_m": 15000.0,
+        "h1_m": 15.0,
+        "h2_m": 80.0
+      }
+    },
+    {
+      "case_id": "horizon_geometric_h_1000m",
+      "expected": {
+        "horizon_m": 112880.54545757652
+      },
+      "inputs": {
+        "height_m": 1000.0,
+        "k_factor": 1.0
+      }
+    },
+    {
+      "case_id": "horizon_sub_refraction_k_2_3_h_100m",
+      "expected": {
+        "Re_eff_m": 4247339.180933333,
+        "horizon_m": 29145.63151120021
+      },
+      "inputs": {
+        "height_m": 100.0,
+        "k_factor": 0.6666666666666666
+      }
+    },
+    {
+      "case_id": "horizon_super_refraction_k_2_h_100m",
+      "expected": {
+        "Re_eff_m": 12742017.5428,
+        "horizon_m": 50481.71459607924
+      },
+      "inputs": {
+        "height_m": 100.0,
+        "k_factor": 2.0
+      }
+    },
+    {
+      "case_id": "horizon_radio_two_point_sub_refraction_10_50_k_2_3",
+      "expected": {
+        "d_radio_m": 29825.73162547079
+      },
+      "inputs": {
+        "h1_m": 10.0,
+        "h2_m": 50.0,
+        "k_factor": 0.6666666666666666
+      }
+    },
+    {
+      "case_id": "earth_bulge_midpoint_50km_k_4_3",
+      "expected": {
+        "bulge_m": 36.7877377680171
+      },
+      "inputs": {
+        "distance_from_a_m": 25000.0,
+        "distance_from_b_m": 25000.0,
         "k_factor": 1.3333333333333333
       }
     }
