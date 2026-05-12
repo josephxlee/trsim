@@ -77,6 +77,67 @@
         "h2_m": 50.0,
         "k_factor": 1.3333333333333333
       }
+    },
+    {
+      "case_id": "two_ray_h1_25_h2_50_R_10km_sband",
+      "expected": {
+        "F2_free": 1.0,
+        "F2_pec": 3.9998870297424123,
+        "F2_sea": 3.8023926782552913,
+        "F4_pec": 15.999096250701577,
+        "F4_sea": 14.458190079649446,
+        "delta_m": 0.24999609386031807,
+        "phi_rad": 15.718592064735391
+      },
+      "inputs": {
+        "frequency_hz": 3000000000.0,
+        "ground_distance_m": 10000.0,
+        "h1_m": 25.0,
+        "h2_m": 50.0
+      }
+    },
+    {
+      "case_id": "lobing_landmarks_h1_10_h2_100_kuband",
+      "expected": {
+        "first_peak_m": 186795.89331096516,
+        "last_null_m": 93397.94665548258
+      },
+      "inputs": {
+        "frequency_hz": 14000000000.0,
+        "h1_m": 10.0,
+        "h2_m": 100.0
+      }
+    },
+    {
+      "case_id": "horizon_geometric_h_100m_k_1",
+      "expected": {
+        "horizon_m": 35695.96271681155
+      },
+      "inputs": {
+        "height_m": 100.0,
+        "k_factor": 1.0
+      }
+    },
+    {
+      "case_id": "horizon_radio_two_point_10_50_k_1",
+      "expected": {
+        "d_radio_m": 36528.91184379727
+      },
+      "inputs": {
+        "h1_m": 10.0,
+        "h2_m": 50.0,
+        "k_factor": 1.0
+      }
+    },
+    {
+      "case_id": "horizon_geometric_h_10m_k_1_5",
+      "expected": {
+        "horizon_m": 13824.986912905199
+      },
+      "inputs": {
+        "height_m": 10.0,
+        "k_factor": 1.5
+      }
     }
   ]
 }
