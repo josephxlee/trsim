@@ -17,26 +17,74 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Physics Lab Phase 9.1 + 9.2 + 9.3 ALL DONE** — Phase 9 전부
-> 완료. 9.3 추가 사항: Code Pane autocomplete (QCompleter + Python
-> keywords + Bouncing Ball API + multi-function / import 검증),
-> PhysicsModelProtocol (11번째 SDK protocol) + 3 built-in
-> implementations (GravityOnlyModel / BouncingBallModel /
-> FreeSpaceLossModel), NN-as-physics (NumpyNNPhysicsModel wrapping
-> Phase 6 numpy_mlp), PolynomialFitModel (symbolic regression
-> baseline via numpy.polyfit), TestObjectProtocol + Pyramid sample
-> plugin (mesh-builder registry pattern via register_visual_kind_
-> builder). 누적 **1986 PASS** (+57 신규 in 9.3 묶음: 15 autocomplete
-> + 14 PhysicsModelProtocol + 16 NN/poly + 12 plugin registry),
-> 5 contracts KEPT.
+> **Phase 5.19/5.20/5.21/5.22 후속 회귀 보강 DONE** — Physics Lab 9.x 끝
+> 난 뒤 첫 진입점인 "도메인 정량 보강" 묶음. 코드 변경 0, 테스트만
+> 추가 (handoff § 3 권고 그대로). multipath/horizon golden 다중 주파수
+> (S-band 3 GHz / Ku-band 16 GHz) + 다중 굴절 (k=2/3 sub, k=4/3 std,
+> k=2 super) + earth bulge midpoint closed-form. ExtendedTarget glint
+> 추가 regime — drone 3pt L=2m / fighter 5pt L=12m (5.21 baseline) /
+> transport 9pt L=30m. High-G sustained turn (9G coordinated horizontal
+> turn, V=300 m/s, R=1019.7 m, omega=0.2942 rad/s, 10s window ~168°
+> rotation) — EKF/UKF RMSE bounded by turn radius, EKF≈UKF on CV
+> F-matrix mismatch, 정상 noise tuning monotonicity. 누적 **2027 PASS**
+> (+41 신규: 21 multipath/horizon + 11 glint + 9 high-g). 5 contracts
+> KEPT.
 >
-> **세션 인계**: `docs/sessions/phase_9_3_complete_handoff_2026_05_12.md`.
-> Phase 9 전부 끝났으므로 다음 진입점은 사용자 우선순위 다음 단계.
+> **세션 인계**: `docs/sessions/phase_5_followup_handoff_2026_05_12.md`.
+> 다음 진입점은 사용자 우선순위 다음 단계.
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9.1 ✓ → 9.2 ✓ →
-> 9.3 ✓ → **Phase 5 후속 (도메인 정량 보강)** → NN 보강 → Phase 8
-> HIL → DLC CLI → UI binding → Floating dock 옵션 B / Theme
-> manager 순서로 자동 진행.
+> 9.3 ✓ → Phase 5 후속 ✓ → **NN 보강 (Adam / workbench-train CLI /
+> Step 2 행 채우기)** → Phase 8 HIL → DLC CLI → UI binding →
+> Floating dock 옵션 B / Theme manager 순서로 자동 진행.
+
+- **Phase 5.19/5.20/5.21/5.22 후속 DONE** (`e921e0a`) — 도메인 정량 회귀
+  보강 (plan/04 § 4.3 Phase 5 미완 case). 3 신규 test 파일, src 변경 0.
+  - **5.19/5.20+** (`tests/physics/test_multipath_horizon_golden.py`,
+    +21 tests, `multipath_horizon.json` +7 case + `bulge_m` unit):
+    - S-band 3 GHz (h1=10, h2=200, d=20km) — F2/F4 free/sea/pec
+      golden 매칭 (deep-null geometry, F4_pec ~ 4.24e-9).
+    - Ku-band 16 GHz (h1=15, h2=80, d=15km) — F2/F4 sea/pec
+      golden 매칭 (peak geometry, F4_pec ~ 15.5).
+    - delta is frequency-invariant across bands.
+    - d_peak_0 = 4 h1 h2 / lambda 가 1/lambda 로 스케일 (Ku 가
+      X 의 2x peak distance).
+    - geometric horizon h=1000m 매칭 (112.88 km).
+    - horizon ~ sqrt(h) — 100x height = 10x distance.
+    - sub-refraction k=2/3 / super-refraction k=2 horizon + Re_eff
+      매칭.
+    - horizon strictly monotonic in k_factor.
+    - sub-refractive radio horizon h1=10/h2=50/k=2/3 매칭.
+    - earth bulge 50 km midpoint 36.79 m + closed-form d^2/(8 k R_E)
+      sanity-lock.
+  - **5.21+** (`tests/physics/test_extended_target_glint_rms_multi.py`,
+    +11 tests):
+    - 3 (N, L) regime — drone 3pt L=2m, fighter 5pt L=12m
+      (5.21 baseline), transport 9pt L=30m.
+    - parametrized: per-axis std < L/(2·sqrt(N)) Skolnik bound 모든
+      regime; |glint| < L convex hull bound 모든 regime.
+    - directional invariant: larger L produces larger std (transport
+      > fighter), smaller L produces smaller std (drone < fighter).
+    - frequency-band invariant: S-band 3-3.5 GHz / Ku-band 15-18 GHz
+      도 convex-hull bound 유지.
+    - determinism: 3 regime × Ku band 모두 same-seed 재현.
+  - **5.22+** (`tests/unit/domain/test_tracker_high_g_maneuver.py`,
+    +9 tests):
+    - Sustained 9-G coordinated horizontal turn — V=300 m/s, R =
+      V^2 / (9*9.80665) = 1019.72 m, omega = 0.2942 rad/s, dt=0.05s,
+      10s window = ~2.94 rad ~168° rotation.
+    - Truth-generator sanity-lock: closed-form R, omega·T rotation
+      match, constant speed invariant.
+    - EKF + UKF RMSE bounded by turn radius (no divergence under
+      sustained CV mismatch).
+    - EKF/UKF RMSE ratio in [0.8, 1.25] on sustained turn (CV F-matrix
+      dominates both filter formulations).
+    - process noise tuning monotonicity (낮은 sigma_a → 큰 RMSE).
+    - determinism.
+
+  세션 push: feature branch `claude/tender-banzai-36f57e` 에 1 commit.
+  main merge 는 사용자 승인 필요 (harness 가 첫 main push 차단).
+  누적 1986 → **2027 PASS** (+41), 5 contracts KEPT.
 
 - **Phase 9.3a/b/c/d/e DONE** — Physics Lab 고급 기능 (plan/19 § 19.8 +
   § 19.9.5 + § 19.7.4). 5 commits push.
