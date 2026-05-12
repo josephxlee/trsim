@@ -17,15 +17,17 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **MVP 가동 + UI gap fix 완료** — `python -m workbench ui` 한 줄로
-> Editor + Simulator + DLC auto-load + NN mode 3 tab (Step 1 /
-> Step 2 / Training) + Ctrl+Shift+E/S/P 단축키 동작. 사용 가이드는
-> `docs/MVP_USAGE.md`, 검증 가이드는 `docs/MVP_GUIDE.md`, 진단
-> 보고는 `docs/MVP_STATUS.md`. 다음 후속 (MVP+α): floating dock
-> (옵션 B/D 중 선택) / `trsim install` CLI / `trsim sdk build` CLI /
-> σ_glint RMS 정량 / high-g UKF/EKF RMSE 정량 / Adam optimiser /
-> workbench-train subprocess wrapping / Physics Lab workspace
-> (v0.40 Phase 9).
+> **MVP-minimum + Physics Lab PL-A~E DONE** — `python -m workbench ui`
+> 한 줄로 Editor / Simulator / **Physics Lab** 3-way workspace +
+> Bouncing Ball 인터랙티브 데모 + Code 즉석 수정 (Edit/Save&Reload/
+> Revert) 동작. 누적 1692 PASS, 5 contracts KEPT.
+>
+> **세션 인계**: `docs/sessions/phase_mvp_a_handoff_2026_05_12.md`.
+> 다음 세션 진입점 = **Phase 9.1a/b/c 묶음** (Code syntax highlight +
+> Frame slider + @physics_param 자동 슬라이더). 사용자 우선순위:
+> **physics_lab > simulator > editor** — Phase 9.1 → 9.2 → 9.3 →
+> Phase 5 후속 → NN 보강 → Phase 8 HIL → DLC CLI → UI binding →
+> Floating dock 옵션 B / Theme manager 순서로 자동 진행.
 
 - **PL-E (Code 즉석 수정) + 옵션 A (toolbar visibility) DONE** — 사용자
   요청 두 가지 동시 처리.
