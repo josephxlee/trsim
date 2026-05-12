@@ -57,8 +57,10 @@ from PySide6.QtWidgets import (
 
 from workbench.domain.physics_lab import (
     TIME_MODES_IN_DISPLAY_ORDER,
+    MeasuredDataset,
     SavedExperiment,
     TimeMode,
+    ValidationMetrics,
     list_measured_datasets,
     list_papers,
     list_saved_experiments,
@@ -309,6 +311,15 @@ class PhysicsLabWorkspace(QWidget):
         if self._papers_root is not None:
             self.refresh_papers()
 
+        # PL-9.2c — Validation Bench. Selecting a Measured row in the
+        # Library runs the live simulator against it and overlays
+        # measurement + simulation curves on the y(t) plot.
+        self._last_validation_metrics: ValidationMetrics | None = None
+        self._library_panel.measured_dataset_selected.connect(self._on_measured_dataset_selected)
+        self._bouncing_controller.validation_metrics_ready.connect(
+            self._on_validation_metrics_ready
+        )
+
     # ------------------------------------------------------------------
     # Accessors (PL-D ships the live widgets; PL-9.1+ keeps the same API)
     # ------------------------------------------------------------------
@@ -401,6 +412,34 @@ class PhysicsLabWorkspace(QWidget):
             return
         papers = list_papers(self._papers_root)
         self._library_panel.set_papers(papers)
+
+    # ------------------------------------------------------------------
+    # PL-9.2c — Validation Bench
+    # ------------------------------------------------------------------
+
+    def last_validation_metrics(self) -> ValidationMetrics | None:
+        return self._last_validation_metrics
+
+    def _on_measured_dataset_selected(self, dataset: MeasuredDataset) -> None:
+        """Run validation against ``dataset`` when the Library row is
+        selected. Errors are swallowed silently (UI feedback comes via
+        the status label / future banner).
+        """
+        try:
+            self._bouncing_controller.run_validation_from_dataset(dataset)
+        except (ValueError, OSError):
+            self._last_validation_metrics = None
+
+    def _on_validation_metrics_ready(self, metrics: ValidationMetrics) -> None:
+        self._last_validation_metrics = metrics
+        # Surface the metrics in the bottom status label.
+        text = (
+            f"validation: RMSE={metrics.rmse:.3g} m  "
+            f"max|err|={metrics.max_abs_error:.3g} m  "
+            f"corr={metrics.pearson_correlation:.3f}  "
+            f"(n={metrics.n_samples})"
+        )
+        self._time_controls.status_label().setText(text)
 
     def save_current_experiment(self, experiment_id: str) -> SavedExperiment:
         """Snapshot current simulator + mode and persist to TOML.

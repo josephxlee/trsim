@@ -23,6 +23,7 @@ import ast
 import inspect
 from collections.abc import Iterable
 
+import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import (
@@ -51,7 +52,11 @@ from workbench.domain.physics_lab import (
     SavedExperiment,
     TestObject,
     TimeMode,
+    ValidationMetrics,
+    compute_validation_metrics,
     default_library,
+    load_measured_csv,
+    load_measured_hdf5,
 )
 from workbench.ui.physics_lab.auto_parameters import AutoParametersWidget
 from workbench.ui.physics_lab.python_highlighter import PythonSyntaxHighlighter
@@ -752,6 +757,14 @@ class BouncingBallController(QObject):
     SWEEP_RESTITUTION_VALUES: tuple[float, ...] = (0.3, 0.5, 0.7, 0.9)
     _SWEEP_COLOURS: tuple[str, ...] = ("#d62728", "#2ca02c", "#1f77b4", "#9467bd")
 
+    # Validation Bench (PL-9.2c) overlay curves on the y(t) plot.
+    VALIDATION_MEASURED_CURVE: str = "validation_measured"
+    VALIDATION_SIM_CURVE: str = "validation_sim"
+    VALIDATION_DEFAULT_X_COLUMN: str = "time_s"
+    VALIDATION_DEFAULT_Y_COLUMN: str = "position_m"
+
+    validation_metrics_ready = Signal(object)
+
     def __init__(
         self,
         *,
@@ -1056,6 +1069,155 @@ class BouncingBallController(QObject):
         for sim, name in zip(self._sweep_simulators, self._sweep_curve_names, strict=True):
             state = sim.step(dt_s)
             self._plot.append_to(name, state.time_s, state.position_m)
+
+    # ------------------------------------------------------------------
+    # Validation Bench (PL-9.2c)
+    # ------------------------------------------------------------------
+
+    def run_validation_from_dataset(
+        self,
+        dataset: MeasuredDataset,
+        *,
+        x_column: str | None = None,
+        y_column: str | None = None,
+        dt_s: float = 0.005,
+    ) -> ValidationMetrics:
+        """Compare current simulator output to a measured dataset.
+
+        Loads the named columns from ``dataset`` (CSV column index or
+        HDF5 dataset name), runs a fresh simulator with the current
+        parameters over the measured x-range, interpolates onto the
+        measurement grid, and returns the
+        :class:`ValidationMetrics`.
+
+        Side-effects:
+            - Adds two overlay curves to the plot:
+              ``VALIDATION_MEASURED_CURVE`` (red, measured) and
+              ``VALIDATION_SIM_CURVE`` (blue, simulated).
+            - Emits ``validation_metrics_ready(metrics)``.
+
+        Args:
+            dataset: A :class:`MeasuredDataset` registered in the
+                Library.
+            x_column: Column to use as the independent axis. Defaults
+                to ``VALIDATION_DEFAULT_X_COLUMN``; falls back to the
+                first column when the default is absent.
+            y_column: Column to use as the dependent axis. Defaults to
+                ``VALIDATION_DEFAULT_Y_COLUMN``; falls back to the
+                second column when the default is absent.
+            dt_s: Simulator step size (smaller -> tighter interpolation
+                grid, more work).
+
+        Raises:
+            ValueError: For datasets with < 2 columns or unknown
+                column names.
+        """
+        measured_x, measured_y = self._load_measurement_columns(dataset, x_column, y_column)
+        # Simulate from t=0 to max(measured_x) with the current state.
+        sim_x, sim_y = self._simulate_for_validation(measured_x, dt_s)
+        metrics = compute_validation_metrics(measured_x, measured_y, sim_x, sim_y)
+        self._install_validation_overlays(measured_x, measured_y, sim_x, sim_y)
+        self.validation_metrics_ready.emit(metrics)
+        return metrics
+
+    def clear_validation_overlays(self) -> None:
+        """Remove the validation overlay curves added by the last run."""
+        self._plot.remove_overlay_curve(self.VALIDATION_MEASURED_CURVE)
+        self._plot.remove_overlay_curve(self.VALIDATION_SIM_CURVE)
+
+    def _load_measurement_columns(
+        self,
+        dataset: MeasuredDataset,
+        x_column: str | None,
+        y_column: str | None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if len(dataset.columns) < 2:
+            msg = (
+                f"run_validation: dataset {dataset.dataset_id!r} has "
+                f"< 2 columns ({dataset.columns})"
+            )
+            raise ValueError(msg)
+        x_col = x_column or (
+            self.VALIDATION_DEFAULT_X_COLUMN
+            if self.VALIDATION_DEFAULT_X_COLUMN in dataset.columns
+            else dataset.columns[0]
+        )
+        y_col = y_column or (
+            self.VALIDATION_DEFAULT_Y_COLUMN
+            if self.VALIDATION_DEFAULT_Y_COLUMN in dataset.columns
+            else dataset.columns[1]
+        )
+        if x_col not in dataset.columns:
+            msg = f"run_validation: x column {x_col!r} not in {dataset.columns}"
+            raise ValueError(msg)
+        if y_col not in dataset.columns:
+            msg = f"run_validation: y column {y_col!r} not in {dataset.columns}"
+            raise ValueError(msg)
+        if dataset.file_format == "csv":
+            arr = load_measured_csv(dataset)
+            x_idx = dataset.columns.index(x_col)
+            y_idx = dataset.columns.index(y_col)
+            return arr[:, x_idx], arr[:, y_idx]
+        # HDF5
+        return (
+            load_measured_hdf5(dataset, x_col),
+            load_measured_hdf5(dataset, y_col),
+        )
+
+    def _simulate_for_validation(
+        self,
+        measured_x: np.ndarray,
+        dt_s: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Run a fresh sim from t=0 to ``max(measured_x)``.
+
+        Does not touch the controller's live simulator or history —
+        the user's interactive state stays intact across validation
+        runs.
+        """
+        end_t = float(measured_x.max())
+        if end_t <= 0.0:
+            msg = "run_validation: measured x-range must include positive values"
+            raise ValueError(msg)
+        sim = BouncingBallSimulator(
+            gravity_m_s2=self.simulator.gravity_m_s2,
+            restitution=self.simulator.restitution,
+            initial_height_m=self.simulator.initial_height_m,
+            initial_velocity_m_s=self.simulator.initial_velocity_m_s,
+            drag_coefficient_k=self.simulator.drag_coefficient_k,
+        )
+        n_steps = max(2, int(np.ceil(end_t / dt_s)) + 1)
+        times = np.empty(n_steps, dtype=np.float64)
+        ys = np.empty(n_steps, dtype=np.float64)
+        times[0] = sim.state.time_s
+        ys[0] = sim.state.position_m
+        for i in range(1, n_steps):
+            state = sim.step(dt_s)
+            times[i] = state.time_s
+            ys[i] = state.position_m
+        return times, ys
+
+    def _install_validation_overlays(
+        self,
+        measured_x: np.ndarray,
+        measured_y: np.ndarray,
+        sim_x: np.ndarray,
+        sim_y: np.ndarray,
+    ) -> None:
+        # Drop any previous overlay before adding the new ones.
+        self.clear_validation_overlays()
+        self._plot.add_overlay_curve(self.VALIDATION_MEASURED_CURVE, color="#d62728")
+        self._plot.add_overlay_curve(self.VALIDATION_SIM_CURVE, color="#1f77b4")
+        self._plot.set_history_of(
+            self.VALIDATION_MEASURED_CURVE,
+            list(measured_x),
+            list(measured_y),
+        )
+        self._plot.set_history_of(
+            self.VALIDATION_SIM_CURVE,
+            list(sim_x),
+            list(sim_y),
+        )
 
     # ------------------------------------------------------------------
     # Frame history surface (PL-9.1b)

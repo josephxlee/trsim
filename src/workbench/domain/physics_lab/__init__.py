@@ -56,6 +56,10 @@ from workbench.domain.physics_lab.time_modes import (
     TIME_MODES_IN_DISPLAY_ORDER,
     TimeMode,
 )
+from workbench.domain.physics_lab.validation import (
+    ValidationMetrics,
+    compute_validation_metrics,
+)
 
 __all__ = [
     "BOUNCING_BALL_PARAM_SPECS",
@@ -78,8 +82,10 @@ __all__ = [
     "TestObject",
     "TimeMode",
     "Trihedral",
+    "ValidationMetrics",
     "VisualKind",
     "Wall",
+    "compute_validation_metrics",
     "default_library",
     "get_physics_params",
     "inspect_csv",
