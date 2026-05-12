@@ -17,23 +17,71 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Physics Lab Phase 9.1 + 9.2 ALL DONE** — 9.1 (Code highlight +
-> Frame slider + 자동 슬라이더 + PyVista 3D + 4 시간 모드 + Library
-> 3 카테고리 + Save/Load TOML + Air Drag) 에 더해 9.2 까지 완료:
-> Library Measured Data + Papers 카테고리 (5 카테고리 트리), Lab-B
-> Validation Bench (CSV/HDF5 측정 vs 시뮬 RMSE + max|err| +
-> Pearson correlation, 자동 overlay), Lab-C Parameter Studio
-> (scipy.optimize Nelder-Mead 로 restitution/drag/gravity/height
-> fitting). 누적 **1929 PASS** (+79 신규 in 9.2 묶음), 5 contracts
-> KEPT.
+> **Physics Lab Phase 9.1 + 9.2 + 9.3 ALL DONE** — Phase 9 전부
+> 완료. 9.3 추가 사항: Code Pane autocomplete (QCompleter + Python
+> keywords + Bouncing Ball API + multi-function / import 검증),
+> PhysicsModelProtocol (11번째 SDK protocol) + 3 built-in
+> implementations (GravityOnlyModel / BouncingBallModel /
+> FreeSpaceLossModel), NN-as-physics (NumpyNNPhysicsModel wrapping
+> Phase 6 numpy_mlp), PolynomialFitModel (symbolic regression
+> baseline via numpy.polyfit), TestObjectProtocol + Pyramid sample
+> plugin (mesh-builder registry pattern via register_visual_kind_
+> builder). 누적 **1986 PASS** (+57 신규 in 9.3 묶음: 15 autocomplete
+> + 14 PhysicsModelProtocol + 16 NN/poly + 12 plugin registry),
+> 5 contracts KEPT.
 >
-> **세션 인계**: `docs/sessions/phase_9_2_complete_handoff_2026_05_12.md`.
-> 다음 세션 진입점 = **Phase 9.3** (Code Pane Edit 강화, Physics
-> ModelProtocol plugin, NN 으로 물리 대체, Symbolic regression,
-> Test Object plugin). 사용자 우선순위 (변동 없음):
-> **physics_lab > simulator > editor** — Phase 9.1 ✓ → 9.2 ✓ → 9.3
-> → Phase 5 후속 → NN 보강 → Phase 8 HIL → DLC CLI → UI binding →
-> Floating dock 옵션 B / Theme manager 순서로 자동 진행.
+> **세션 인계**: `docs/sessions/phase_9_3_complete_handoff_2026_05_12.md`.
+> Phase 9 전부 끝났으므로 다음 진입점은 사용자 우선순위 다음 단계.
+> 사용자 우선순위 (변동 없음):
+> **physics_lab > simulator > editor** — Phase 9.1 ✓ → 9.2 ✓ →
+> 9.3 ✓ → **Phase 5 후속 (도메인 정량 보강)** → NN 보강 → Phase 8
+> HIL → DLC CLI → UI binding → Floating dock 옵션 B / Theme
+> manager 순서로 자동 진행.
+
+- **Phase 9.3a/b/c/d/e DONE** — Physics Lab 고급 기능 (plan/19 § 19.8 +
+  § 19.9.5 + § 19.7.4). 5 commits push.
+  - **9.3a** (`95d7927`): `ui/physics_lab/code_editor.py` 신규.
+    `PythonCodeEditor(QTextEdit)` + QCompleter case-insensitive +
+    Python keywords + builtins + Bouncing Ball API (simulator, dt_s,
+    state, position_m 등). `default_completion_words()` pure 함수.
+    keyPressEvent override 로 popup 통합 + Ctrl+Space 수동 trigger.
+    CodePreview 가 QTextEdit → PythonCodeEditor 교체 (highlighter +
+    Edit toggle 그대로 작동). 15 신규 tests (word list invariants +
+    completer 와이어링 + CodePreview integration + multi-function /
+    import / module-level constant exec regression).
+  - **9.3b** (`fce9384`): `sdk/protocols.py` 의 PhysicsModelProtocol
+    stub → full concrete (name / category / parameters / time_mode
+    / visualization / compute). 3 type alias (PhysicsModelCategory /
+    PhysicsModelTimeMode / PhysicsModelVisualization). SDK 가 처음
+    domain.physics_lab.PhysicsParam import (Contract 4 allowed).
+    `app/physics_lab/models.py` 신규 3 built-in 구현: GravityOnly
+    Model (analytic free-fall, dynamic), BouncingBallModel (PL-D
+    step packaged, BOUNCING_BALL_PARAM_SPECS), FreeSpaceLossModel
+    (static Friis). 14 신규 tests (runtime_checkable conformance +
+    metadata + compute physics + Bouncing Ball regression vs
+    BouncingBallSimulator).
+  - **9.3c/d** (`9095174`): `app/physics_lab/learning_models.py` 신규.
+    NumpyNNPhysicsModel (Phase 6 numpy_mlp wrap, train(x, y) +
+    compute({"x"}, ...) -> {"y_pred"}, static, parameters=()).
+    PolynomialFitModel (numpy.polyfit degree 1..5, coefficients
+    high-to-low, single 'degree' user-facing PhysicsParam). 16 신규
+    tests (NN linear-map convergence + reject pre-train compute +
+    Polynomial recover y=x^2 to 1e-9 + higher-degree-better-fit
+    invariant + underdetermined / shape reject).
+  - **9.3e** (`6d9e328`): `sdk/protocols.py` 에 TestObjectProtocol
+    추가 (name / visual / analytic_rcs_m2). `__test__ = False`
+    post-class setattr (runtime_checkable membership 영향 회피).
+    `ui/physics_lab/test_object_view.py` 의 build_test_object_mesh
+    가 `_VISUAL_KIND_BUILDERS: dict[str, MeshBuilder]` 레지스트리로
+    리팩터링 + `register_visual_kind_builder(visual, builder)` 공개
+    API. 9 built-in 그대로 사전 등록. `ui/physics_lab/custom_test_
+    objects.py` 신규 Pyramid 샘플 plugin (square base + apex 4-면체)
+    + `register_custom_test_objects()` 헬퍼. 12 신규 tests
+    (registry 사전 등록 / overwrite / unknown kind reject / Pyramid
+    runtime_checkable / 차원 검증 / 메쉬 빌드 등록 전후).
+
+  세션 누적 9.3 push: 95d7927 + fce9384 + 9095174 + 6d9e328. 누적
+  1986 PASS (+57 across 9.3a-e), 5 contracts KEPT.
 
 - **Phase 9.2a/b/c/d DONE** — Physics Lab 외부 자료 + 학습 워크플로
   (plan/19 § 19.9). 4 commits push.
