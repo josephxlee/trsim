@@ -1,4 +1,4 @@
-# TRsim MVP — 테스트 가이드 (2026-05-11)
+# TRsim MVP — 테스트 가이드 (2026-05-12 rev2)
 
 `docs/MVP_USAGE.md` 가 "어떻게 쓰나" 라면, 이 가이드는 "어떻게
 **확인** 하나" — MVP 가 정상 동작하는지 항목별 명령 + 기대 결과
@@ -7,9 +7,27 @@
 
 각 섹션 끝의 ☐ 는 직접 체크. 전부 ✓ 면 MVP 가동 OK.
 
+> **rev2 갱신점** (2026-05-12): 단축키 충돌 해소 + NN-mode 3 tab 이
+> Simulator bottom_tabs 에 직접 mount. DLC tab 의 index 가 3 → 6
+> 으로 밀림. pytest 1570 → 1576 PASS 기대.
+
 ---
 
 ## 0. 사전 sanity check (1 분)
+
+### 0.0 origin/main 동기화 (rev2 추가)
+
+```powershell
+git pull --ff-only
+.\.venv\Scripts\python.exe -m pip install -e . --no-deps
+```
+
+**기대**: `Already up to date.` 또는 fast-forward 메시지 + `pip` 가
+console-script wrapper 재생성. console script entry point 가 변경된
+적이 있으면 (`trsim ui --no-dlc` 추가 등) 이 reinstall 이 필수.
+
+실패 시: `git status` 로 local 미커밋 변경 있는지 확인 후 stash /
+commit / rebase 선택.
 
 ### 0.1 venv + 실행파일 존재
 
@@ -109,7 +127,7 @@ $env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**기대**: `1570 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
+**기대**: `1576 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
 
 실패 시: 어느 테스트 깨졌는지 출력 보고 보고.
 
@@ -190,7 +208,8 @@ Simulator workspace 진입 시 (Ctrl+Shift+S):
 - 중하: FFT | Range-Doppler
 - 우중: Scope POV (cross-hair placeholder)
 - 우: Properties (context-sensitive form)
-- 하단 tabs: Run / Stage I/O / Profiler (3 개)
+- 하단 tabs: **6 개** — Run / Stage I/O / Profiler / NN Step 1 /
+  NN Step 2 / NN Training. (DLC plugin tab 은 7 번째 이후로 추가됨.)
 
 ### 3.6 Command palette
 
@@ -208,7 +227,27 @@ Simulator workspace 진입 시 (Ctrl+Shift+S):
 
 ---
 
-## 4. DLC 자동 로드 검증 (수동, ~ 2 분)
+## 4. DLC 자동 로드 검증 (수동, ~ 3 분)
+
+DLC 흐름은 4 layer 가 순차로 작동한다:
+
+```
+~/.trsim/packages/<id>/manifest.toml
+  ↓ PackageManager.scan()                  (app.dlc.package_manager)
+  ↓ PluginLoader.load_all()                (app.dlc.plugin_loader)
+  ↓ PanelRegistry.register_dlc_plugins()   (ui.panel_registry)
+  ↓ SimulatorWorkspace.mount_dlc_panels()  (ui.simulator.workspace)
+       → bottom_tabs 에 "[DLC] pkg: Class" 라벨로 추가
+
+~/.trsim/resources/<category>/<id>.toml
+  ↓ ResourceLibrary.list_resources()       (app.resources.library)
+  ↓ populate_resource_browser_from_library (ui.dlc_bootstrap)
+       → Editor 사이드바 카테고리 트리에 leaf 추가
+```
+
+`trsim ui` 가 `build_dlc_runtime()` (default = `~/.trsim/`) 으로 위
+파이프라인을 한 번에 실행. `--no-dlc` 는 runtime=None 으로 만들어
+mount + populate 두 단계 모두 skip.
 
 ### 4.1 sample DLC 만들기
 
@@ -241,15 +280,40 @@ class DiagnosticPanel(QWidget):
 '@ | Out-File -Encoding utf8 "$pkg\ui\diagnostic_panel.py"
 ```
 
-### 4.2 UI 재가동 → Simulator 가서 확인
+**manifest 필드 의미**:
+- `[package]` — 4 필드 필수 (id kebab-case / name / version SemVer /
+  license). `[compatibility].trsim_min_version` 도 필수.
+- `[entry_points]` 키:
+  - `trsim.ui.panels` → Python `module:attr`, panel 클래스
+  - `trsim.resources.<cat>` → 디렉토리 path, ResourceLibrary 의 PACKAGE 티어
+  - `trsim.plugins.<role>` → Stage Slot plugin (tracker / detector 등)
+
+### 4.2 UI 재가동 → Simulator 에서 DLC tab 확인
 
 ```powershell
 .\.venv\Scripts\trsim.exe ui --workspace simulator
 ```
 
-**기대**: 하단 tabs 가 4 개. `Run` / `Stage I/O` / `Profiler` 옆에
-`[DLC] demo-panel: DiagnosticPanel` 탭 추가. 클릭하면 "Hello from
-demo-panel DLC" 라벨 표시.
+**기대**: Simulator bottom_tabs 가 **7 개**:
+
+| index | label |
+|---|---|
+| 0 | Run |
+| 1 | Stage I/O |
+| 2 | Profiler |
+| 3 | NN Step 1 |
+| 4 | NN Step 2 |
+| 5 | NN Training |
+| 6 | **`[DLC] demo-panel: DiagnosticPanel`** |
+
+7 번째 (index 6) 탭 클릭 → "Hello from demo-panel DLC" 라벨 표시.
+
+**실패 시**:
+- DLC tab 자체가 없음 → `~/.trsim/packages/demo-panel/manifest.toml`
+  존재 + 위 manifest schema 1:1 일치 확인
+- DLC tab 라벨이 "[DLC] _GoodPanel" 처럼 package_id 없음 → manifest
+  의 `[package].id` 가 비어있거나 kebab-case 위배
+- 콘솔에 `package_manager.load_errors` 출력되면 → manifest 검증 실패
 
 ### 4.3 user resource 자동 등장 확인
 
@@ -263,18 +327,32 @@ carrier_freq_hz = 9.4e9
 .\.venv\Scripts\trsim.exe ui
 ```
 
-**기대**: Editor workspace 의 좌측 Resource Browser sidebar 의 Radars
-카테고리에 `kuband_naval` 항목 표시. 두 번 클릭하면 Radar activity
-로 자동 전환.
+**기대**: Editor workspace 좌측 Resource Browser sidebar 의 `Radars`
+카테고리:
+- 헤더가 `Radars (1)` 로 바뀜
+- leaf 항목 `kuband_naval` 표시 (status prefix 없음 = USER 티어)
+- 두 번 클릭 → Editor 가 자동으로 `Radar` activity (Ctrl+3) 로 전환
+
+다른 카테고리도 동일 — `maps/`, `targets/`, `scenarios/` 디렉토리에
+`.toml` 두면 각 카테고리 leaf 로 등장.
 
 ### 4.4 --no-dlc 격리 확인
 
 ```powershell
-.\.venv\Scripts\trsim.exe ui --no-dlc
+.\.venv\Scripts\trsim.exe ui --no-dlc --workspace simulator
 ```
 
-**기대**: sidebar 비어있음 (`Radars (0)` 등). Simulator bottom tabs
-3 개 (DLC 탭 없음).
+**기대**:
+- Editor sidebar 의 4 카테고리 모두 `(0)` 표시 (어떤 user resource
+  도 안 보임)
+- Simulator bottom_tabs 가 **6 개**: Run / Stage I/O / Profiler /
+  NN Step 1 / NN Step 2 / NN Training. DLC tab 없음
+- 종료 코드 0 (정상 종료)
+
+**실패 시** (가동 자체 실패):
+- `--no-dlc` 가 unknown option 으로 reject → 사용자 PC 의 trsim.exe
+  가 옛 entry point. `0.0` 의 reinstall 실행. PowerShell 종료 후
+  새 세션에서 다시 시도.
 
 ### 4.5 청소
 
@@ -287,11 +365,17 @@ Remove-Item -Force "$env:USERPROFILE\.trsim\resources\radars\kuband_naval.toml"
 
 ---
 
-## 5. NN 흐름 검증 (수동, ~ 2 분)
+## 5. NN 흐름 검증 (GUI 기반, ~ 3 분)
+
+NN-mode 3 tab 이 Simulator bottom_tabs index 3/4/5 에 mount 되어 있다
+(rev2). 모든 단계 GUI 클릭으로 가능. Python 스크립트 fallback 도
+계속 동작 (Phase 6.4c controller 가 panel signal 에 hook).
+
+`trsim ui --workspace simulator` 로 시작.
 
 ### 5.1 Step 1 — Single variant 빌드
 
-`trsim ui` → Simulator → NN mode → Step 1 panel:
+bottom_tabs 의 `NN Step 1` (index 3) 클릭. panel 폼에 입력:
 
 | 입력 | 값 |
 |---|---|
@@ -306,7 +390,12 @@ Remove-Item -Force "$env:USERPROFILE\.trsim\resources\radars\kuband_naval.toml"
 - Log 에 `Build started:` + `Build complete: 50 samples written to...`
 - `./datasets/demo_single.h5` 파일 생성
 
+`Cancel` 버튼은 frame loop 중간에 누르면 다음 frame 경계에서 멈춤
+(`builder.is_cancelled` 가 True 가 되어 PipelineRunner 가 break).
+
 ### 5.2 Step 1 — 4-variant chain 빌드
+
+같은 panel:
 
 | 입력 | 값 |
 |---|---|
@@ -318,18 +407,45 @@ Remove-Item -Force "$env:USERPROFILE\.trsim\resources\radars\kuband_naval.toml"
 
 **기대**:
 - Status `done: 4/4 variants -> pairing_variants_manifest.toml`
-- Log 4 줄: `variant A/B/C/D: 30 frames -> pairing_variant_X.h5`
+- Log 4 줄: `variant A: 30 frames -> pairing_variant_A.h5` 등 4 개
 - `./datasets/` 안에 4 개 h5 + 1 개 manifest TOML
 
 ```powershell
 Get-ChildItem ./datasets/
 ```
 
-→ `pairing_variant_A.h5`, `_B`, `_C`, `_D`, `pairing_variants_manifest.toml` 5 파일.
+→ `pairing_variant_A.h5`, `_B`, `_C`, `_D`,
+   `pairing_variants_manifest.toml` 5 파일.
 
-### 5.3 numpy MLP 학습
+`Cancel` 을 중간 variant 시점에 누르면, 그 시점까지 완료된 variant
+만 manifest entries 에 등록 + 그 다음 variant 는 시작도 안 함.
 
-UI 닫고 PowerShell 에서:
+### 5.3 NN Training — numpy MLP 학습 (GUI)
+
+bottom_tabs 의 `NN Training` (index 5) 클릭. panel 폼 기본값:
+
+| 필드 | 기본값 | 갱신 권장 |
+|---|---|---|
+| Job ID | `pairing_v1` | 그대로 |
+| Dataset | `./datasets/pairing_variant_A.h5` | 그대로 (5.2 에서 만듦) |
+| Weights | `./plugins/pairing/weights/v1.npz` | `./weights/v1.npz` |
+| Epochs | `10` | `20` |
+| LR | `1e-3` | `0.05` |
+| Framework | `numpy_only` | 그대로 |
+
+`Run Training` 클릭.
+
+**기대**:
+- Status `done: 20 epochs, best_val=0.XX@epoch_Y`
+- 매 epoch log: `epoch 1/20  train=0.XX  val=0.YY` 20 줄
+- `./weights/v1.npz` 생성
+
+**주의**: 기본 backend 는 `"fake"` (Phase 6.7) 임. 현재 TrainingPanel
+의 UI 에서 backend toggle 미노출 → 실제 numpy_mlp 학습은 아래 5.3b
+Python fallback 또는 `NNTrainingController` 직접 호출 필요. 이는
+다음 sub-step 후보 (Training panel 에 backend 선택 콤보 추가).
+
+### 5.3b Python fallback — backend=numpy_mlp 직접
 
 ```powershell
 @'
@@ -361,25 +477,24 @@ $env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
 .\.venv\Scripts\python.exe _train_demo.py
 ```
 
-**기대**:
-- 5 줄 출력
-- `epochs = 20`
-- `best_val < final_val` 일 수도 (학습 곡선상 best epoch 가 마지막
-  전이면)
-- `./weights/v1.npz` 생성
-
 ```powershell
 .\.venv\Scripts\python.exe -c "import numpy as np; f=np.load('./weights/v1.npz'); print(list(f.files))"
 ```
 
 **기대**: `['layer_0_W', 'layer_0_b', 'layer_1_W', 'layer_1_b', 'layer_2_W', 'layer_2_b']`
 
-### 5.4 Step 2 — 4-error 평가
+### 5.4 Step 2 — 4-error 평가 (GUI)
 
-UI 재가동 → Simulator → NN mode → Step 2 panel:
+bottom_tabs 의 `NN Step 2` (index 4) 클릭.
 
-(controller 가 dataset / plugin 콤보를 받지만 현재는 stub registration
-구조 — UI 에서는 콤보가 비어있을 수 있음. Python 스크립트로 직접 호출:)
+**현재 상태**: controller 의 dataset / plugin 콤보가 코드 register
+구조 (Phase 6.8) — UI 에서 콤보는 빈 상태로 보임. 사용 가능한 워크
+플로우는 두 가지:
+
+(A) 콤보에 명시적 등록 후 UI 사용 — 다음 sub-step 후보 (default
+시나리오 + plugin 자동 register 추가).
+
+(B) Python fallback (현재 실용 경로):
 
 ```powershell
 @'
@@ -411,9 +526,9 @@ print(f"hint     = {result.diagnosis_hint}")
 - hint 는 `"balanced"` 또는 `"variance high"` / `"data mismatch"` /
   `"avoidable bias high"` 중 하나
 
-NumpyPairingNN 은 Hungarian 비학습 baseline 이므로 4 variant 모두 비슷한
-loss 가 나와야 정상 (variant 별 차이가 클 수 있음 — closed-form GT 와
-다른 시나리오면).
+NumpyPairingNN 은 Hungarian 비학습 baseline 이므로 4 variant 모두
+비슷한 loss 가 정상 (variant 별 차이가 클 수 있음 — closed-form GT 와
+다른 scenario 면).
 
 ### 5.5 청소
 
@@ -422,7 +537,8 @@ Remove-Item _train_demo.py, _eval_demo.py
 Remove-Item -Recurse -Force ./datasets, ./weights
 ```
 
-☐ NN 흐름 5 항목 통과
+☐ NN 흐름 5 항목 통과 (5.3b / 5.4 는 GUI 통합 미흡 상태에서 Python
+fallback 통과 = OK)
 
 ---
 
@@ -430,15 +546,16 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 
 | 섹션 | 항목 | 통과 |
 |---|---|---|
-| 0 | 환경 sanity (venv / PySide6 / version) | ☐ |
+| 0 | 환경 sanity + origin/main pull + editable reinstall | ☐ |
 | 1 | CLI 비-UI 3 명령 (help / profile / run) | ☐ |
-| 2 | pytest 1570 + ruff + mypy + lint-imports | ☐ |
-| 3 | UI 가동 + workspace 전환 + 5 activity + sidebar | ☐ |
-| 4 | DLC 자동 로드 (panel mount + resource sidebar + --no-dlc) | ☐ |
-| 5 | NN Step 1 single + chain + numpy_mlp 학습 + 4-error eval | ☐ |
+| 2 | pytest 1576 + ruff + mypy + lint-imports | ☐ |
+| 3 | UI 가동 + workspace 전환 + 5 activity + sidebar + 6 bottom tabs | ☐ |
+| 4 | DLC 자동 로드 (panel mount index 6 + resource sidebar + --no-dlc) | ☐ |
+| 5 | NN Step 1 single + chain (GUI) + numpy_mlp 학습 (Python fallback) + 4-error eval | ☐ |
 
 전부 ✓ 면 MVP 가동 검증 끝. 후속 개발은 [`docs/MVP_USAGE.md`](MVP_USAGE.md)
-§ 8 "MVP+α" 후보 리스트 참조.
+§ 8 + [`docs/MVP_STATUS.md`](MVP_STATUS.md) § 4.3 "MVP+α" 후보 리스트
+참조.
 
 ---
 
@@ -446,11 +563,17 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 
 | 증상 | 원인 후보 | 조치 |
 |---|---|---|
+| `trsim ui --help` 에 `--no-dlc` 없음 | trsim.exe 가 옛 entry point | § 0.0 의 `pip install -e . --no-deps` |
+| pytest 1484 PASS (1576 기대) | local main 이 origin/main 뒤쳐짐 | § 0.0 의 `git pull --ff-only` |
+| Ctrl+Shift+E/S/P 안 됨 | toolbar QAction + menu QAction 단축키 충돌 (rev1) | rev2 push 됐음. § 0.0 pull 으로 해결 |
+| Simulator 하단 tab 이 3 개 (NN tab 없음) | local main 이 rev2 이전 | § 0.0 의 pull 으로 해결 |
 | `trsim.exe: command not found` | venv 활성화 안 됨 | `.\.venv\Scripts\Activate.ps1` 또는 절대경로 |
 | `ImportError: PySide6` | dev extras 미설치 | `pip install -e ".[dev]"` |
-| GUI 가 안 뜸 (process 즉시 종료) | Qt platform plugin 누락 | 디버그: `set QT_DEBUG_PLUGINS=1` 후 재시도 |
+| GUI 가 안 뜸 (process 즉시 종료) | Qt platform plugin 누락 | 디버그: `$env:QT_DEBUG_PLUGINS = "1"` 후 재시도 |
 | pytest 일부 깨짐 | 환경 불일치 | `PYTHONUTF8 / PYTHONPATH` 환경변수 + Python 3.11+ 확인 |
 | `lint-imports` UnicodeDecodeError | cp949 codec | `PYTHONIOENCODING=utf-8 PYTHONUTF8=1` 명시 |
-| Step 1 빌드 후 sidebar 가 안 채워짐 | `~/.trsim/resources/` 디렉토리 없음 | `New-Item -ItemType Directory ...` 으로 만들고 재가동 |
-| DLC 탭이 안 보임 | manifest 잘못 / entry_point typo | 위 § 4.1 와 1:1 비교 |
-| numpy_mlp 가 ValueError "0 sample" | h5 가 0 frame 으로 빌드됨 | Frames > 0 으로 Step 1 재실행 |
+| Resource Browser sidebar 가 비어있음 | `~/.trsim/resources/<cat>/` 디렉토리 없거나 `--no-dlc` 켜짐 | 디렉토리 만들고 `--no-dlc` 없이 재가동 |
+| DLC tab 이 안 보임 | manifest 잘못 / entry_point typo / `--no-dlc` 켜짐 | § 4.1 manifest 와 1:1 비교 + `--no-dlc` 끄기 |
+| DLC tab 라벨이 `[DLC] _Cls` (pkg 없음) | manifest `[package].id` 가 비었음 | manifest 검증 (kebab-case + SemVer) |
+| numpy_mlp 가 `ValueError "0 sample"` | h5 가 0 frame 으로 빌드됨 | Frames > 0 으로 Step 1 재실행 |
+| Training panel `Run` 클릭 후 loss 일정 (감소 안 함) | backend 가 default `"fake"` (decay 스케줄) | § 5.3b Python fallback 으로 `backend="numpy_mlp"` 호출 |
