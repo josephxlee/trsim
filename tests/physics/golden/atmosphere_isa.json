@@ -60,6 +60,21 @@
       "case_id": "rain_10GHz_4mmh",
       "expected": {"rain_attenuation_dbpkm": 0.19950156172674402},
       "inputs": {"frequency_ghz": 10.0, "rain_rate_mmh": 4.0}
+    },
+    {
+      "case_id": "rain_30GHz_10mmh",
+      "expected": {"rain_attenuation_dbpkm": 1.8883881176912514},
+      "inputs": {"frequency_ghz": 30.0, "rain_rate_mmh": 10.0}
+    },
+    {
+      "case_id": "temperature_stratosphere_15km",
+      "expected": {"temperature_k": 216.64999999999998},
+      "inputs": {"altitude_m": 15000.0}
+    },
+    {
+      "case_id": "density_stratosphere_15km",
+      "expected": {"density_kg_m3": 0.36392089311454473},
+      "inputs": {"altitude_m": 15000.0}
     }
   ]
 }
