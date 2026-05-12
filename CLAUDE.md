@@ -17,22 +17,66 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Physics Lab Phase 9.1 ALL DONE (9.1a~9.1g)** — Code highlight +
-> Frame slider + 자동 슬라이더 + PyVista 3D Test Object viewer + 4
-> 시간 모드 (Static / Run / Compare / Sweep) + Library 3 카테고리
-> (Tests / Models / Saved Experiments) + Save/Load Experiment (TOML)
-> + Air Drag demo (`drag_coefficient_k` 5th param + quadratic drag
-> simulator). ParametersWidget 5 슬라이더 (gravity / restitution /
-> initial_height / initial_velocity / drag_coefficient_k) 자동 노출.
-> 누적 **1850 PASS** (+158 신규 in 9.1 묶음), 5 contracts KEPT.
+> **Physics Lab Phase 9.1 + 9.2 ALL DONE** — 9.1 (Code highlight +
+> Frame slider + 자동 슬라이더 + PyVista 3D + 4 시간 모드 + Library
+> 3 카테고리 + Save/Load TOML + Air Drag) 에 더해 9.2 까지 완료:
+> Library Measured Data + Papers 카테고리 (5 카테고리 트리), Lab-B
+> Validation Bench (CSV/HDF5 측정 vs 시뮬 RMSE + max|err| +
+> Pearson correlation, 자동 overlay), Lab-C Parameter Studio
+> (scipy.optimize Nelder-Mead 로 restitution/drag/gravity/height
+> fitting). 누적 **1929 PASS** (+79 신규 in 9.2 묶음), 5 contracts
+> KEPT.
 >
-> **세션 인계**: `docs/sessions/phase_9_1_complete_handoff_2026_05_12.md`.
-> 다음 세션 진입점 = **Phase 9.2** (Library Measured Data + Papers
-> + Lab-B Validation Bench + Lab-C Parameter Studio 측정→fit→채택
-> 워크플로). 사용자 우선순위 (변동 없음):
-> **physics_lab > simulator > editor** — Phase 9.1 ✓ → 9.2 → 9.3 →
-> Phase 5 후속 → NN 보강 → Phase 8 HIL → DLC CLI → UI binding →
+> **세션 인계**: `docs/sessions/phase_9_2_complete_handoff_2026_05_12.md`.
+> 다음 세션 진입점 = **Phase 9.3** (Code Pane Edit 강화, Physics
+> ModelProtocol plugin, NN 으로 물리 대체, Symbolic regression,
+> Test Object plugin). 사용자 우선순위 (변동 없음):
+> **physics_lab > simulator > editor** — Phase 9.1 ✓ → 9.2 ✓ → 9.3
+> → Phase 5 후속 → NN 보강 → Phase 8 HIL → DLC CLI → UI binding →
 > Floating dock 옵션 B / Theme manager 순서로 자동 진행.
+
+- **Phase 9.2a/b/c/d DONE** — Physics Lab 외부 자료 + 학습 워크플로
+  (plan/19 § 19.9). 4 commits push.
+  - **9.2a/b** (`a199e3a`): `domain/physics_lab/measured_data.py` +
+    `papers.py` 신규. `MeasuredDataset` (csv/hdf5 + columns +
+    description + source + license + units) + `PaperReference` (pdf
+    only). `inspect_csv` / `inspect_hdf5` / `inspect_pdf` 가 sidecar
+    `<file>.toml` 자동 로드. `load_measured_csv` (skip-header float64
+    2D) / `load_measured_hdf5(dataset, column)` 데이터 로더. `list_*`
+    sorted directory scan. LibraryWidget 가 QTreeWidget 5 카테고리로
+    확장 (Measured Data + Papers 추가) + `set_measured_datasets` /
+    `set_papers` / `measured_for` / `paper_for` + `measured_dataset_
+    selected` / `paper_selected` 시그널. PhysicsLabWorkspace `measured_
+    root` / `papers_root` kwargs + `refresh_measured_datasets` /
+    `refresh_papers`. 37 신규 tests.
+  - **9.2c** (`43153f9`): `domain/physics_lab/validation.py` 신규.
+    `ValidationMetrics` (n_samples / rmse / max_abs_error /
+    pearson_correlation) + `compute_validation_metrics(measured_x,
+    measured_y, sim_x, sim_y)` — sim_x sort + measured 범위 제한 + interp
+    + RMSE/max/corr. Zero-variance 입력 corr=0 (NaN 회피). `BouncingBall
+    Controller.run_validation_from_dataset(dataset, *, x_column,
+    y_column, dt_s=0.005)` 가 dataset 의 column pair 로드 → 현재 params
+    로 fresh simulator 돌려 measured x-range cover → 메트릭 계산 →
+    `validation_measured` (red) + `validation_sim` (blue) overlay curve
+    설치 → `validation_metrics_ready(metrics)` 시그널. live history
+    무영향. 워크스페이스가 measured_dataset_selected 자동 fire →
+    상태바에 `RMSE=... max|err|=... corr=... (n=...)`. 21 신규 tests.
+  - **9.2d** (`5de15a0`): `app/physics_lab/parameter_fitter.py` 신규.
+    `FitConfig` (fit_restitution=True default + 3 off) + `FitResult`
+    (4 fitted scalars + RMSE + iters + msg) + `fit_bouncing_ball
+    (*, measured_x/y, initial_*, config, dt_s, max_iter)` 가
+    `scipy.optimize.minimize` Nelder-Mead 로 RMSE 최소화. Bounds
+    clamp inside loss. 1 ~ 4 free params 지원. `BouncingBallController.
+    fit_to_measurement(dataset, config, apply_to_live_state=True)` +
+    `fit_result_ready(result)` 시그널. LibraryWidget 가 "Fit to
+    selected measurement" 버튼 추가 (measured 선택 시만 enable) +
+    `fit_requested(MeasuredDataset)` 시그널. Workspace 가 fit 결과
+    자동 슬라이더 갱신 + 상태바 `fit: rest=... drag=... RMSE=...`.
+    Synthetic 측정 (r=0.5) → biased start (r=0.85) → fit 이 ~5% 안
+    수렴 검증. 21 신규 tests.
+
+  세션 누적 9.2 push: a199e3a (9.2a/b) + 43153f9 (9.2c) + 5de15a0
+  (9.2d). 누적 1929 PASS (+79 across 9.2a-d), 5 contracts KEPT.
 
 - **Phase 9.1d/e/f/g DONE** — Physics Lab 잔여 4 sub-step (2nd + 3rd
   bundles per `docs/sessions/phase_mvp_a_handoff_2026_05_12.md` § 3).
