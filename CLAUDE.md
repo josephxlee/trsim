@@ -17,17 +17,59 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **MVP-minimum + Physics Lab PL-A~E DONE** — `python -m workbench ui`
-> 한 줄로 Editor / Simulator / **Physics Lab** 3-way workspace +
-> Bouncing Ball 인터랙티브 데모 + Code 즉석 수정 (Edit/Save&Reload/
-> Revert) 동작. 누적 1692 PASS, 5 contracts KEPT.
+> **Physics Lab Phase 9.1a/b/c DONE** — Code Pane Python syntax
+> highlight + Frame slider (history-based scrub with step-forward /
+> step-back) + `@physics_param` decorator + AutoParametersWidget
+> 자동 슬라이더. ParametersWidget 이 AutoParametersWidget wrapper 로
+> 리팩터링되어 4 슬라이더 (gravity / restitution / initial_height
+> / initial_velocity) 자동 노출. 누적 **1773 PASS** (+81 신규: 31
+> highlighter + 14 frame slider + 36 auto sliders), 5 contracts KEPT.
 >
-> **세션 인계**: `docs/sessions/phase_mvp_a_handoff_2026_05_12.md`.
-> 다음 세션 진입점 = **Phase 9.1a/b/c 묶음** (Code syntax highlight +
-> Frame slider + @physics_param 자동 슬라이더). 사용자 우선순위:
+> **세션 인계**: `docs/sessions/phase_9_1_abc_handoff_2026_05_12.md`.
+> 다음 세션 진입점 = **Phase 9.1d/e 묶음** (PyVista 3D Test Object
+> mesh + 4 시간 모드 Static/Run/Compare/Sweep). 사용자 우선순위:
 > **physics_lab > simulator > editor** — Phase 9.1 → 9.2 → 9.3 →
 > Phase 5 후속 → NN 보강 → Phase 8 HIL → DLC CLI → UI binding →
 > Floating dock 옵션 B / Theme manager 순서로 자동 진행.
+
+- **Phase 9.1a/b/c DONE** — Physics Lab Code Pane / Time controls /
+  Parameters pane 본격화 (handoff `docs/sessions/phase_mvp_a_handoff_
+  2026_05_12.md` § 3 의 1st bundle).
+  - **9.1a** (`f07781f`): `ui/physics_lab/python_highlighter.py` +
+    `tokenize_python_line(text, prev_state)` pure-Python categoriser
+    + `PythonSyntaxHighlighter(QSyntaxHighlighter)` 10 카테고리
+    (keyword/builtin/constant/self/string/comment/number/decorator/
+    defname/classname). Triple-quoted string state 가 QSyntaxHighlighter
+    block 간 전파. CodePreview 의 editor.document() 에 자동 부착.
+    31 신규 tests (pure tokeniser 21 + palette 3 + Qt integration 3 +
+    CodePreview integration 1 + Misc 3).
+  - **9.1b** (`2bbce62`): BouncingBallController 에 frame history
+    (list[BouncingBallState]) + cursor (_history_index) 추가.
+    `step_forward_once / step_backward_once / seek_to_frame` 3
+    method. Play 중 cursor mid-history 면 future truncate +
+    새 timeline 생성. `_TimeControls` 가 2-row layout: Row 1
+    Play/Pause/Stop + status, Row 2 Prev | Frame slider | Next |
+    `"frame N / max"` readout. 14 신규 tests (history seed/forward/
+    backward/seek-clamp/truncate-on-play/stop-clears/slider tracking/
+    button-click routing/plot truncate/readout text).
+  - **9.1c** (`7f94e31`): `domain/physics_lab/parameter_metadata.py`
+    신규 — `PhysicsParam(frozen, slots)` dataclass + `@physics_param`
+    decorator (`insert(0, param)` 로 source line order 유지) +
+    `get_physics_params(func)` + `BOUNCING_BALL_PARAM_SPECS` (4 param
+    선언: gravity_m_s2 linear [1,30] default 9.81 / restitution linear
+    [0,1] default 0.70 / initial_height_m **log** [0.1,50] default 5 /
+    initial_velocity_m_s linear [-20,20] default 0). Validation 4종.
+    `ui/physics_lab/auto_parameters.py` 신규 — `AutoParametersWidget
+    (params, parent)` 가 spec 1 개당 QSlider + QLabel row 생성.
+    `parameter_changed(name, value)` signal + `current_value/set_value/
+    slider_for/parameter_names/parameter_spec` API. linear/log tick
+    mapping (`SLIDER_TICK_RESOLUTION = 100`). `ParametersWidget` 가
+    `AutoParametersWidget(BOUNCING_BALL_PARAM_SPECS)` wrapper 로 변경,
+    공개 API (`restitution_changed`, `current_restitution`,
+    `set_restitution`, `slider()`) 보존 + 신규 (`auto_parameters()`,
+    `parameter_changed(str, float)`) 노출. 36 신규 tests (decorator 13 +
+    AutoParametersWidget 20 + ParametersWidget 신규 API 3).
+
 
 - **PL-E (Code 즉석 수정) + 옵션 A (toolbar visibility) DONE** — 사용자
   요청 두 가지 동시 처리.
