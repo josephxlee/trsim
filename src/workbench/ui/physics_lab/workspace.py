@@ -42,6 +42,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
+    QSlider,
     QSplitter,
     QVBoxLayout,
     QWidget,
@@ -78,32 +80,62 @@ class _Placeholder(QWidget):
 
 
 class _TimeControls(QWidget):
-    """Bottom strip — Play / Pause / Stop placeholder buttons + status label.
+    """Bottom strip with Play/Pause/Stop on row 1 and a Frame slider +
+    step-by-step buttons on row 2 (PL-9.1b, plan/19 § 19.5.4).
 
-    PL-D will wire these to :class:`PhysicsClock`. PL-A keeps them
-    visible so the workspace shape is recognisable from the start.
+    PL-D wires the Play row to :class:`PhysicsClock`; PL-9.1b adds the
+    Frame slider, step-forward / step-back buttons and the
+    ``frame N / max`` readout that the controller drives.
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("PhysicsLabTimeControls")
-        row = QHBoxLayout(self)
-        row.setContentsMargins(8, 4, 8, 4)
-        row.setSpacing(6)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(8, 4, 8, 4)
+        root.setSpacing(4)
 
+        # ---- Row 1: Play / Pause / Stop + status label.
+        row1 = QHBoxLayout()
+        row1.setSpacing(6)
         self._play_btn = QPushButton("Play", self)
         self._play_btn.setObjectName("PhysicsLabPlayBtn")
         self._pause_btn = QPushButton("Pause", self)
         self._pause_btn.setObjectName("PhysicsLabPauseBtn")
         self._stop_btn = QPushButton("Stop", self)
         self._stop_btn.setObjectName("PhysicsLabStopBtn")
-        self._status = QLabel("idle  (PL-D will wire PhysicsClock)", self)
+        self._status = QLabel("idle", self)
         self._status.setObjectName("PhysicsLabTimeStatus")
-
         for btn in (self._play_btn, self._pause_btn, self._stop_btn):
-            row.addWidget(btn)
-        row.addSpacing(12)
-        row.addWidget(self._status, 1)
+            row1.addWidget(btn)
+        row1.addSpacing(12)
+        row1.addWidget(self._status, 1)
+        root.addLayout(row1)
+
+        # ---- Row 2: Step back | Frame slider | Step forward | readout.
+        row2 = QHBoxLayout()
+        row2.setSpacing(6)
+        self._step_back_btn = QPushButton("Prev", self)
+        self._step_back_btn.setObjectName("PhysicsLabStepBackBtn")
+        self._step_back_btn.setToolTip("Step one frame backward")
+        self._step_back_btn.setFixedWidth(56)
+        self._step_back_btn.setEnabled(False)
+        self._frame_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self._frame_slider.setObjectName("PhysicsLabFrameSlider")
+        self._frame_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._frame_slider.setRange(0, 0)
+        self._step_fwd_btn = QPushButton("Next", self)
+        self._step_fwd_btn.setObjectName("PhysicsLabStepForwardBtn")
+        self._step_fwd_btn.setToolTip("Step one frame forward")
+        self._step_fwd_btn.setFixedWidth(56)
+        self._frame_readout = QLabel("frame 0 / 0", self)
+        self._frame_readout.setObjectName("PhysicsLabFrameReadout")
+        self._frame_readout.setFixedWidth(110)
+        row2.addWidget(self._step_back_btn)
+        row2.addWidget(self._frame_slider, 1)
+        row2.addWidget(self._step_fwd_btn)
+        row2.addWidget(self._frame_readout)
+        root.addLayout(row2)
 
     def play_button(self) -> QPushButton:
         return self._play_btn
@@ -116,6 +148,18 @@ class _TimeControls(QWidget):
 
     def status_label(self) -> QLabel:
         return self._status
+
+    def step_back_button(self) -> QPushButton:
+        return self._step_back_btn
+
+    def step_forward_button(self) -> QPushButton:
+        return self._step_fwd_btn
+
+    def frame_slider(self) -> QSlider:
+        return self._frame_slider
+
+    def frame_readout(self) -> QLabel:
+        return self._frame_readout
 
 
 class PhysicsLabWorkspace(QWidget):
@@ -169,7 +213,8 @@ class PhysicsLabWorkspace(QWidget):
 
         # PL-D — wire the time controls + parameter slider + plot to a
         # live BouncingBallSimulator. The controller owns its QTimer
-        # so the workspace stays a thin shell.
+        # so the workspace stays a thin shell. PL-9.1b extends the
+        # constructor with the frame-control widgets.
         self._bouncing_controller = BouncingBallController(
             plot=self._viz_panel,
             parameters=self._parameters_panel,
@@ -178,6 +223,10 @@ class PhysicsLabWorkspace(QWidget):
             stop_button=self._time_controls.stop_button(),
             status_label=self._time_controls.status_label(),
             code_preview=self._code_panel,
+            frame_slider=self._time_controls.frame_slider(),
+            step_back_button=self._time_controls.step_back_button(),
+            step_forward_button=self._time_controls.step_forward_button(),
+            frame_readout=self._time_controls.frame_readout(),
             parent=self,
         )
 

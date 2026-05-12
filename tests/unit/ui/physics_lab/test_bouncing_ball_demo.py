@@ -165,6 +165,194 @@ def test_restitution_slider_forwards_to_simulator(qtbot) -> None:  # type: ignor
 
 
 # ---------------------------------------------------------------------
+# PL-9.1b — Frame slider + step-by-step controls
+# ---------------------------------------------------------------------
+
+
+def test_history_starts_with_seed_state(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    assert len(controller.history) == 1
+    assert controller.current_frame_index == 0
+    assert controller.history[0].time_s == 0.0
+
+
+def test_step_forward_once_appends_history_and_advances_simulator(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    initial_len = len(controller.history)
+    controller.step_forward_once()
+    assert len(controller.history) == initial_len + 1
+    assert controller.current_frame_index == initial_len
+    assert controller.simulator.state.time_s > 0.0
+
+
+def test_step_backward_once_rewinds_without_popping_history(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    controller.step_forward_once()
+    controller.step_forward_once()
+    assert len(controller.history) == 3
+    controller.step_backward_once()
+    assert controller.current_frame_index == 1
+    # The future frames stay in the history list.
+    assert len(controller.history) == 3
+    # Simulator state mirrors the cursor.
+    assert controller.simulator.state == controller.history[1]
+
+
+def test_step_back_at_zero_is_a_no_op(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    controller.step_backward_once()
+    assert controller.current_frame_index == 0
+    assert len(controller.history) == 1
+
+
+def test_step_forward_after_backward_replays_stored_state(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    controller.step_forward_once()
+    controller.step_forward_once()
+    expected_state = controller.history[2]
+    controller.step_backward_once()
+    controller.step_forward_once()
+    assert controller.simulator.state == expected_state
+    # No duplicate frame was appended.
+    assert len(controller.history) == 3
+
+
+def test_seek_to_frame_clamps_and_snaps_simulator(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    for _ in range(4):
+        controller.step_forward_once()
+    controller.seek_to_frame(2)
+    assert controller.current_frame_index == 2
+    assert controller.simulator.state == controller.history[2]
+    # Out-of-range values are clamped, not errors.
+    controller.seek_to_frame(99)
+    assert controller.current_frame_index == len(controller.history) - 1
+    controller.seek_to_frame(-3)
+    assert controller.current_frame_index == 0
+
+
+def test_seek_back_then_forward_truncates_when_play_runs(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """When the user rewinds and then advances the simulator (step
+    forward beyond the stored end, or via Play), the discarded future
+    is replaced by the new trajectory.
+    """
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    for _ in range(4):
+        controller.step_forward_once()
+    assert len(controller.history) == 5
+    controller.seek_to_frame(2)
+    # Change restitution so the next advance diverges from the stored
+    # trajectory, then drive Play one tick.
+    ws.parameters_panel().set_restitution(0.1)
+    controller.step_once()
+    # History was truncated to [0..2] + the new frame = length 4.
+    assert len(controller.history) == 4
+    assert controller.current_frame_index == 3
+
+
+def test_stop_clears_history_to_seed(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    for _ in range(5):
+        controller.step_forward_once()
+    controller.stop()
+    assert len(controller.history) == 1
+    assert controller.current_frame_index == 0
+
+
+def test_frame_slider_range_tracks_history_length(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    slider = ws.time_controls().frame_slider()
+    assert slider.minimum() == 0
+    assert slider.maximum() == 0
+    controller.step_forward_once()
+    controller.step_forward_once()
+    assert slider.maximum() == 2
+    assert slider.value() == 2
+
+
+def test_frame_slider_drives_seek(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    for _ in range(4):
+        controller.step_forward_once()
+    ws.time_controls().frame_slider().setValue(1)
+    assert controller.current_frame_index == 1
+    assert controller.simulator.state == controller.history[1]
+
+
+def test_step_back_button_disabled_at_frame_zero(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    back_btn = ws.time_controls().step_back_button()
+    assert back_btn.isEnabled() is False
+    controller.step_forward_once()
+    assert back_btn.isEnabled() is True
+    controller.step_backward_once()
+    assert back_btn.isEnabled() is False
+
+
+def test_frame_readout_reflects_index(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    readout = ws.time_controls().frame_readout()
+    assert readout.text() == "frame 0 / 0"
+    controller.step_forward_once()
+    controller.step_forward_once()
+    assert readout.text() == "frame 2 / 2"
+    controller.step_backward_once()
+    assert readout.text() == "frame 1 / 2"
+
+
+def test_plot_truncates_to_cursor_on_step_back(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    for _ in range(3):
+        controller.step_forward_once()
+    assert ws.viz_panel().history_length() == 4  # seed + 3
+    controller.step_backward_once()
+    assert ws.viz_panel().history_length() == 3  # seed + 2
+    controller.step_backward_once()
+    assert ws.viz_panel().history_length() == 2  # seed + 1
+
+
+def test_step_buttons_click_route_to_controller(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """Click the actual QPushButton instances — the connections set up
+    in BouncingBallController.__init__ must forward to step_forward /
+    step_backward.
+    """
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    ws.time_controls().step_forward_button().click()
+    ws.time_controls().step_forward_button().click()
+    assert controller.current_frame_index == 2
+    ws.time_controls().step_back_button().click()
+    assert controller.current_frame_index == 1
+
+
+# ---------------------------------------------------------------------
 # PL-E — Code edit mode
 # ---------------------------------------------------------------------
 

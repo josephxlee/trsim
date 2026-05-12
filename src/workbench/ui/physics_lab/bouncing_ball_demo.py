@@ -38,7 +38,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from workbench.app.physics_lab import BouncingBallSimulator, PhysicsClock
+from workbench.app.physics_lab import (
+    BouncingBallSimulator,
+    BouncingBallState,
+    PhysicsClock,
+)
 from workbench.domain.physics_lab import default_library
 from workbench.ui.physics_lab.python_highlighter import PythonSyntaxHighlighter
 
@@ -445,6 +449,10 @@ class BouncingBallController(QObject):
         status_label: QLabel,
         clock_dt_s: float = 0.02,
         code_preview: CodePreview | None = None,
+        frame_slider: QSlider | None = None,
+        step_back_button: QPushButton | None = None,
+        step_forward_button: QPushButton | None = None,
+        frame_readout: QLabel | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -457,6 +465,18 @@ class BouncingBallController(QObject):
         self._stop_btn = stop_button
         self._status = status_label
         self._code_preview = code_preview
+        self._frame_slider = frame_slider
+        self._step_back_btn = step_back_button
+        self._step_fwd_btn = step_forward_button
+        self._frame_readout = frame_readout
+
+        # PL-9.1b — frame history. Each call to ``step_forward_once`` /
+        # the play timer appends one :class:`BouncingBallState`; the
+        # user can rewind via ``step_backward_once`` or jump anywhere
+        # via the frame slider. ``_history_index`` points to the state
+        # currently mirrored on the simulator + plot.
+        self._history: list[BouncingBallState] = [self.simulator.state]
+        self._history_index: int = 0
 
         self._timer = QTimer(self)
         # Slightly faster than the dt so play is smooth without
@@ -475,9 +495,22 @@ class BouncingBallController(QObject):
             self._code_preview.save_requested.connect(self.apply_user_step_code)
             self._code_preview.revert_requested.connect(self.revert_user_step_code)
 
+        # PL-9.1b — frame controls. All four widgets are optional so
+        # tests + headless callers can construct a controller without
+        # them; the workspace always passes the full quartet.
+        if self._step_back_btn is not None:
+            self._step_back_btn.clicked.connect(self.step_backward_once)
+        if self._step_fwd_btn is not None:
+            self._step_fwd_btn.clicked.connect(self.step_forward_once)
+        if self._frame_slider is not None:
+            self._frame_slider.setRange(0, 0)
+            self._frame_slider.setValue(0)
+            self._frame_slider.valueChanged.connect(self._on_frame_slider_changed)
+
         # Seed the plot with the initial state at t=0 so the user
         # sees the ball position even before pressing Play.
         self._plot.append(self.simulator.state.time_s, self.simulator.state.position_m)
+        self._refresh_frame_ui()
         self._refresh_status()
 
     # ------------------------------------------------------------------
@@ -498,9 +531,111 @@ class BouncingBallController(QObject):
         self.clock.stop()
         self._timer.stop()
         self.simulator.reset()
+        self._history = [self.simulator.state]
+        self._history_index = 0
         self._plot.clear_history()
         self._plot.append(self.simulator.state.time_s, self.simulator.state.position_m)
+        self._refresh_frame_ui()
         self._refresh_status()
+
+    # ------------------------------------------------------------------
+    # Frame history surface (PL-9.1b)
+    # ------------------------------------------------------------------
+
+    @property
+    def history(self) -> tuple[BouncingBallState, ...]:
+        """Immutable snapshot of all frames generated since the last reset."""
+        return tuple(self._history)
+
+    @property
+    def current_frame_index(self) -> int:
+        """Index of the state currently shown on the simulator and plot."""
+        return self._history_index
+
+    def step_forward_once(self) -> None:
+        """Move one frame forward.
+
+        If the cursor is in the middle of an existing history, replay
+        the next stored state. Otherwise generate a new frame by
+        running :meth:`BouncingBallSimulator.step` and append it.
+        """
+        if self._history_index < len(self._history) - 1:
+            self._history_index += 1
+            self._apply_history_at_cursor()
+        else:
+            self._advance_one_frame(self.clock.dt_s)
+
+    def step_backward_once(self) -> None:
+        """Move one frame backward (no-op at frame 0).
+
+        Backward stepping never mutates the history list — the future
+        frames stay around so the user can scrub forward again. The
+        plot redraws to show only frames up to the new cursor.
+        """
+        if self._history_index > 0:
+            self._history_index -= 1
+            self._apply_history_at_cursor()
+
+    def seek_to_frame(self, frame_index: int) -> None:
+        """Jump the cursor to ``frame_index`` (clamped to history)."""
+        if not self._history:
+            return
+        clamped = max(0, min(len(self._history) - 1, frame_index))
+        if clamped == self._history_index:
+            return
+        self._history_index = clamped
+        self._apply_history_at_cursor()
+
+    def _apply_history_at_cursor(self) -> None:
+        state = self._history[self._history_index]
+        self.simulator.update_state(state)
+        past = self._history[: self._history_index + 1]
+        self._plot.set_history(
+            [s.time_s for s in past],
+            [s.position_m for s in past],
+        )
+        self._refresh_frame_ui()
+        self._refresh_status()
+
+    def _advance_one_frame(self, dt_s: float) -> None:
+        """Generate and adopt one new frame.
+
+        If the cursor was mid-history (because the user stepped back
+        and then resumed Play / Step Forward), the future frames are
+        discarded — Play branches a new timeline from the cursor.
+        """
+        if self._history_index < len(self._history) - 1:
+            self._history = self._history[: self._history_index + 1]
+            past = self._history
+            self._plot.set_history(
+                [s.time_s for s in past],
+                [s.position_m for s in past],
+            )
+        state = self.simulator.step(dt_s)
+        self._history.append(state)
+        self._history_index = len(self._history) - 1
+        self._plot.append(state.time_s, state.position_m)
+        self._refresh_frame_ui()
+        self._refresh_status()
+
+    def _on_frame_slider_changed(self, value: int) -> None:
+        # The slider is in lock-step with ``_history_index``; ignore
+        # values that already match to avoid the recursive feedback
+        # ``setValue`` would otherwise create.
+        if value != self._history_index:
+            self.seek_to_frame(value)
+
+    def _refresh_frame_ui(self) -> None:
+        max_idx = max(0, len(self._history) - 1)
+        if self._frame_slider is not None:
+            was_blocked = self._frame_slider.blockSignals(True)
+            self._frame_slider.setRange(0, max_idx)
+            self._frame_slider.setValue(self._history_index)
+            self._frame_slider.blockSignals(was_blocked)
+        if self._frame_readout is not None:
+            self._frame_readout.setText(f"frame {self._history_index} / {max_idx}")
+        if self._step_back_btn is not None:
+            self._step_back_btn.setEnabled(self._history_index > 0)
 
     # ------------------------------------------------------------------
     # Tick path
@@ -510,22 +645,22 @@ class BouncingBallController(QObject):
         tick = self.clock.tick()
         if tick is None:
             return
-        state = self.simulator.step(tick.dt_s)
-        self._plot.append(state.time_s, state.position_m)
-        self._refresh_status()
+        self._advance_one_frame(tick.dt_s)
 
     def step_once(self, dt_s: float | None = None) -> None:
         """Headless single step — tests drive this directly so they
         don't have to spin a real QTimer.
+
+        Equivalent to one tick of the Play loop: always appends a fresh
+        frame to history (truncating any future) and advances the
+        cursor.
         """
-        step = dt_s if dt_s is not None else self.clock.dt_s
+        step_dt = dt_s if dt_s is not None else self.clock.dt_s
         self.clock.start()
         ev = self.clock.tick()
         if ev is None:
             return
-        state = self.simulator.step(step if dt_s is not None else ev.dt_s)
-        self._plot.append(state.time_s, state.position_m)
-        self._refresh_status()
+        self._advance_one_frame(step_dt)
 
     # ------------------------------------------------------------------
     # UI surface
