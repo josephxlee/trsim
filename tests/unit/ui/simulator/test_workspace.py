@@ -34,9 +34,23 @@ def test_workspace_mounts_every_panel(qtbot) -> None:  # type: ignore[no-untyped
     assert isinstance(ws.scope_pov_panel(), ScopePOVPanel)
 
 
-def test_bottom_tabs_have_run_stage_io_and_profiler(qtbot) -> None:  # type: ignore[no-untyped-def]
+def test_bottom_tabs_have_runtime_and_nn_mode_tabs(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """Bottom tabs surface the 3 runtime panels plus the 3 NN-mode panels.
+
+    DLC tabs (Task D) append after these six. The MVP wire-up moved
+    the Phase 4.11 NN panels out of code-only existence into the
+    Simulator workspace itself so users can drive Step 1 / Step 2 /
+    Training from the GUI.
+    """
     ws = SimulatorWorkspace()
     qtbot.addWidget(ws)
     tabs = ws.bottom_tabs()
     titles = [tabs.tabText(i) for i in range(tabs.count())]
-    assert titles == ["Run", "Stage I/O", "Profiler"]
+    assert titles == [
+        "Run",
+        "Stage I/O",
+        "Profiler",
+        "NN Step 1",
+        "NN Step 2",
+        "NN Training",
+    ]

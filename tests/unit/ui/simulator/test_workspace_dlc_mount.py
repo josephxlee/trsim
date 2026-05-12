@@ -45,7 +45,7 @@ def test_workspace_no_registry_has_no_dlc_panels(qtbot) -> None:  # type: ignore
     assert ws.dlc_panels == ()
     assert ws.dlc_mount_errors == ()
     # Default bottom tabs: Run / Stage I/O / Profiler.
-    assert ws.bottom_tabs().count() == 3
+    assert ws.bottom_tabs().count() == 6
 
 
 # ---------------------------------------------------------------------
@@ -64,10 +64,10 @@ def test_registry_with_simulator_panel_mounts_as_bottom_tab(qtbot) -> None:  # t
     ws = SimulatorWorkspace(panel_registry=registry)
     qtbot.addWidget(ws)
 
-    assert ws.bottom_tabs().count() == 4
+    assert ws.bottom_tabs().count() == 7
     assert len(ws.dlc_panels) == 1
     assert isinstance(ws.dlc_panels[0], _GoodPanel)
-    assert ws.bottom_tabs().tabText(3) == "[DLC] demo-dlc: _GoodPanel"
+    assert ws.bottom_tabs().tabText(6) == "[DLC] demo-dlc: _GoodPanel"
 
 
 def test_two_simulator_panels_mount_in_order(qtbot) -> None:  # type: ignore[no-untyped-def]
@@ -79,9 +79,9 @@ def test_two_simulator_panels_mount_in_order(qtbot) -> None:  # type: ignore[no-
     ws = SimulatorWorkspace(panel_registry=registry)
     qtbot.addWidget(ws)
 
-    assert ws.bottom_tabs().count() == 5
-    assert ws.bottom_tabs().tabText(3) == "[DLC] a: _GoodPanel"
-    assert ws.bottom_tabs().tabText(4) == "[DLC] b: _AnotherPanel"
+    assert ws.bottom_tabs().count() == 8
+    assert ws.bottom_tabs().tabText(6) == "[DLC] a: _GoodPanel"
+    assert ws.bottom_tabs().tabText(7) == "[DLC] b: _AnotherPanel"
 
 
 def test_builtin_workspace_tag_skipped_when_workspace_is_editor(qtbot) -> None:  # type: ignore[no-untyped-def]
@@ -90,7 +90,7 @@ def test_builtin_workspace_tag_skipped_when_workspace_is_editor(qtbot) -> None: 
     ws = SimulatorWorkspace(panel_registry=registry)
     qtbot.addWidget(ws)
     # Editor-tagged panels must not land on the Simulator workspace.
-    assert ws.bottom_tabs().count() == 3
+    assert ws.bottom_tabs().count() == 6
     assert ws.dlc_panels == ()
 
 
@@ -99,7 +99,7 @@ def test_empty_package_id_uses_class_only_label(qtbot) -> None:  # type: ignore[
     registry.register(_GoodPanel, workspace="simulator", dock_area="right")
     ws = SimulatorWorkspace(panel_registry=registry)
     qtbot.addWidget(ws)
-    assert ws.bottom_tabs().tabText(3) == "[DLC] _GoodPanel"
+    assert ws.bottom_tabs().tabText(6) == "[DLC] _GoodPanel"
 
 
 # ---------------------------------------------------------------------
@@ -115,7 +115,7 @@ def test_raising_constructor_recorded_as_mount_error(qtbot) -> None:  # type: ig
     ws = SimulatorWorkspace(panel_registry=registry)
     qtbot.addWidget(ws)
     assert ws.dlc_panels == ()
-    assert ws.bottom_tabs().count() == 3
+    assert ws.bottom_tabs().count() == 6
     assert len(ws.dlc_mount_errors) == 1
     err = ws.dlc_mount_errors[0]
     assert isinstance(err, DLCMountError)
@@ -145,7 +145,7 @@ def test_mixed_good_and_bad_isolates_failure(qtbot) -> None:  # type: ignore[no-
     qtbot.addWidget(ws)
     assert len(ws.dlc_panels) == 1
     assert len(ws.dlc_mount_errors) == 1
-    assert ws.bottom_tabs().tabText(3) == "[DLC] y: _GoodPanel"
+    assert ws.bottom_tabs().tabText(6) == "[DLC] y: _GoodPanel"
 
 
 # ---------------------------------------------------------------------
@@ -167,7 +167,7 @@ def test_mount_dlc_panels_returns_added_count(qtbot) -> None:  # type: ignore[no
         ]
     )
     assert added == 1
-    assert ws.bottom_tabs().tabText(3) == "[DLC] late-bind: _GoodPanel"
+    assert ws.bottom_tabs().tabText(6) == "[DLC] late-bind: _GoodPanel"
 
 
 def test_mount_dlc_panels_accepts_qlabel_subclass(qtbot) -> None:  # type: ignore[no-untyped-def]

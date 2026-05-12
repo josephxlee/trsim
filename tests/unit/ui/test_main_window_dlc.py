@@ -90,4 +90,4 @@ def test_main_window_routes_dlc_panel_into_simulator_workspace(  # type: ignore[
     sim = win.page(Workspace.SIMULATOR)
     assert sim.dlc_panels  # type: ignore[attr-defined]
     assert isinstance(sim.dlc_panels[0], _DLCSimPanel)  # type: ignore[attr-defined]
-    assert sim.bottom_tabs().tabText(3) == "[DLC] dlc-via-mw: _DLCSimPanel"  # type: ignore[attr-defined]
+    assert sim.bottom_tabs().tabText(6) == "[DLC] dlc-via-mw: _DLCSimPanel"  # type: ignore[attr-defined]

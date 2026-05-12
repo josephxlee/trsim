@@ -153,5 +153,9 @@ def test_simulator_workspace_mounts_profiler_tab(qtbot) -> None:  # type: ignore
     qtbot.addWidget(ws)
     tabs = ws.bottom_tabs()
     titles = [tabs.tabText(i) for i in range(tabs.count())]
-    assert titles == ["Run", "Stage I/O", "Profiler"]
+    # Phase 4.12: Run / Stage I/O / Profiler. MVP UI wire-up appends
+    # three NN-mode tabs after them; we keep the Profiler check loose
+    # so this regression sits next to the Phase 4.12 contract.
+    assert titles[:3] == ["Run", "Stage I/O", "Profiler"]
+    assert "Profiler" in titles
     assert isinstance(ws.profiler_panel(), ProfilerPanel)

@@ -38,7 +38,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.ui.nn_training import NNTrainingController, TrainingPanel
 from workbench.ui.panel_registry import PanelRegistration, PanelRegistry
+from workbench.ui.simulator.nn_mode import Step1DatasetPanel, Step2EvalPanel
+from workbench.ui.simulator.nn_mode.step1_controller import NNStep1Controller
+from workbench.ui.simulator.nn_mode.step2_controller import NNStep2Controller
 from workbench.ui.simulator.panels import (
     FFTPanel,
     PluginManagerPanel,
@@ -119,12 +123,29 @@ class SimulatorWorkspace(QWidget):
         top_row.setStretchFactor(3, 0)
         top_row.setSizes([240, 640, 240, 240])
 
-        # Bottom tabs - Run / Stage I/O / Profiler.
+        # NN-mode panels (plan/05 § 5.1 principle 6, plan/07 § 7.4 / § 7.5).
+        # Phase 4.11 shipped these widgets + controllers; this mount
+        # site is where the Simulator workspace finally surfaces them.
+        # A future sub-step can wrap the three NN tabs in a top-level
+        # "Mode" selector (DSP vs NN Development); for the MVP they sit
+        # alongside the runtime tabs.
+        self._nn_step1_panel = Step1DatasetPanel(self)
+        self._nn_step1_controller = NNStep1Controller(self._nn_step1_panel)
+        self._nn_step2_panel = Step2EvalPanel(self)
+        self._nn_step2_controller = NNStep2Controller(self._nn_step2_panel)
+        self._nn_training_panel = TrainingPanel(self)
+        self._nn_training_controller = NNTrainingController(self._nn_training_panel)
+
+        # Bottom tabs - Run / Stage I/O / Profiler / NN Step 1 / NN Step 2
+        # / NN Training. DLC plugin panels (Task D) append after these.
         bottom_tabs = QTabWidget(self)
         bottom_tabs.setObjectName("SimulatorBottomTabs")
         bottom_tabs.addTab(self._run_panel, "Run")
         bottom_tabs.addTab(self._stage_io_panel, "Stage I/O")
         bottom_tabs.addTab(self._profiler_panel, "Profiler")
+        bottom_tabs.addTab(self._nn_step1_panel, "NN Step 1")
+        bottom_tabs.addTab(self._nn_step2_panel, "NN Step 2")
+        bottom_tabs.addTab(self._nn_training_panel, "NN Training")
 
         outer = QSplitter(Qt.Orientation.Vertical, self)
         outer.setObjectName("SimulatorOuterSplitter")
@@ -232,6 +253,27 @@ class SimulatorWorkspace(QWidget):
 
     def bottom_tabs(self) -> QTabWidget:
         return self._bottom_tabs
+
+    # ------------------------------------------------------------------
+    # NN-mode accessors (Phase 4.11 + MVP UI wire-up)
+    # ------------------------------------------------------------------
+    def nn_step1_panel(self) -> Step1DatasetPanel:
+        return self._nn_step1_panel
+
+    def nn_step1_controller(self) -> NNStep1Controller:
+        return self._nn_step1_controller
+
+    def nn_step2_panel(self) -> Step2EvalPanel:
+        return self._nn_step2_panel
+
+    def nn_step2_controller(self) -> NNStep2Controller:
+        return self._nn_step2_controller
+
+    def nn_training_panel(self) -> TrainingPanel:
+        return self._nn_training_panel
+
+    def nn_training_controller(self) -> NNTrainingController:
+        return self._nn_training_controller
 
 
 def _dlc_tab_label(reg: PanelRegistration) -> str:

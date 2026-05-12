@@ -17,13 +17,39 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **MVP 가동 완료** — `python -m workbench ui` 한 줄로 Editor +
-> Simulator + DLC auto-load 흐름 동작. 사용 가이드는
-> `docs/MVP_USAGE.md`. CLI `trsim ui [--no-dlc] [--workspace ...]` 가
-> 기본 진입점. 다음 후속 (MVP+α): NN Training Panel main_window
-> 통합 / `trsim install` CLI / `trsim sdk build` CLI / σ_glint RMS
-> 정량 / high-g UKF/EKF RMSE 정량 / Adam optimiser / workbench-train
-> subprocess wrapping.
+> **MVP 가동 + UI gap fix 완료** — `python -m workbench ui` 한 줄로
+> Editor + Simulator + DLC auto-load + NN mode 3 tab (Step 1 /
+> Step 2 / Training) + Ctrl+Shift+E/S/P 단축키 동작. 사용 가이드는
+> `docs/MVP_USAGE.md`, 검증 가이드는 `docs/MVP_GUIDE.md`, 진단
+> 보고는 `docs/MVP_STATUS.md`. 다음 후속 (MVP+α): floating dock
+> (옵션 B/D 중 선택) / `trsim install` CLI / `trsim sdk build` CLI /
+> σ_glint RMS 정량 / high-g UKF/EKF RMSE 정량 / Adam optimiser /
+> workbench-train subprocess wrapping / Physics Lab workspace
+> (v0.40 Phase 9).
+
+- **MVP UI gap fix DONE** — 사용자 MVP_GUIDE 검증에서 발견된 2 개
+  진짜 누락점 해소.
+  - **단축키 충돌 해소**: toolbar QAction `setShortcut` + standalone
+    `QShortcut` 제거. `MainMenuBar` 가 Ctrl+Shift+E/S/P 단독 소유
+    (plan/05 § 5.1 "All actions are Command"). Qt ambiguous-shortcut
+    suppression 회피. 2 tests 갱신: toolbar QAction.shortcut() ==
+    QKeySequence() 빈 검증 + `MainMenuBar` 의 `MenuAction_workspace.
+    switch_to_editor/simulator` + `MenuAction_palette.open` 가 정확한
+    shortcut 보유 검증.
+  - **NN mode UI 진입경로 추가** (Phase 4.11 잊혀진 통합 회수):
+    `SimulatorWorkspace.__init__` 가 `Step1DatasetPanel +
+    NNStep1Controller`, `Step2EvalPanel + NNStep2Controller`,
+    `TrainingPanel + NNTrainingController` 인스턴스 생성 후 bottom_
+    tabs 에 "NN Step 1" / "NN Step 2" / "NN Training" 3 tab 추가
+    (Run / Stage I/O / Profiler 옆). DLC panel 들은 tab index 6+
+    으로 자동 밀림. nn_step1/2_panel/controller + nn_training_panel/
+    controller 6 accessor 노출. 영향 tests: workspace bottom tab
+    titles 검증 갱신, DLC mount 의 tabText(3) → tabText(6) 일괄
+    갱신, profiler_panel test 가 첫 3 tab 만 확인하도록 완화. 5 신
+    tests (panel instantiate / controller wiring / 3 tab 위치 검증 /
+    build_requested → end-to-end HDF5 작성 / training panel
+    objectName preserve). 누적 **1576 PASS** (+6 신규: shortcut
+    menu-bar assert 1 + nn-mode 5). 5 contracts KEPT.
 
 - **MVP wrap-up DONE** — CLI ui DLC 자동 로드. `src/workbench/cli/
   main.py`: `ui` subparser 에 `--no-dlc` flag + `--workspace` 유지 +
