@@ -110,13 +110,15 @@ def test_decorator_returns_original_callable() -> None:
 # ---------------------------------------------------------------------
 
 
-def test_bouncing_ball_param_specs_has_four_params() -> None:
+def test_bouncing_ball_param_specs_has_five_params() -> None:
+    """PL-9.1g adds ``drag_coefficient_k`` as the 5th spec."""
     names = [p.name for p in BOUNCING_BALL_PARAM_SPECS]
     assert names == [
         "gravity_m_s2",
         "restitution",
         "initial_height_m",
         "initial_velocity_m_s",
+        "drag_coefficient_k",
     ]
 
 

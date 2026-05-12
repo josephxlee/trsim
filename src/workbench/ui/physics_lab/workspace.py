@@ -37,11 +37,15 @@ the Bouncing Ball demo.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
+    QMessageBox,
     QPushButton,
     QSizePolicy,
     QSlider,
@@ -51,7 +55,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from workbench.domain.physics_lab import TIME_MODES_IN_DISPLAY_ORDER, TimeMode
+from workbench.domain.physics_lab import (
+    TIME_MODES_IN_DISPLAY_ORDER,
+    SavedExperiment,
+    TimeMode,
+    list_saved_experiments,
+    write_saved_experiment,
+)
 from workbench.ui.physics_lab.bouncing_ball_demo import (
     BouncingBallController,
     BouncingBallPlot,
@@ -197,9 +207,11 @@ class PhysicsLabWorkspace(QWidget):
         parent: QWidget | None = None,
         *,
         enable_3d_viewer: bool = True,
+        experiment_root: Path | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("PhysicsLabWorkspace")
+        self._experiment_root = experiment_root
 
         # PL-D — Library / Code / Viz / Parameters now host real
         # widgets backed by the Bouncing Ball demo. The placeholder
@@ -280,6 +292,12 @@ class PhysicsLabWorkspace(QWidget):
         # PL-9.1d — Library selection drives the viz swap.
         self._library_panel.demo_selected.connect(self._on_library_selection)
 
+        # PL-9.1f — Save current experiment + restore on Saved row click.
+        self._library_panel.save_requested.connect(self._on_save_requested)
+        self._library_panel.experiment_selected.connect(self.load_experiment)
+        if self._experiment_root is not None:
+            self.refresh_saved_experiments()
+
     # ------------------------------------------------------------------
     # Accessors (PL-D ships the live widgets; PL-9.1+ keeps the same API)
     # ------------------------------------------------------------------
@@ -334,6 +352,89 @@ class PhysicsLabWorkspace(QWidget):
             self._test_object_panel = TestObject3DPanel(self)
             self._viz_stack.addWidget(self._test_object_panel)
         return self._test_object_panel
+
+    # ------------------------------------------------------------------
+    # PL-9.1f — Saved experiments
+    # ------------------------------------------------------------------
+
+    def experiment_root(self) -> Path | None:
+        return self._experiment_root
+
+    def refresh_saved_experiments(self) -> None:
+        """Re-scan ``experiment_root`` and rebuild the Saved Experiments
+        sub-tree. No-op when no root was configured.
+        """
+        if self._experiment_root is None:
+            return
+        experiments = list_saved_experiments(self._experiment_root)
+        self._library_panel.set_saved_experiments(experiments)
+
+    def save_current_experiment(self, experiment_id: str) -> SavedExperiment:
+        """Snapshot current simulator + mode and persist to TOML.
+
+        Raises:
+            RuntimeError: When ``experiment_root`` was not configured.
+            ValueError: For an invalid experiment_id (caller can catch
+                + reprompt).
+        """
+        if self._experiment_root is None:
+            msg = "PhysicsLabWorkspace: experiment_root not configured"
+            raise RuntimeError(msg)
+        sim = self._bouncing_controller.simulator
+        exp = SavedExperiment(
+            experiment_id=experiment_id,
+            gravity_m_s2=sim.gravity_m_s2,
+            restitution=sim.restitution,
+            initial_height_m=sim.initial_height_m,
+            initial_velocity_m_s=sim.initial_velocity_m_s,
+            drag_coefficient_k=sim.drag_coefficient_k,
+            mode=self._bouncing_controller.mode,
+        )
+        path = self._experiment_root / f"{experiment_id}.toml"
+        write_saved_experiment(path, exp)
+        self.refresh_saved_experiments()
+        return exp
+
+    def load_experiment(self, experiment: SavedExperiment) -> None:
+        """Restore a :class:`SavedExperiment` onto the live controller."""
+        params = self._parameters_panel.auto_parameters()
+        params.set_value("gravity_m_s2", experiment.gravity_m_s2)
+        params.set_value("restitution", experiment.restitution)
+        params.set_value("initial_height_m", experiment.initial_height_m)
+        params.set_value("initial_velocity_m_s", experiment.initial_velocity_m_s)
+        params.set_value("drag_coefficient_k", experiment.drag_coefficient_k)
+        self._bouncing_controller.reset_with(
+            gravity_m_s2=experiment.gravity_m_s2,
+            restitution=experiment.restitution,
+            initial_height_m=experiment.initial_height_m,
+            initial_velocity_m_s=experiment.initial_velocity_m_s,
+            drag_coefficient_k=experiment.drag_coefficient_k,
+        )
+        self._bouncing_controller.set_mode(experiment.mode)
+
+    def _on_save_requested(self) -> None:
+        """User clicked the Library "Save current experiment..." button."""
+        if self._experiment_root is None:
+            QMessageBox.information(
+                self,
+                "Save unavailable",
+                "Workspace was constructed without an experiment_root.",
+            )
+            return
+        name, accepted = QInputDialog.getText(
+            self,
+            "Save experiment",
+            "Experiment id (kebab-case):",
+        )
+        if not accepted:
+            return
+        name = name.strip()
+        if not name:
+            return
+        try:
+            self.save_current_experiment(name)
+        except ValueError as exc:
+            QMessageBox.warning(self, "Save failed", str(exc))
 
     def _on_library_selection(self, label: str) -> None:
         """Swap the viz panel based on the Library selection.

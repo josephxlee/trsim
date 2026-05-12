@@ -17,6 +17,12 @@ from workbench.domain.physics_lab.parameter_metadata import (
     get_physics_params,
     physics_param,
 )
+from workbench.domain.physics_lab.saved_experiments import (
+    SavedExperiment,
+    list_saved_experiments,
+    read_saved_experiment,
+    write_saved_experiment,
+)
 from workbench.domain.physics_lab.test_objects import (
     TEST_OBJECT_KINDS,
     Cone,
@@ -50,6 +56,7 @@ __all__ = [
     "Plane",
     "Plate",
     "Point",
+    "SavedExperiment",
     "Sphere",
     "TestObject",
     "TimeMode",
@@ -58,5 +65,8 @@ __all__ = [
     "Wall",
     "default_library",
     "get_physics_params",
+    "list_saved_experiments",
     "physics_param",
+    "read_saved_experiment",
+    "write_saved_experiment",
 ]

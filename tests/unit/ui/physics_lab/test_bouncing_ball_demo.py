@@ -23,17 +23,19 @@ pytestmark = pytest.mark.qt
 # ---------------------------------------------------------------------
 
 
-def test_library_widget_first_row_is_bouncing_ball(qtbot) -> None:  # type: ignore[no-untyped-def]
+def test_library_widget_first_tests_leaf_is_bouncing_ball(qtbot) -> None:  # type: ignore[no-untyped-def]
     lib = LibraryWidget()
     qtbot.addWidget(lib)  # type: ignore[attr-defined]
-    assert lib.list_widget().item(0).text() == LibraryWidget.BOUNCING_BALL_ROW
+    first_test = lib.tests_category().child(0)
+    assert first_test is not None
+    assert first_test.text(0) == LibraryWidget.BOUNCING_BALL_ROW
 
 
-def test_library_widget_lists_nine_test_objects_after_demo(qtbot) -> None:  # type: ignore[no-untyped-def]
+def test_library_widget_tests_category_has_ten_leaves(qtbot) -> None:  # type: ignore[no-untyped-def]
     lib = LibraryWidget()
     qtbot.addWidget(lib)  # type: ignore[attr-defined]
-    # Bouncing Ball demo + 9 Test Objects = 10 rows.
-    assert lib.list_widget().count() == 10
+    # Bouncing Ball demo + 9 Test Objects = 10 leaves under Tests.
+    assert lib.tests_category().childCount() == 10
 
 
 # ---------------------------------------------------------------------
@@ -114,7 +116,7 @@ def test_parameters_slider_emits_restitution_signal(qtbot) -> None:  # type: ign
 # ---------------------------------------------------------------------
 
 
-def test_parameters_widget_exposes_all_four_bouncing_ball_params(qtbot) -> None:  # type: ignore[no-untyped-def]
+def test_parameters_widget_exposes_all_bouncing_ball_params(qtbot) -> None:  # type: ignore[no-untyped-def]
     p = ParametersWidget()
     qtbot.addWidget(p)  # type: ignore[attr-defined]
     names = p.auto_parameters().parameter_names()
@@ -123,6 +125,7 @@ def test_parameters_widget_exposes_all_four_bouncing_ball_params(qtbot) -> None:
         "restitution",
         "initial_height_m",
         "initial_velocity_m_s",
+        "drag_coefficient_k",
     }
 
 

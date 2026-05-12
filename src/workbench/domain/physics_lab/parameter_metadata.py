@@ -202,6 +202,19 @@ def get_physics_params(func: Callable[..., object]) -> tuple[PhysicsParam, ...]:
     default=0.0,
     description="Initial vertical velocity at t=0; positive = upward.",
 )
+@physics_param(
+    "drag_coefficient_k",
+    min_value=0.0,
+    max_value=1.0,
+    scale="linear",
+    unit="1/m",
+    default=0.0,
+    description=(
+        "Air-drag coefficient in F_drag/m = -k * v * |v|. Default 0 = "
+        "PL-D vanilla bouncing; values up to ~0.5 model realistic "
+        "low-mass spheres at sea-level air density."
+    ),
+)
 def _bouncing_ball_param_marker() -> None:
     """Marker function carrying the Bouncing Ball ``@physics_param`` stack.
 

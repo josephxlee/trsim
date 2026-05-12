@@ -67,10 +67,14 @@ class BouncingBallSimulator:
             ground on first impact.
         initial_height_m: ``y(t=0)``. Must be ``>= 0``.
         initial_velocity_m_s: ``v(t=0)``. Default 0 = drop from rest.
+        drag_coefficient_k: Quadratic air-drag coefficient ``k`` in
+            ``F_drag/m = -k * v * |v|`` (units: 1/m). Default ``0`` =
+            no drag (PL-D vanilla behaviour). Phase 9.1g exposes this
+            as the 5th slider in the auto-parameters pane.
 
     Raises:
         ValueError: For non-positive gravity, restitution outside
-            ``[0, 1]``, negative initial height.
+            ``[0, 1]``, negative initial height, negative drag.
     """
 
     def __init__(
@@ -80,6 +84,7 @@ class BouncingBallSimulator:
         restitution: float = 0.7,
         initial_height_m: float = 5.0,
         initial_velocity_m_s: float = 0.0,
+        drag_coefficient_k: float = 0.0,
     ) -> None:
         if gravity_m_s2 <= 0.0:
             msg = f"gravity_m_s2 must be > 0, got {gravity_m_s2}"
@@ -90,11 +95,15 @@ class BouncingBallSimulator:
         if initial_height_m < 0.0:
             msg = f"initial_height_m must be >= 0, got {initial_height_m}"
             raise ValueError(msg)
+        if drag_coefficient_k < 0.0:
+            msg = f"drag_coefficient_k must be >= 0, got {drag_coefficient_k}"
+            raise ValueError(msg)
 
         self.gravity_m_s2 = gravity_m_s2
         self.restitution = restitution
         self.initial_height_m = initial_height_m
         self.initial_velocity_m_s = initial_velocity_m_s
+        self.drag_coefficient_k = drag_coefficient_k
 
         self._state = BouncingBallState(
             time_s=0.0,
@@ -121,6 +130,13 @@ class BouncingBallSimulator:
             msg = f"restitution must be in [0, 1], got {value}"
             raise ValueError(msg)
         self.restitution = value
+
+    def set_drag_coefficient(self, value: float) -> None:
+        """Update the air-drag coefficient mid-run (PL-9.1g)."""
+        if value < 0.0:
+            msg = f"drag_coefficient_k must be >= 0, got {value}"
+            raise ValueError(msg)
+        self.drag_coefficient_k = value
 
     def reset(self) -> BouncingBallState:
         """Reset to the constructor-supplied initial state.
@@ -193,7 +209,12 @@ class BouncingBallSimulator:
             return self._state
 
         s = self._state
-        new_v = s.velocity_m_s - self.gravity_m_s2 * dt_s
+        # Semi-implicit Euler with optional quadratic air drag:
+        # ``a = -g - k * v * |v|``. Drag opposes motion (drops out
+        # when ``drag_coefficient_k == 0``, recovering PL-D vanilla).
+        v = s.velocity_m_s
+        drag_acc = self.drag_coefficient_k * v * abs(v)
+        new_v = v - (self.gravity_m_s2 + drag_acc) * dt_s
         new_y = s.position_m + new_v * dt_s
         new_bounces = s.bounces
 

@@ -29,11 +29,11 @@ from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
     QPushButton,
     QSlider,
     QTextEdit,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -46,6 +46,7 @@ from workbench.app.physics_lab import (
 )
 from workbench.domain.physics_lab import (
     BOUNCING_BALL_PARAM_SPECS,
+    SavedExperiment,
     TestObject,
     TimeMode,
     default_library,
@@ -59,21 +60,44 @@ from workbench.ui.physics_lab.python_highlighter import PythonSyntaxHighlighter
 
 
 class LibraryWidget(QWidget):
-    """Sidebar list of Saved Tests + the 9 Test Objects.
+    """Sidebar tree (Tests / Models / Saved Experiments) — PL-9.1f.
 
-    Selecting "Bouncing Ball Demo" tells the controller to attach to
-    the live simulator. PL-9.1d wires the 9 Test Object rows to the
-    new :class:`TestObject3DPanel` viewer; the workspace listens to
-    :attr:`demo_selected` and uses :meth:`test_object_for` to resolve
-    the selected label back to the originating
-    :mod:`workbench.domain.physics_lab` dataclass.
+    plan/19 § 19.5.2 splits the Library into three top-level
+    categories. PL-9.1f replaces the flat PL-D :class:`QListWidget`
+    with a :class:`QTreeWidget` and exposes:
+
+    - **Tests**: ``BOUNCING_BALL_ROW`` + the 9 default Test Objects.
+    - **Models**: physical models the user can toggle (Gravity is
+      always on; Air Drag becomes interactive in PL-9.1g).
+    - **Saved Experiments**: populated via :meth:`set_saved_experiments`
+      from a list of :class:`SavedExperiment`. Initially empty.
 
     Signals:
-        demo_selected: ``str`` row text, emitted on selection change.
+        demo_selected(str): emitted with the leaf-item text when the
+            user selects any row under the three categories. Top-
+            level category items themselves never fire the signal.
+        save_requested(): emitted by the "Save current..." button
+            so the workspace can prompt for a name and serialise.
+        experiment_selected(SavedExperiment): emitted when the user
+            picks a Saved Experiments leaf, so the workspace can
+            restore parameters + mode.
     """
 
     demo_selected = Signal(str)
+    save_requested = Signal()
+    experiment_selected = Signal(object)
+
     BOUNCING_BALL_ROW = "Bouncing Ball Demo"
+    CATEGORY_TESTS = "Tests"
+    CATEGORY_MODELS = "Models"
+    CATEGORY_SAVED = "Saved Experiments"
+
+    # Models category placeholders. PL-9.1g will turn ``Air Drag`` into
+    # an interactive toggle attached to the simulator.
+    _DEFAULT_MODELS: tuple[str, ...] = (
+        "Gravity (always on)",
+        "Air Drag (toggle)",
+    )
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -86,36 +110,136 @@ class LibraryWidget(QWidget):
         title.setStyleSheet("font-size: 14px; font-weight: 600;")
         layout.addWidget(title)
 
-        self._list = QListWidget(self)
-        self._list.setObjectName("PhysicsLab_LibraryList")
-        # Active demo first, Test Object catalogue after.
-        QListWidgetItem(self.BOUNCING_BALL_ROW, self._list)
-        # PL-9.1d — map row label -> Test Object so the workspace can
-        # render the 3D mesh on selection.
+        self._tree = QTreeWidget(self)
+        self._tree.setObjectName("PhysicsLab_LibraryTree")
+        self._tree.setHeaderHidden(True)
         self._label_to_object: dict[str, TestObject] = {}
+        self._label_to_experiment: dict[str, SavedExperiment] = {}
+
+        # Tests category: Bouncing Ball Demo + 9 Test Objects.
+        self._tests_item = QTreeWidgetItem(self._tree, [self.CATEGORY_TESTS])
+        QTreeWidgetItem(self._tests_item, [self.BOUNCING_BALL_ROW])
         for obj in default_library():
             label = f"{obj.name}  ({obj.visual})"
-            item = QListWidgetItem(label, self._list)
-            item.setData(0x0100, obj.name)
+            QTreeWidgetItem(self._tests_item, [label])
             self._label_to_object[label] = obj
-        self._list.currentTextChanged.connect(self.demo_selected.emit)
-        self._list.setCurrentRow(0)
-        layout.addWidget(self._list, 1)
 
-    def list_widget(self) -> QListWidget:
-        return self._list
+        # Models category placeholders.
+        self._models_item = QTreeWidgetItem(self._tree, [self.CATEGORY_MODELS])
+        for model_label in self._DEFAULT_MODELS:
+            QTreeWidgetItem(self._models_item, [model_label])
+
+        # Saved Experiments category — initially empty.
+        self._saved_item = QTreeWidgetItem(self._tree, [self.CATEGORY_SAVED])
+
+        self._tree.expandAll()
+        self._tree.currentItemChanged.connect(self._on_current_item_changed)
+        layout.addWidget(self._tree, 1)
+
+        # Save row — workspace hooks save_requested into a Save dialog.
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        self._save_btn = QPushButton("Save current experiment...", self)
+        self._save_btn.setObjectName("PhysicsLab_LibrarySaveBtn")
+        self._save_btn.clicked.connect(self.save_requested.emit)
+        row.addWidget(self._save_btn)
+        layout.addLayout(row)
+
+        # Restore PL-D default selection (Bouncing Ball Demo).
+        self.select_label(self.BOUNCING_BALL_ROW)
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def tree_widget(self) -> QTreeWidget:
+        return self._tree
+
+    def save_button(self) -> QPushButton:
+        return self._save_btn
+
+    def tests_category(self) -> QTreeWidgetItem:
+        return self._tests_item
+
+    def models_category(self) -> QTreeWidgetItem:
+        return self._models_item
+
+    def saved_category(self) -> QTreeWidgetItem:
+        return self._saved_item
 
     def test_object_for(self, label: str) -> TestObject | None:
-        """Resolve a Library row label back to its Test Object dataclass.
+        """Resolve a Library leaf label to its Test Object dataclass.
 
-        Returns ``None`` for the ``BOUNCING_BALL_ROW`` entry or any
-        unrecognised label so the workspace can branch cleanly.
+        Returns ``None`` for ``BOUNCING_BALL_ROW`` and any other non
+        Test-Object row so the workspace can branch cleanly.
         """
         return self._label_to_object.get(label)
 
+    def experiment_for(self, label: str) -> SavedExperiment | None:
+        return self._label_to_experiment.get(label)
+
     def current_label(self) -> str:
-        item = self._list.currentItem()
-        return "" if item is None else item.text()
+        item = self._tree.currentItem()
+        if item is None or item.parent() is None:
+            return ""
+        return item.text(0)
+
+    def select_label(self, label: str) -> bool:
+        """Find + select a leaf by its text. Returns True on success."""
+        for category in (self._tests_item, self._models_item, self._saved_item):
+            for i in range(category.childCount()):
+                child = category.child(i)
+                if child is not None and child.text(0) == label:
+                    self._tree.setCurrentItem(child)
+                    return True
+        return False
+
+    def leaf_labels(self) -> tuple[str, ...]:
+        """Every leaf row's text across all three categories."""
+        labels: list[str] = []
+        for category in (self._tests_item, self._models_item, self._saved_item):
+            for i in range(category.childCount()):
+                child = category.child(i)
+                if child is not None:
+                    labels.append(child.text(0))
+        return tuple(labels)
+
+    def set_saved_experiments(
+        self,
+        experiments: Iterable[SavedExperiment],
+    ) -> None:
+        """Replace the Saved Experiments sub-tree with new entries.
+
+        Each experiment's leaf label is its ``experiment_id`` followed
+        by an optional ``(mode)`` suffix so the user can tell static
+        / run / compare / sweep snapshots apart at a glance.
+        """
+        # Drop existing leaves + map entries.
+        for label in list(self._label_to_experiment.keys()):
+            self._label_to_experiment.pop(label, None)
+        self._saved_item.takeChildren()
+        for exp in experiments:
+            label = f"{exp.experiment_id}  ({exp.mode.value})"
+            QTreeWidgetItem(self._saved_item, [label])
+            self._label_to_experiment[label] = exp
+        self._tree.expandItem(self._saved_item)
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _on_current_item_changed(
+        self,
+        current: QTreeWidgetItem | None,
+        _previous: QTreeWidgetItem | None,
+    ) -> None:
+        if current is None or current.parent() is None:
+            # Top-level category clicked; do not emit.
+            return
+        label = current.text(0)
+        self.demo_selected.emit(label)
+        if label in self._label_to_experiment:
+            self.experiment_selected.emit(self._label_to_experiment[label])
 
 
 # ---------------------------------------------------------------------
@@ -622,6 +746,10 @@ class BouncingBallController(QObject):
         self._pause_btn.clicked.connect(self.pause)
         self._stop_btn.clicked.connect(self.stop)
         self._parameters.restitution_changed.connect(self.simulator.set_restitution)
+        # PL-9.1g — wire the drag slider directly to the simulator. The
+        # restitution slider has a dedicated signal for PL-D back-compat;
+        # all other parameters route through ``parameter_changed``.
+        self._parameters.parameter_changed.connect(self._on_parameter_changed)
 
         # PL-E — Code edit hooks. When the CodePreview emits save /
         # revert, we compile or restore the override.
@@ -682,6 +810,49 @@ class BouncingBallController(QObject):
         self._refresh_frame_ui()
         self._refresh_status()
 
+    def reset_with(
+        self,
+        *,
+        gravity_m_s2: float | None = None,
+        restitution: float | None = None,
+        initial_height_m: float | None = None,
+        initial_velocity_m_s: float | None = None,
+        drag_coefficient_k: float | None = None,
+    ) -> None:
+        """Replace the simulator with new initial conditions (PL-9.1f).
+
+        Used by :class:`PhysicsLabWorkspace.load_experiment` to restore
+        a :class:`SavedExperiment`. Any unset argument keeps its
+        previous value.
+        """
+        self.pause()
+        sim = self.simulator
+        g = gravity_m_s2 if gravity_m_s2 is not None else sim.gravity_m_s2
+        r = restitution if restitution is not None else sim.restitution
+        h0 = initial_height_m if initial_height_m is not None else sim.initial_height_m
+        v0 = initial_velocity_m_s if initial_velocity_m_s is not None else sim.initial_velocity_m_s
+        k = drag_coefficient_k if drag_coefficient_k is not None else sim.drag_coefficient_k
+        self.simulator = BouncingBallSimulator(
+            gravity_m_s2=g,
+            restitution=r,
+            initial_height_m=h0,
+            initial_velocity_m_s=v0,
+            drag_coefficient_k=k,
+        )
+        self.clock.stop()
+        self._history = [self.simulator.state]
+        self._history_index = 0
+        self._plot.clear_history()
+        self._plot.append(self.simulator.state.time_s, self.simulator.state.position_m)
+        # Rebuild mode-specific overlays around the new conditions.
+        if self._mode == TimeMode.COMPARE:
+            self._reset_compare_overlay()
+        elif self._mode == TimeMode.SWEEP:
+            self._teardown_sweep_overlay()
+            self._setup_sweep_overlay()
+        self._refresh_frame_ui()
+        self._refresh_status()
+
     # ------------------------------------------------------------------
     # Mode surface (PL-9.1e)
     # ------------------------------------------------------------------
@@ -720,6 +891,13 @@ class BouncingBallController(QObject):
         # the change in the first place because the value already matches).
         if self._mode_combo is not None and self._mode_combo.currentText() != mode.value:
             self._mode_combo.setCurrentText(mode.value)
+
+    def _on_parameter_changed(self, name: str, value: float) -> None:
+        """Forward auto-slider changes to simulator setters (PL-9.1g)."""
+        if name == "drag_coefficient_k":
+            self.simulator.set_drag_coefficient(value)
+        # gravity / initial_height / initial_velocity are start-of-run
+        # parameters — applied on the next reset / experiment load.
 
     def _apply_transport_enabled(self, *, enabled: bool) -> None:
         for btn in (self._play_btn, self._pause_btn, self._stop_btn):

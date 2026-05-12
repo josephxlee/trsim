@@ -180,11 +180,8 @@ def test_workspace_with_disabled_viewer_ignores_test_object_selection(
     ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     # Click the sphere row -> handler returns early since panel is None.
-    for row in range(ws.library_panel().list_widget().count()):
-        text = ws.library_panel().list_widget().item(row).text()
-        if "(sphere)" in text:
-            ws.library_panel().list_widget().setCurrentRow(row)
-            break
+    sphere_label = next(label for label in ws.library_panel().leaf_labels() if "(sphere)" in label)
+    ws.library_panel().select_label(sphere_label)
     # The 2D plot is the only widget in the stack.
     assert ws.current_viz_widget() is ws.viz_panel()
 

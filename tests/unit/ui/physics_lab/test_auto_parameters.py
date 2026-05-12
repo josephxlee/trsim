@@ -190,12 +190,13 @@ def test_readout_omits_unit_for_dash_placeholder(qtbot) -> None:  # type: ignore
 def test_widget_built_from_bouncing_ball_specs(qtbot) -> None:  # type: ignore[no-untyped-def]
     w = AutoParametersWidget(BOUNCING_BALL_PARAM_SPECS)
     qtbot.addWidget(w)  # type: ignore[attr-defined]
-    # All four parameters present, defaults at their declared values.
+    # All five parameters present, defaults at their declared values.
     assert set(w.parameter_names()) == {
         "gravity_m_s2",
         "restitution",
         "initial_height_m",
         "initial_velocity_m_s",
+        "drag_coefficient_k",
     }
     # Restitution lands exactly on a tick boundary (default 0.70 over a
     # [0,1] range with 100 ticks).
