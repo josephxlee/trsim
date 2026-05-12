@@ -1,4 +1,4 @@
-# TRsim MVP — 테스트 가이드 (2026-05-12 rev6)
+# TRsim MVP — 테스트 가이드 (2026-05-12 rev7)
 
 `docs/MVP_USAGE.md` 가 "어떻게 쓰나" 라면, 이 가이드는 "어떻게
 **확인** 하나" — MVP 가 정상 동작하는지 항목별 명령 + 기대 결과
@@ -7,10 +7,12 @@
 
 각 섹션 끝의 ☐ 는 직접 체크. 전부 ✓ 면 MVP 가동 OK.
 
-> **rev6 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
+> **rev7 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
 > rev3 (BOM tolerance) + rev4 (backend toggle + Step 2 자동 register) +
-> rev5 (Step 1 → Step 2 자동 refresh) + **rev6** (Step 1 progress bar +
-> Detach 가능한 bottom tabs). pytest 1601 → **1612** PASS.
+> rev5 (Step 1 → Step 2 자동 refresh) + rev6 (Step 1 progress bar +
+> Detach 가능한 bottom tabs) + **rev7** (Physics Lab workspace — 3번째
+> workspace, Ctrl+Shift+L, Bouncing Ball 인터랙티브 데모). pytest
+> 1614 → **1677** PASS.
 
 ---
 
@@ -147,7 +149,7 @@ $env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**기대**: `1612 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
+**기대**: `1677 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
 
 실패 시: 어느 테스트 깨졌는지 출력 보고 보고.
 
@@ -196,8 +198,9 @@ $env:PYTHONIOENCODING = "utf-8"
 | 행동 | 기대 |
 |---|---|
 | `Ctrl+Shift+E` | Editor workspace (좌측 vertical activity bar) |
-| `Ctrl+Shift+S` | Simulator workspace (8 panel + 3 bottom tabs) |
-| 상단 toolbar Editor/Simulator 라디오 클릭 | 위와 동일 |
+| `Ctrl+Shift+S` | Simulator workspace (8 panel + 6 bottom tabs + DLC) |
+| `Ctrl+Shift+L` | **Physics Lab workspace (rev7) — Library / Code / Viz / Parameters / Time controls** |
+| 상단 toolbar Editor / Simulator / Physics Lab 라디오 클릭 | 위와 동일 |
 
 ### 3.3 Editor 5 activity 전환
 
@@ -559,7 +562,77 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 
 ---
 
-## 6. 전체 통과 체크리스트
+## 6. Physics Lab 검증 (rev7, plan/19 § 19.12.1)
+
+새 3번째 workspace. `Ctrl+Shift+L` 또는 toolbar 의 "Physics Lab" 라디오
+클릭으로 진입.
+
+### 6.1 레이아웃 확인
+
+| 위치 | 위젯 |
+|---|---|
+| 좌 (Library) | `Bouncing Ball Demo` 1 row + 9 Test Objects (sphere/cube/plate/cylinder/cone/trihedral/wall/plane/point) — 총 10 row |
+| 중 상 (Code) | `BouncingBallSimulator.step` 메서드 소스 read-only |
+| 중 하 (Visualization) | pyqtgraph y(t) plot (grid + axes m, s) |
+| 우 (Parameters) | Restitution 슬라이더 (0~1, 기본 0.70) |
+| 하 (Time controls) | Play / Pause / Stop 버튼 + status 라벨 |
+
+### 6.2 Bouncing Ball 데모 — Run 모드
+
+1. **Play** 버튼 클릭 → 공이 5 m 에서 떨어지며 plot 에 곡선 그려짐
+2. status 라벨: `running  t=0.36s  y=4.36m  v=-3.55m/s  bounces=0` 식으로 실시간 갱신
+3. 첫 bounce 시점 (약 t ≈ 1 s) 에 `bounces=1` 로 증가 + 위로 튕김
+4. Restitution 0.7 이라 매 bounce 마다 peak 높이 ~49% 감소 (h₁ = r² × h₀)
+5. **Pause** → 시간 정지 (timer + clock 동시에 멈춤)
+6. **Stop** → 시뮬레이터 reset (t=0, y=5, plot 초기 1 sample 만)
+
+### 6.3 Restitution 슬라이더 — 인터랙티브
+
+- 슬라이더 우측 readout 이 슬라이더 값에 따라 `0.00 ~ 1.00` 갱신
+- Play 중 슬라이더 움직이면 다음 bounce 부터 즉시 새 값 적용
+- 1.0 = 완전 탄성 (peak 가 항상 h₀ 복귀)
+- 0.0 = 완전 비탄성 (첫 bounce 후 정지)
+
+### 6.4 Code 패널 읽기
+
+- `BouncingBallSimulator.step(self, dt_s)` 의 semi-implicit Euler 구현이 그대로 표시
+- 사용자가 직접 수정 불가 (rev7 read-only). Phase 9.3 에서 Edit mode + plugin 추가.
+
+### 6.5 9 Test Objects 분석 공식 (Python REPL)
+
+GUI 에서는 row 만 보임. 분석 공식은 직접 호출:
+
+```powershell
+$env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
+.\.venv\Scripts\python.exe -c @'
+import math
+from workbench.domain.physics_lab import default_library
+LAMBDA = 299_792_458 / 9.4e9   # X-band
+for obj in default_library():
+    sigma = obj.analytic_rcs_m2(LAMBDA)
+    if sigma is None:
+        print(f"{obj.name:<22} ({obj.visual:<10}) — no analytic RCS")
+    else:
+        dbsm = 10 * math.log10(sigma) if sigma > 0 else float("-inf")
+        print(f"{obj.name:<22} ({obj.visual:<10}) sigma = {sigma:.3e} m^2  ({dbsm:+.1f} dBsm)")
+'@
+```
+
+**기대 (대략)**:
+- `sphere_1m` ~ 3.14 m² (+4.97 dBsm) — geometric optics
+- `cube_0p5m` ~ 7.7 m² (+8.87 dBsm) — broadside 면 RCS
+- `plate_1x1m` ~ 1.2 × 10³ m² (+31 dBsm) — 정 1 m² 의 broadside
+- `cylinder_0p1x2m` ~ 0.4 m² (-3 dBsm)
+- `cone_0p3x1m` ~ 매우 작음 (-50 ~ -60 dBsm) — Knott tip-on 공식
+- `trihedral_0p3m` ~ 30 m² (+15 dBsm) — corner reflector 보정 표준
+- `wall_5x3m` ~ 2.8 × 10⁶ m² (+65 dBsm) — broadside 큰 plate
+- `ground` / `point_1kg` — `no analytic RCS`
+
+☐ Physics Lab 6 항목 통과
+
+---
+
+## 7. 전체 통과 체크리스트
 
 | 섹션 | 항목 | 통과 |
 |---|---|---|
@@ -569,6 +642,7 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 | 3 | UI 가동 + workspace 전환 + 5 activity + sidebar + 6 bottom tabs + tab detach | ☐ |
 | 4 | DLC 자동 로드 (panel mount index 6 + resource sidebar + --no-dlc) | ☐ |
 | 5 | NN Step 1 single + chain + numpy_mlp 학습 + 4-error eval (전부 GUI) | ☐ |
+| 6 | Physics Lab workspace (rev7 — Ctrl+Shift+L + Bouncing Ball + Restitution slider + 9 Test Objects analytic RCS) | ☐ |
 
 전부 ✓ 면 MVP 가동 검증 끝. 후속 개발은 [`docs/MVP_USAGE.md`](MVP_USAGE.md)
 § 8 + [`docs/MVP_STATUS.md`](MVP_STATUS.md) § 4.3 "MVP+α" 후보 리스트
@@ -576,7 +650,7 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 
 ---
 
-## 7. 실패 모드별 대처
+## 8. 실패 모드별 대처
 
 | 증상 | 원인 후보 | 조치 |
 |---|---|---|

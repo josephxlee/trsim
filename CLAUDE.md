@@ -27,6 +27,56 @@
 > workbench-train subprocess wrapping / Physics Lab workspace
 > (v0.40 Phase 9).
 
+- **PL-D Bouncing Ball demo DONE** — Physics Lab 첫 인터랙티브 데모.
+  사용자 우선순위 명시 (physics_lab > simulator > editor) 반영.
+  plan/19 § 19.12.1 시나리오 실현.
+  - `src/workbench/app/physics_lab/clock.py`: `PhysicsClock(dt_s)`
+    + `ClockTick(dt_s, time_s, frame_id)` + `start/pause/stop/tick/
+    run_for(n_frames, callback)`.
+  - `src/workbench/app/physics_lab/bouncing_ball.py`:
+    `BouncingBallSimulator(gravity_m_s2=9.81, restitution=0.7,
+    initial_height_m=5.0, initial_velocity_m_s=0.0)` 1-D 수직 dynamics
+    + semi-implicit Euler step + 충돌 시 restitution 적용 + bounce
+    counter. `analytic_peak_height_m(h0, r, bounce)` closed-form
+    reference (h_n = r^(2n) × h0). `set_restitution(v)` 슬라이더
+    live update.
+  - `src/workbench/ui/physics_lab/bouncing_ball_demo.py`: 4 신규
+    widget + 1 controller.
+    * `LibraryWidget` — `Bouncing Ball Demo` row + `default_library()`
+      9 Test Objects 표시 (총 10 row).
+    * `CodePreview` — `inspect.getsource(BouncingBallSimulator.step)`
+      을 read-only QTextEdit 에 표시 (Consolas font).
+    * `BouncingBallPlot` — pyqtgraph PlotWidget y(t) 곡선 + grid +
+      축 label (m, s) + `append(t, y)` / `set_history` / `clear_history`.
+    * `ParametersWidget` — Restitution QSlider 0..100 ticks
+      (1% 단위) + readout + `restitution_changed(float)` signal.
+    * `BouncingBallController(plot, parameters, play/pause/stop btn,
+      status_label, clock_dt_s)` — QTimer 가 16ms 마다 tick → clock
+      tick → simulator step → plot append + status refresh. Play /
+      Pause / Stop 라우팅 + slider → simulator.set_restitution 연결.
+      `step_once(dt_s)` headless helper (test 가 QTimer 없이 호출).
+  - `PhysicsLabWorkspace.__init__` 가 PL-B placeholder 4 종 교체 →
+    실 widgets + controller. Accessor 갱신.
+  - 38 신규 tests: clock 8 (default / pause / tick / run_for /
+    validation) + bouncing_ball 16 (constructor 검증 4 / physics 5 /
+    reset / step 검증 / analytic_peak_height 3 / closed-form
+    invariant: lossless ball + free-fall time) + bouncing_ball_demo
+    14 (Library 10-row / CodePreview / Plot append+clear /
+    Parameters slider+signal / Controller integration: seed +
+    step_once + play/pause / stop reset / slider → simulator).
+  - 누적 **1677 PASS** (+38 신규). 5 contracts KEPT.
+- **PL-A + PL-B + PL-C (3rd workspace + Test Objects 9) DONE**
+  - `WorkspaceSelector.Workspace.PHYSICS_LAB` 추가 + `WORKSPACE_ORDER`
+    tuple + toggle 3-way + Ctrl+Shift+L 단축키 (MainMenuBar 단독).
+  - `ui/physics_lab/workspace.py` — `PhysicsLabWorkspace` QSplitter
+    Library/Code+Viz/Parameters + bottom Time controls.
+  - `domain/physics_lab/test_objects.py` — 9 frozen dataclass
+    (Sphere/Cube/Plate/Cylinder/Cone/Trihedral/Wall/Plane/Point)
+    + analytic_rcs_m2(wavelength_m) (Phase 5.9 RCS 공식 재사용 +
+    Cone Knott tip-on 신규).
+  - `default_library()` factory (X-band 적정 크기 1 객체/kind).
+  - `cli/main.py` `trsim ui --workspace physics_lab` 추가.
+  - 25 신규 tests. 누적 **1639 PASS**.
 - **Floating dock 옵션 D (Detachable bottom tabs) DONE** — 플랜
   외 MVP+α 영역에서 가장 작은 변경으로 가장 큰 UX 개선. plan/05
   § 5.2 / plan/13 § 13.2 의 fixed QSplitter layout 은 유지하면서

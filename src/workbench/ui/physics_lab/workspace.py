@@ -47,6 +47,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.ui.physics_lab.bouncing_ball_demo import (
+    BouncingBallController,
+    BouncingBallPlot,
+    CodePreview,
+    LibraryWidget,
+    ParametersWidget,
+)
+
 
 class _Placeholder(QWidget):
     """Centred title + caption widget so each pane has a clear identity."""
@@ -117,37 +125,14 @@ class PhysicsLabWorkspace(QWidget):
         super().__init__(parent)
         self.setObjectName("PhysicsLabWorkspace")
 
-        self._library_panel = _Placeholder(
-            "Library",
-            "Tests / Models / Saved Experiments. PL-C lists the 9 Test "
-            "Objects (Sphere / Cube / Plate / ...) with their analytic-"
-            "RCS formulas. Saved Experiments + Measured Data arrive in "
-            "Phase 9.2.",
-            self,
-        )
-        self._code_panel = _Placeholder(
-            "Code",
-            "Currently-active physics formula (read-only). PL-D shows "
-            "the gravity / drag function powering the Bouncing Ball "
-            "demo; Phase 9.3 layers an Edit mode + PhysicsModelProtocol "
-            "plugin authoring.",
-            self,
-        )
-        self._viz_panel = _Placeholder(
-            "Visualization",
-            "PyVista 3D scene + pyqtgraph 2D charts. PL-D draws the "
-            "Bouncing Ball trajectory; Phase 9.1 finalises the 4 time "
-            "modes (Static / Run / Compare / Sweep) on top of this "
-            "canvas.",
-            self,
-        )
-        self._parameters_panel = _Placeholder(
-            "Parameters",
-            "Auto-generated sliders from @physics_param decorators on "
-            "the active formula. PL-D ships the Restitution slider; "
-            "Phase 9.1 generates the full set per Test Object.",
-            self,
-        )
+        # PL-D — Library / Code / Viz / Parameters now host real
+        # widgets backed by the Bouncing Ball demo. The placeholder
+        # path from PL-B is gone; tests assert the live widget types
+        # so the placeholders cannot silently come back.
+        self._library_panel = LibraryWidget(self)
+        self._code_panel = CodePreview(self)
+        self._viz_panel = BouncingBallPlot(self)
+        self._parameters_panel = ParametersWidget(self)
 
         # Middle column: Code on top, Visualization below.
         middle = QSplitter(Qt.Orientation.Vertical, self)
@@ -182,19 +167,32 @@ class PhysicsLabWorkspace(QWidget):
         self._top_splitter = top_row
         self._middle_splitter = middle
 
+        # PL-D — wire the time controls + parameter slider + plot to a
+        # live BouncingBallSimulator. The controller owns its QTimer
+        # so the workspace stays a thin shell.
+        self._bouncing_controller = BouncingBallController(
+            plot=self._viz_panel,
+            parameters=self._parameters_panel,
+            play_button=self._time_controls.play_button(),
+            pause_button=self._time_controls.pause_button(),
+            stop_button=self._time_controls.stop_button(),
+            status_label=self._time_controls.status_label(),
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
-    # Accessors (PL-C / PL-D / Phase 9.1 will swap real widgets in)
+    # Accessors (PL-D ships the live widgets; PL-9.1+ keeps the same API)
     # ------------------------------------------------------------------
-    def library_panel(self) -> QWidget:
+    def library_panel(self) -> LibraryWidget:
         return self._library_panel
 
-    def code_panel(self) -> QWidget:
+    def code_panel(self) -> CodePreview:
         return self._code_panel
 
-    def viz_panel(self) -> QWidget:
+    def viz_panel(self) -> BouncingBallPlot:
         return self._viz_panel
 
-    def parameters_panel(self) -> QWidget:
+    def parameters_panel(self) -> ParametersWidget:
         return self._parameters_panel
 
     def time_controls(self) -> _TimeControls:
@@ -205,3 +203,6 @@ class PhysicsLabWorkspace(QWidget):
 
     def middle_splitter(self) -> QSplitter:
         return self._middle_splitter
+
+    def bouncing_ball_controller(self) -> BouncingBallController:
+        return self._bouncing_controller

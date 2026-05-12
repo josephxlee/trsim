@@ -8,6 +8,20 @@ module per Contract 2 (workspace-isolation).
 
 from __future__ import annotations
 
+from workbench.ui.physics_lab.bouncing_ball_demo import (
+    BouncingBallController,
+    BouncingBallPlot,
+    CodePreview,
+    LibraryWidget,
+    ParametersWidget,
+)
 from workbench.ui.physics_lab.workspace import PhysicsLabWorkspace
 
-__all__ = ["PhysicsLabWorkspace"]
+__all__ = [
+    "BouncingBallController",
+    "BouncingBallPlot",
+    "CodePreview",
+    "LibraryWidget",
+    "ParametersWidget",
+    "PhysicsLabWorkspace",
+]
