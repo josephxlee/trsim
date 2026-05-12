@@ -19,6 +19,10 @@ from workbench.app.physics_lab.bouncing_ball import (
     analytic_peak_height_m,
 )
 from workbench.app.physics_lab.clock import ClockTick, PhysicsClock
+from workbench.app.physics_lab.learning_models import (
+    NumpyNNPhysicsModel,
+    PolynomialFitModel,
+)
 from workbench.app.physics_lab.models import (
     BouncingBallModel,
     FreeSpaceLossModel,
@@ -39,7 +43,9 @@ __all__ = [
     "FitResult",
     "FreeSpaceLossModel",
     "GravityOnlyModel",
+    "NumpyNNPhysicsModel",
     "PhysicsClock",
+    "PolynomialFitModel",
     "analytic_peak_height_m",
     "fit_bouncing_ball",
 ]
