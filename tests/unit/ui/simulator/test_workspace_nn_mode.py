@@ -93,6 +93,33 @@ def test_simulator_workspace_auto_registers_numpy_pairing_nn(qtbot) -> None:  # 
     assert combo.findText("numpy_pairing_nn") >= 0
 
 
+def test_step1_build_completed_refreshes_step2_dataset_combo(  # type: ignore[no-untyped-def]
+    qtbot,
+    tmp_path,
+) -> None:
+    """End-to-end auto-refresh: Step 1 build -> Step 2 combo updates.
+
+    Reported during MVP verification: after building 4 variants in
+    Step 1, the Step 2 dataset combo stayed empty because the workspace
+    only scanned ``./datasets/`` once at construction time.
+    """
+    ws = SimulatorWorkspace(nn_datasets_root=tmp_path)
+    qtbot.addWidget(ws)
+    # Step 2 dataset combo starts empty (no .h5 in tmp_path yet).
+    assert ws.nn_step2_panel().dataset_combo().findText("demo_single") < 0
+
+    # Drive the same code path the GUI uses: type into the Step 1 form
+    # and emit build_requested. The controller writes the dataset and
+    # then emits build_completed -> Step 2 refresh.
+    step1 = ws.nn_step1_panel()
+    step1.frames_edit().setText("2")
+    step1.output_edit().setText(str(tmp_path / "demo_single.h5"))
+    step1.build_requested.emit()
+
+    assert (tmp_path / "demo_single.h5").is_file()
+    assert ws.nn_step2_panel().dataset_combo().findText("demo_single") >= 0
+
+
 def test_simulator_workspace_picks_up_datasets_from_root(  # type: ignore[no-untyped-def]
     qtbot,
     tmp_path,

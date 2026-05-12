@@ -158,6 +158,9 @@ class NNStep1Controller:
                 f"Build complete: {meta.total_samples} samples written to {output_path}"
             )
             self._builder = None
+            # Tell downstream tabs (Step 2 in particular) that a fresh
+            # dataset is on disk so they can re-scan their combos.
+            self.panel.build_completed.emit()
 
     # ------------------------------------------------------------------
     # 4-variant chain build (task B)
@@ -204,6 +207,10 @@ class NNStep1Controller:
                 )
             self.panel.append_log(f"Manifest written: {self._variant_runner.manifest_path}")
         self._variant_runner = None
+        # Tell downstream tabs (Step 2 in particular) that fresh datasets
+        # are on disk; refresh is no-op when ``manifest is None``.
+        if manifest is not None:
+            self.panel.build_completed.emit()
 
     # ------------------------------------------------------------------
     # Helpers

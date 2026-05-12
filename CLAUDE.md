@@ -27,6 +27,26 @@
 > workbench-train subprocess wrapping / Physics Lab workspace
 > (v0.40 Phase 9).
 
+- **A2 후속 (Step1→Step2 auto-refresh) DONE** — 사용자 보고: Step 1
+  빌드 후 Step 2 dataset combo 가 비어있음. SimulatorWorkspace 가
+  cwd/datasets 를 `__init__` 시점에 한 번만 scan → Step 1 빌드 *후*
+  새 .h5 가 생겨도 보이지 않음. 두 가지 경로로 해결.
+  - **자동 refresh**: `Step1DatasetPanel.build_completed = Signal()` 추가.
+    `NNStep1Controller._run_single` + `_run_chain` 가 success 시 emit
+    (chain 의 경우 manifest 가 None 이 아닐 때만). `NNStep2Controller.
+    _last_datasets_root` + `refresh_datasets()` 메서드 (root 재 scan,
+    dataset 갱신 + combo refresh). `SimulatorWorkspace` 가 `step1_panel.
+    build_completed.connect(step2_controller.refresh_datasets)` wire.
+  - **수동 refresh**: `Step2EvalPanel.refresh_requested = Signal()` +
+    "Refresh datasets" 버튼 (Run Evaluation 옆). controller 가
+    connect 후 refresh_datasets 호출. 외부에서 `.h5` 떨궜을 때 대비.
+  - 5 신규 tests: refresh picks up new file / refresh count / no-root
+    no-op / panel refresh_requested signal / workspace end-to-end
+    (Step 1 빌드 → Step 2 combo 자동 등장).
+  - MVP_GUIDE rev5 갱신: § 5.4 의 "dataset 콤보 비어있을 때" 안내가
+    rev5 자동 refresh 흐름 반영. § 7 실패 대처표 2 행 갱신
+    (빌드 전 비어있음 vs 빌드 후도 비어있음). 누적 **1601 PASS**
+    (+5 신규). 5 contracts KEPT.
 - **A1 + A2 (MVP NN UX 완성) DONE** — 사용자 NN 전체 흐름이 Python
   fallback 없이 GUI 만으로 가능.
   - **A1 TrainingPanel backend toggle**: `_BACKENDS` literal

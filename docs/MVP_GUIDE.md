@@ -1,4 +1,4 @@
-# TRsim MVP — 테스트 가이드 (2026-05-12 rev4)
+# TRsim MVP — 테스트 가이드 (2026-05-12 rev5)
 
 `docs/MVP_USAGE.md` 가 "어떻게 쓰나" 라면, 이 가이드는 "어떻게
 **확인** 하나" — MVP 가 정상 동작하는지 항목별 명령 + 기대 결과
@@ -7,11 +7,10 @@
 
 각 섹션 끝의 ☐ 는 직접 체크. 전부 ✓ 면 MVP 가동 OK.
 
-> **rev4 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
-> rev3 (BOM tolerance) + **rev4** (Training panel 의 `Backend` 콤보 =
-> numpy_mlp 기본 + Step 2 자동 register: NumpyPairingNN + cwd/datasets
-> auto-scan). § 5 의 Python fallback 모두 GUI 흐름으로 대체. pytest
-> 1596 PASS 기대.
+> **rev5 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
+> rev3 (BOM tolerance) + rev4 (backend toggle + Step 2 자동 register) +
+> **rev5** (Step 1 빌드 완료 → Step 2 dataset 콤보 자동 refresh +
+> Step 2 panel 의 `Refresh datasets` 버튼). pytest 1596 → **1601** PASS.
 
 ---
 
@@ -148,7 +147,7 @@ $env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**기대**: `1596 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
+**기대**: `1601 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
 
 실패 시: 어느 테스트 깨졌는지 출력 보고 보고.
 
@@ -504,11 +503,18 @@ Backend 콤보를 `fake (deterministic decay — smoke only)` 로 바꾸면:
 
 bottom_tabs 의 `NN Step 2` (index 4) 클릭.
 
-**기본 register 상태** (rev4):
+**기본 register 상태** (rev5):
 - Plugin combo: `numpy_pairing_nn` (NumpyPairingNN baseline 자동 등록)
-- Dataset combo: `<cwd>/datasets/*.h5` 자동 scan 결과. 5.2 에서 `./datasets/` 에 4 개 만들었으면 콤보에 `pairing_variant_A`, `_B`, `_C`, `_D` 등 등장 (`trsim ui` 시작 시점의 cwd 가 그 directory 의 parent 여야 함)
+- Dataset combo:
+  - 시작 시점: `<cwd>/datasets/*.h5` 자동 scan 결과
+  - **Step 1 빌드 완료 시 자동 refresh** — 5.2 에서 4-variant chain
+    빌드하면 그 시점에 4 개 (`pairing_variant_A` ~ `_D`) 콤보에
+    추가됨. `trsim ui` 재시작 불필요.
+  - 수동 refresh: panel 의 `Refresh datasets` 버튼 클릭 — 외부에서
+    `.h5` 파일을 디렉토리에 떨궜을 때 (예: 다른 프로세스로 빌드한
+    dataset) 사용
 
-dataset 콤보 + plugin 콤보 선택 → `Run Eval` 클릭.
+dataset 콤보 + plugin 콤보 선택 → `Run Evaluation` 클릭.
 
 **기대**:
 - 4-error 표의 `Pairing` 행 `RMSE` 셀에 0.0 ~ 1.0 사이 값
@@ -517,11 +523,6 @@ dataset 콤보 + plugin 콤보 선택 → `Run Eval` 클릭.
 
 NumpyPairingNN 은 Hungarian 비학습 baseline. 4 variant 데이터 모두
 closed-form GT 라 loss 가 작게 (수 % 이하) 나와야 정상.
-
-**dataset 콤보가 비어있을 때**:
-- `trsim ui` 띄운 시점 cwd 의 `./datasets/` 이 비어있음
-- 해결: `trsim ui` 종료 → 그 directory 에서 다시 `trsim ui` 실행. 또는
-  `NNStep2Controller.register_dataset(name, path)` 으로 명시 등록.
 
 ### 5.5 청소
 
@@ -570,4 +571,5 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 | DLC tab 라벨이 `[DLC] _Cls` (pkg 없음) | manifest `[package].id` 가 비었음 | manifest 검증 (kebab-case + SemVer) |
 | numpy_mlp 가 `ValueError "0 sample"` | h5 가 0 frame 으로 빌드됨 | Frames > 0 으로 Step 1 재실행 |
 | Training panel `Run` 클릭 후 `error: ... No such file ...` | Backend = numpy_mlp (default rev4) 인데 dataset 경로가 없음 | dataset_edit 경로를 5.2 에서 빌드한 `.h5` 로 갱신. 또는 Backend 를 `fake` 로 토글 (smoke 용) |
-| Step 2 dataset combo 비어있음 | `trsim ui` 가동 시점 cwd 의 `./datasets/` 이 빈 디렉토리 | 그 directory 안에서 `trsim ui` 다시 실행. 또는 controller 의 `register_dataset(name, path)` 명시 호출 |
+| Step 2 dataset combo 비어있음 (Step 1 빌드 *전*) | `./datasets/` 디렉토리 자체 비어있음 — 정상 동작 | 5.1 또는 5.2 Step 1 빌드 후 자동 refresh. 또는 panel 의 `Refresh datasets` 버튼 |
+| Step 2 dataset combo 가 Step 1 빌드 후에도 비어있음 | output path 가 `./datasets/` 와 다른 디렉토리 | output path 의 parent 가 `trsim ui` cwd 의 `./datasets/` 와 일치하는지 확인. 또는 `Refresh datasets` 버튼 |

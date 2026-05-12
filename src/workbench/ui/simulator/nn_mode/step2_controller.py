@@ -52,11 +52,17 @@ class NNStep2Controller:
         self.panel = panel
         self._datasets: dict[str, Path] = dict(datasets or {})
         self._plugins: dict[str, _PairingPredictor] = dict(plugins or {})
+        # Last datasets_root used by ``register_default_setup`` so a
+        # later :meth:`refresh_datasets` can re-scan the same path
+        # without the caller having to remember it.
+        self._last_datasets_root: Path | None = None
 
         self._refresh_combos()
 
         self.panel.run_eval_requested.connect(self._on_run_eval)
         self.panel.export_report_requested.connect(self._on_export_report)
+        if hasattr(self.panel, "refresh_requested"):
+            self.panel.refresh_requested.connect(self._on_refresh_clicked)
 
     # ------------------------------------------------------------------
     # Registration
@@ -99,6 +105,8 @@ class NNStep2Controller:
             ``(n_datasets_registered, n_plugins_registered)`` for the
             caller to log / sanity-check.
         """
+        self._last_datasets_root = datasets_root
+
         n_ds = 0
         if datasets_root is not None and datasets_root.is_dir():
             for entry in sorted(datasets_root.glob("*.h5")):
@@ -113,6 +121,27 @@ class NNStep2Controller:
         if n_ds or n_pl:
             self._refresh_combos()
         return n_ds, n_pl
+
+    def refresh_datasets(self) -> int:
+        """Re-scan the last ``datasets_root`` from
+        :meth:`register_default_setup` and pick up any new ``*.h5``
+        files. Existing dataset entries with the same stem are
+        overwritten (path may have moved); plugin registry is left
+        alone. Returns the count of dataset entries after the refresh.
+        """
+        if self._last_datasets_root is None or not self._last_datasets_root.is_dir():
+            return len(self._datasets)
+        for entry in sorted(self._last_datasets_root.glob("*.h5")):
+            self._datasets[entry.stem] = entry
+        self._refresh_combos()
+        return len(self._datasets)
+
+    # ------------------------------------------------------------------
+    # Signal hooks
+    # ------------------------------------------------------------------
+
+    def _on_refresh_clicked(self) -> None:
+        self.refresh_datasets()
 
     # ------------------------------------------------------------------
     # Slots

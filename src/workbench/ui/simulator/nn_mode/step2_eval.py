@@ -29,6 +29,11 @@ class Step2EvalPanel(QWidget):
 
     run_eval_requested = Signal()
     export_report_requested = Signal()
+    # Manual re-scan trigger for the dataset combo. The auto-refresh
+    # path is Step 1's ``build_completed`` signal; this button covers
+    # the case where the user dropped a file in ``./datasets/``
+    # outside the GUI.
+    refresh_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -78,6 +83,7 @@ class Step2EvalPanel(QWidget):
         h.setContentsMargins(0, 0, 0, 0)
         h.addStretch(1)
         for label, signal_name, object_name in (
+            ("Refresh datasets", "refresh_requested", "NNStep2RefreshBtn"),
             ("Run Evaluation", "run_eval_requested", "NNStep2RunBtn"),
             ("Export Report...", "export_report_requested", "NNStep2ExportBtn"),
         ):

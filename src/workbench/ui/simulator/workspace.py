@@ -153,6 +153,9 @@ class SimulatorWorkspace(QWidget):
         # panel is usable without the user having to call register_*
         # by hand.
         self._nn_step2_controller.register_default_setup(datasets_root=self._nn_datasets_root)
+        # Auto-refresh Step 2 when Step 1 finishes a build — the new
+        # ``.h5`` files appear in the dataset combo without a restart.
+        self._nn_step1_panel.build_completed.connect(self._nn_step2_controller.refresh_datasets)
         self._nn_training_panel = TrainingPanel(self)
         self._nn_training_controller = NNTrainingController(self._nn_training_panel)
 

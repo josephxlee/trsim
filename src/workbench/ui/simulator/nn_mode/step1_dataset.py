@@ -47,6 +47,11 @@ class Step1DatasetPanel(QWidget):
 
     build_requested = Signal()
     cancel_requested = Signal()
+    # Fired by :class:`NNStep1Controller` after a build finishes
+    # successfully. SimulatorWorkspace uses it to re-scan the Step 2
+    # dataset combo so the just-written ``.h5`` files appear without
+    # the user having to restart ``trsim ui``.
+    build_completed = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)

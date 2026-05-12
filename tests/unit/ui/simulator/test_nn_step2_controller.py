@@ -185,6 +185,51 @@ def test_register_default_setup_does_not_double_register(qtbot: object) -> None:
 
 
 # ---------------------------------------------------------------------
+# Refresh (signal wire + new files picked up)
+# ---------------------------------------------------------------------
+
+
+def test_refresh_datasets_picks_up_new_h5_files(qtbot: object, tmp_path: Path) -> None:
+    """Files dropped under datasets_root *after* register_default_setup
+    appear in the combo on refresh.
+    """
+    panel, controller = _wire(qtbot)
+    controller.register_default_setup(datasets_root=tmp_path)
+    assert panel.dataset_combo().findText("identity") < 0
+    # Build the dataset *after* the initial register; that's the real
+    # flow surfaced by MVP_GUIDE § 5.2 + § 5.4 (Step 1 -> Step 2).
+    _build_identity_dataset(tmp_path)
+    controller.refresh_datasets()
+    assert panel.dataset_combo().findText("identity") >= 0
+
+
+def test_refresh_datasets_returns_total_count(qtbot: object, tmp_path: Path) -> None:
+    _, controller = _wire(qtbot)
+    controller.register_default_setup(datasets_root=tmp_path)
+    _build_identity_dataset(tmp_path)
+    n = controller.refresh_datasets()
+    assert n == 1
+
+
+def test_refresh_datasets_without_remembered_root_is_noop(qtbot: object) -> None:
+    """register_default_setup was never called, so refresh has no
+    root to scan and returns the current registry size.
+    """
+    panel, controller = _wire(qtbot)
+    assert controller.refresh_datasets() == 0
+    assert panel.dataset_combo().count() == 1  # placeholder only
+
+
+def test_refresh_requested_signal_drives_controller(qtbot: object, tmp_path: Path) -> None:
+    """Manual Refresh button (panel signal) re-scans the same root."""
+    panel, controller = _wire(qtbot)
+    controller.register_default_setup(datasets_root=tmp_path)
+    _build_identity_dataset(tmp_path)
+    panel.refresh_requested.emit()
+    assert panel.dataset_combo().findText("identity") >= 0
+
+
+# ---------------------------------------------------------------------
 # Run evaluation
 # ---------------------------------------------------------------------
 
