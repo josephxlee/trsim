@@ -27,6 +27,29 @@
 > workbench-train subprocess wrapping / Physics Lab workspace
 > (v0.40 Phase 9).
 
+- **Floating dock 옵션 D (Detachable bottom tabs) DONE** — 플랜
+  외 MVP+α 영역에서 가장 작은 변경으로 가장 큰 UX 개선. plan/05
+  § 5.2 / plan/13 § 13.2 의 fixed QSplitter layout 은 유지하면서
+  Simulator workspace 의 하단 tabs (Run/StageIO/Profiler/NN
+  Step1/Step2/Training + DLC) 를 detach 가능하게 만듦.
+  - `src/workbench/ui/widgets/detachable_tab.py` 신규: `FloatingPanel`
+    (QMainWindow subclass, 닫힐 때 takeCentralWidget + content.setParent
+    (None) 으로 원본 widget 보존 + `closed` signal emit) +
+    `DetachableTabWidget` (QTabWidget subclass, tabBar 우클릭
+    context menu "Detach tab" → 새 FloatingPanel 만들어 show, panel
+    closed signal → 원래 index 로 insertTab 복귀). `tab_detached`
+    / `tab_reattached` signal 2 종. `floating_panels()` property.
+  - `src/workbench/ui/widgets/__init__.py` 신규 (re-export).
+  - `SimulatorWorkspace.bottom_tabs` 가 `QTabWidget` → `DetachableTabWidget`
+    교체. 기존 사용처 (`addTab`, `tabText`, `widget`) 인터페이스 동일,
+    유일한 차이는 우클릭 context menu 등장.
+  - 7 신규 tests: tab properties 보존 / detach removes from tabs +
+    emits signal / out-of-range index no-op / FloatingPanel 메타데이터
+    / 닫기 시 re-insert + signal / count shrink 시 clamp / 다중
+    동시 floating.
+  - MVP_GUIDE rev6 갱신: § 3.5b 신규 "tab 떼어내기" 안내 (tabBar
+    우클릭 + 창 닫기 re-attach), § 6 checklist 갱신.
+  - 누적 **1612 PASS** (+7 신규). 5 contracts KEPT.
 - **A2 후속 (Step1→Step2 auto-refresh) DONE** — 사용자 보고: Step 1
   빌드 후 Step 2 dataset combo 가 비어있음. SimulatorWorkspace 가
   cwd/datasets 를 `__init__` 시점에 한 번만 scan → Step 1 빌드 *후*

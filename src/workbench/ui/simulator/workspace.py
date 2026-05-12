@@ -34,7 +34,6 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QSplitter,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -55,6 +54,7 @@ from workbench.ui.simulator.panels import (
     StageIOPanel,
 )
 from workbench.ui.simulator.profiler_panel import ProfilerPanel
+from workbench.ui.widgets import DetachableTabWidget
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,7 +161,10 @@ class SimulatorWorkspace(QWidget):
 
         # Bottom tabs - Run / Stage I/O / Profiler / NN Step 1 / NN Step 2
         # / NN Training. DLC plugin panels (Task D) append after these.
-        bottom_tabs = QTabWidget(self)
+        # DetachableTabWidget lets the user right-click a tab and pop
+        # it into a floating top-level window; closing the window
+        # re-inserts the tab.
+        bottom_tabs = DetachableTabWidget(self)
         bottom_tabs.setObjectName("SimulatorBottomTabs")
         bottom_tabs.addTab(self._run_panel, "Run")
         bottom_tabs.addTab(self._stage_io_panel, "Stage I/O")
@@ -274,7 +277,7 @@ class SimulatorWorkspace(QWidget):
     def profiler_panel(self) -> ProfilerPanel:
         return self._profiler_panel
 
-    def bottom_tabs(self) -> QTabWidget:
+    def bottom_tabs(self) -> DetachableTabWidget:
         return self._bottom_tabs
 
     # ------------------------------------------------------------------

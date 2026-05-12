@@ -1,4 +1,4 @@
-# TRsim MVP — 테스트 가이드 (2026-05-12 rev5)
+# TRsim MVP — 테스트 가이드 (2026-05-12 rev6)
 
 `docs/MVP_USAGE.md` 가 "어떻게 쓰나" 라면, 이 가이드는 "어떻게
 **확인** 하나" — MVP 가 정상 동작하는지 항목별 명령 + 기대 결과
@@ -7,10 +7,10 @@
 
 각 섹션 끝의 ☐ 는 직접 체크. 전부 ✓ 면 MVP 가동 OK.
 
-> **rev5 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
+> **rev6 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
 > rev3 (BOM tolerance) + rev4 (backend toggle + Step 2 자동 register) +
-> **rev5** (Step 1 빌드 완료 → Step 2 dataset 콤보 자동 refresh +
-> Step 2 panel 의 `Refresh datasets` 버튼). pytest 1596 → **1601** PASS.
+> rev5 (Step 1 → Step 2 자동 refresh) + **rev6** (Step 1 progress bar +
+> Detach 가능한 bottom tabs). pytest 1601 → **1612** PASS.
 
 ---
 
@@ -147,7 +147,7 @@ $env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**기대**: `1601 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
+**기대**: `1612 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
 
 실패 시: 어느 테스트 깨졌는지 출력 보고 보고.
 
@@ -230,6 +230,15 @@ Simulator workspace 진입 시 (Ctrl+Shift+S):
 - 우: Properties (context-sensitive form)
 - 하단 tabs: **6 개** — Run / Stage I/O / Profiler / NN Step 1 /
   NN Step 2 / NN Training. (DLC plugin tab 은 7 번째 이후로 추가됨.)
+
+### 3.5b 하단 tab 떼어내기 (rev6 — floating dock 옵션 D)
+
+| 행동 | 기대 |
+|---|---|
+| 하단 tab 의 **tabBar 영역 우클릭** → `Detach tab` | 해당 tab 이 별도 top-level window 로 분리. 메인 창의 하단 tab 갯수는 1 감소 |
+| floating window 의 **창 닫기** (X 버튼) | tab 이 원래 위치 + 라벨로 자동 복귀 |
+
+여러 tab 동시에 detach 가능. 메인 창과 별도 monitor 에 두기 좋음.
 
 ### 3.6 Command palette
 
@@ -557,7 +566,7 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 | 0 | 환경 sanity + origin/main pull + editable reinstall | ☐ |
 | 1 | CLI 비-UI 3 명령 (help / profile / run) | ☐ |
 | 2 | pytest 1576 + ruff + mypy + lint-imports | ☐ |
-| 3 | UI 가동 + workspace 전환 + 5 activity + sidebar + 6 bottom tabs | ☐ |
+| 3 | UI 가동 + workspace 전환 + 5 activity + sidebar + 6 bottom tabs + tab detach | ☐ |
 | 4 | DLC 자동 로드 (panel mount index 6 + resource sidebar + --no-dlc) | ☐ |
 | 5 | NN Step 1 single + chain + numpy_mlp 학습 + 4-error eval (전부 GUI) | ☐ |
 
