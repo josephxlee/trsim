@@ -62,6 +62,7 @@ from workbench.domain.physics_lab import (
     load_measured_hdf5,
 )
 from workbench.ui.physics_lab.auto_parameters import AutoParametersWidget
+from workbench.ui.physics_lab.code_editor import PythonCodeEditor
 from workbench.ui.physics_lab.python_highlighter import PythonSyntaxHighlighter
 
 # ---------------------------------------------------------------------
@@ -415,10 +416,12 @@ class CodePreview(QWidget):
         title.setStyleSheet("font-size: 14px; font-weight: 600;")
         layout.addWidget(title)
 
-        self._editor = QTextEdit(self)
-        self._editor.setObjectName("PhysicsLab_CodeEditor")
+        # PL-9.3a — PythonCodeEditor is a QTextEdit subclass with a
+        # QCompleter wired to Python keywords + Bouncing Ball API. The
+        # rest of the CodePreview surface (highlighter, action row,
+        # save/revert flow) treats it like a vanilla QTextEdit.
+        self._editor = PythonCodeEditor(self)
         self._editor.setReadOnly(True)
-        self._editor.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         self._editor.setFontFamily("Consolas")
         # PL-9.1a — install Python syntax highlighter on the document.
         # Read-mode shows the built-in step source coloured; Edit-mode
