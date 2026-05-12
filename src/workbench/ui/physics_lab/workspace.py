@@ -59,6 +59,8 @@ from workbench.domain.physics_lab import (
     TIME_MODES_IN_DISPLAY_ORDER,
     SavedExperiment,
     TimeMode,
+    list_measured_datasets,
+    list_papers,
     list_saved_experiments,
     write_saved_experiment,
 )
@@ -208,10 +210,14 @@ class PhysicsLabWorkspace(QWidget):
         *,
         enable_3d_viewer: bool = True,
         experiment_root: Path | None = None,
+        measured_root: Path | None = None,
+        papers_root: Path | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("PhysicsLabWorkspace")
         self._experiment_root = experiment_root
+        self._measured_root = measured_root
+        self._papers_root = papers_root
 
         # PL-D — Library / Code / Viz / Parameters now host real
         # widgets backed by the Bouncing Ball demo. The placeholder
@@ -297,6 +303,11 @@ class PhysicsLabWorkspace(QWidget):
         self._library_panel.experiment_selected.connect(self.load_experiment)
         if self._experiment_root is not None:
             self.refresh_saved_experiments()
+        # PL-9.2a/b — populate Library Measured Data + Papers categories.
+        if self._measured_root is not None:
+            self.refresh_measured_datasets()
+        if self._papers_root is not None:
+            self.refresh_papers()
 
     # ------------------------------------------------------------------
     # Accessors (PL-D ships the live widgets; PL-9.1+ keeps the same API)
@@ -368,6 +379,28 @@ class PhysicsLabWorkspace(QWidget):
             return
         experiments = list_saved_experiments(self._experiment_root)
         self._library_panel.set_saved_experiments(experiments)
+
+    def measured_root(self) -> Path | None:
+        return self._measured_root
+
+    def papers_root(self) -> Path | None:
+        return self._papers_root
+
+    def refresh_measured_datasets(self) -> None:
+        """Re-scan ``measured_root`` and rebuild the Measured Data
+        sub-tree. No-op when no root was configured.
+        """
+        if self._measured_root is None:
+            return
+        datasets = list_measured_datasets(self._measured_root)
+        self._library_panel.set_measured_datasets(datasets)
+
+    def refresh_papers(self) -> None:
+        """Re-scan ``papers_root`` and rebuild the Papers sub-tree."""
+        if self._papers_root is None:
+            return
+        papers = list_papers(self._papers_root)
+        self._library_panel.set_papers(papers)
 
     def save_current_experiment(self, experiment_id: str) -> SavedExperiment:
         """Snapshot current simulator + mode and persist to TOML.

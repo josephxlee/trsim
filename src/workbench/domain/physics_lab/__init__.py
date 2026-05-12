@@ -9,6 +9,20 @@ formulas in :mod:`workbench.physics.reflection.rcs_single`.
 
 from __future__ import annotations
 
+from workbench.domain.physics_lab.measured_data import (
+    MeasuredDataset,
+    MeasuredFormat,
+    inspect_csv,
+    inspect_hdf5,
+    list_measured_datasets,
+    load_measured_csv,
+    load_measured_hdf5,
+)
+from workbench.domain.physics_lab.papers import (
+    PaperReference,
+    inspect_pdf,
+    list_papers,
+)
 from workbench.domain.physics_lab.parameter_metadata import (
     BOUNCING_BALL_PARAM_SPECS,
     SLIDER_TICK_RESOLUTION,
@@ -51,6 +65,9 @@ __all__ = [
     "Cone",
     "Cube",
     "Cylinder",
+    "MeasuredDataset",
+    "MeasuredFormat",
+    "PaperReference",
     "ParameterScale",
     "PhysicsParam",
     "Plane",
@@ -65,7 +82,14 @@ __all__ = [
     "Wall",
     "default_library",
     "get_physics_params",
+    "inspect_csv",
+    "inspect_hdf5",
+    "inspect_pdf",
+    "list_measured_datasets",
+    "list_papers",
     "list_saved_experiments",
+    "load_measured_csv",
+    "load_measured_hdf5",
     "physics_param",
     "read_saved_experiment",
     "write_saved_experiment",

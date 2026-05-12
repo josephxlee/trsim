@@ -24,16 +24,21 @@ pytestmark = pytest.mark.qt
 # ---------------------------------------------------------------------
 
 
-def test_library_widget_has_three_top_level_categories(qtbot) -> None:  # type: ignore[no-untyped-def]
+def test_library_widget_has_five_top_level_categories(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """PL-9.2a/b add Measured Data + Papers to the 3 PL-9.1f
+    categories — total 5.
+    """
     lib = LibraryWidget()
     qtbot.addWidget(lib)  # type: ignore[attr-defined]
     tree = lib.tree_widget()
-    assert tree.topLevelItemCount() == 3
-    top_texts = {tree.topLevelItem(i).text(0) for i in range(3)}
+    assert tree.topLevelItemCount() == 5
+    top_texts = {tree.topLevelItem(i).text(0) for i in range(5)}
     assert top_texts == {
         LibraryWidget.CATEGORY_TESTS,
         LibraryWidget.CATEGORY_MODELS,
         LibraryWidget.CATEGORY_SAVED,
+        LibraryWidget.CATEGORY_MEASURED,
+        LibraryWidget.CATEGORY_PAPERS,
     }
 
 

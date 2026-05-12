@@ -46,6 +46,8 @@ from workbench.app.physics_lab import (
 )
 from workbench.domain.physics_lab import (
     BOUNCING_BALL_PARAM_SPECS,
+    MeasuredDataset,
+    PaperReference,
     SavedExperiment,
     TestObject,
     TimeMode,
@@ -86,11 +88,15 @@ class LibraryWidget(QWidget):
     demo_selected = Signal(str)
     save_requested = Signal()
     experiment_selected = Signal(object)
+    measured_dataset_selected = Signal(object)
+    paper_selected = Signal(object)
 
     BOUNCING_BALL_ROW = "Bouncing Ball Demo"
     CATEGORY_TESTS = "Tests"
     CATEGORY_MODELS = "Models"
     CATEGORY_SAVED = "Saved Experiments"
+    CATEGORY_MEASURED = "Measured Data"
+    CATEGORY_PAPERS = "Papers"
 
     # Models category placeholders. PL-9.1g will turn ``Air Drag`` into
     # an interactive toggle attached to the simulator.
@@ -115,6 +121,8 @@ class LibraryWidget(QWidget):
         self._tree.setHeaderHidden(True)
         self._label_to_object: dict[str, TestObject] = {}
         self._label_to_experiment: dict[str, SavedExperiment] = {}
+        self._label_to_measured: dict[str, MeasuredDataset] = {}
+        self._label_to_paper: dict[str, PaperReference] = {}
 
         # Tests category: Bouncing Ball Demo + 9 Test Objects.
         self._tests_item = QTreeWidgetItem(self._tree, [self.CATEGORY_TESTS])
@@ -131,6 +139,11 @@ class LibraryWidget(QWidget):
 
         # Saved Experiments category — initially empty.
         self._saved_item = QTreeWidgetItem(self._tree, [self.CATEGORY_SAVED])
+
+        # Measured Data + Papers (PL-9.2a/b) — populated by the
+        # workspace from disk roots on construction or refresh.
+        self._measured_item = QTreeWidgetItem(self._tree, [self.CATEGORY_MEASURED])
+        self._papers_item = QTreeWidgetItem(self._tree, [self.CATEGORY_PAPERS])
 
         self._tree.expandAll()
         self._tree.currentItemChanged.connect(self._on_current_item_changed)
@@ -167,6 +180,12 @@ class LibraryWidget(QWidget):
     def saved_category(self) -> QTreeWidgetItem:
         return self._saved_item
 
+    def measured_category(self) -> QTreeWidgetItem:
+        return self._measured_item
+
+    def papers_category(self) -> QTreeWidgetItem:
+        return self._papers_item
+
     def test_object_for(self, label: str) -> TestObject | None:
         """Resolve a Library leaf label to its Test Object dataclass.
 
@@ -178,15 +197,30 @@ class LibraryWidget(QWidget):
     def experiment_for(self, label: str) -> SavedExperiment | None:
         return self._label_to_experiment.get(label)
 
+    def measured_for(self, label: str) -> MeasuredDataset | None:
+        return self._label_to_measured.get(label)
+
+    def paper_for(self, label: str) -> PaperReference | None:
+        return self._label_to_paper.get(label)
+
     def current_label(self) -> str:
         item = self._tree.currentItem()
         if item is None or item.parent() is None:
             return ""
         return item.text(0)
 
+    def _all_categories(self) -> tuple[QTreeWidgetItem, ...]:
+        return (
+            self._tests_item,
+            self._models_item,
+            self._saved_item,
+            self._measured_item,
+            self._papers_item,
+        )
+
     def select_label(self, label: str) -> bool:
         """Find + select a leaf by its text. Returns True on success."""
-        for category in (self._tests_item, self._models_item, self._saved_item):
+        for category in self._all_categories():
             for i in range(category.childCount()):
                 child = category.child(i)
                 if child is not None and child.text(0) == label:
@@ -195,9 +229,9 @@ class LibraryWidget(QWidget):
         return False
 
     def leaf_labels(self) -> tuple[str, ...]:
-        """Every leaf row's text across all three categories."""
+        """Every leaf row's text across all five categories."""
         labels: list[str] = []
-        for category in (self._tests_item, self._models_item, self._saved_item):
+        for category in self._all_categories():
             for i in range(category.childCount()):
                 child = category.child(i)
                 if child is not None:
@@ -224,6 +258,31 @@ class LibraryWidget(QWidget):
             self._label_to_experiment[label] = exp
         self._tree.expandItem(self._saved_item)
 
+    def set_measured_datasets(
+        self,
+        datasets: Iterable[MeasuredDataset],
+    ) -> None:
+        """Replace the Measured Data sub-tree with new entries (PL-9.2a)."""
+        for label in list(self._label_to_measured.keys()):
+            self._label_to_measured.pop(label, None)
+        self._measured_item.takeChildren()
+        for dataset in datasets:
+            label = f"{dataset.dataset_id}  ({dataset.file_format})"
+            QTreeWidgetItem(self._measured_item, [label])
+            self._label_to_measured[label] = dataset
+        self._tree.expandItem(self._measured_item)
+
+    def set_papers(self, papers: Iterable[PaperReference]) -> None:
+        """Replace the Papers sub-tree with new entries (PL-9.2b)."""
+        for label in list(self._label_to_paper.keys()):
+            self._label_to_paper.pop(label, None)
+        self._papers_item.takeChildren()
+        for paper in papers:
+            label = paper.paper_id if not paper.title else f"{paper.paper_id} — {paper.title}"
+            QTreeWidgetItem(self._papers_item, [label])
+            self._label_to_paper[label] = paper
+        self._tree.expandItem(self._papers_item)
+
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
@@ -240,6 +299,10 @@ class LibraryWidget(QWidget):
         self.demo_selected.emit(label)
         if label in self._label_to_experiment:
             self.experiment_selected.emit(self._label_to_experiment[label])
+        if label in self._label_to_measured:
+            self.measured_dataset_selected.emit(self._label_to_measured[label])
+        if label in self._label_to_paper:
+            self.paper_selected.emit(self._label_to_paper[label])
 
 
 # ---------------------------------------------------------------------
