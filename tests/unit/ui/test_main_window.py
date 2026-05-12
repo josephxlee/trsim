@@ -38,13 +38,39 @@ def test_set_workspace_swaps_central_page_and_action_state(qtbot) -> None:  # ty
     assert not win.workspace_action(Workspace.EDITOR).isChecked()
 
 
-def test_workspace_actions_have_expected_shortcuts(qtbot) -> None:  # type: ignore[no-untyped-def]
+def test_workspace_toolbar_actions_carry_no_shortcut(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """Toolbar QActions are click-only; MainMenuBar owns the shortcuts.
+
+    Registering the same shortcut on the toolbar QAction *and* the
+    MainMenuBar QAction makes Qt flag them as ambiguous and disable
+    both — that bug shipped through Phase 4.2c and was reported as
+    "Ctrl+Shift+E/S do not work" in MVP verification.
+    """
     win = MainWindow()
     qtbot.addWidget(win)
     editor_act = win.workspace_action(Workspace.EDITOR)
     sim_act = win.workspace_action(Workspace.SIMULATOR)
-    assert editor_act.shortcut() == QKeySequence("Ctrl+Shift+E")
-    assert sim_act.shortcut() == QKeySequence("Ctrl+Shift+S")
+    assert editor_act.shortcut() == QKeySequence()
+    assert sim_act.shortcut() == QKeySequence()
+
+
+def test_main_menu_owns_workspace_and_palette_shortcuts(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """MainMenuBar holds the single source of truth for shortcuts."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    menu_bar = win.main_menu_bar()
+    expected = {
+        "MenuAction_workspace.switch_to_editor": QKeySequence("Ctrl+Shift+E"),
+        "MenuAction_workspace.switch_to_simulator": QKeySequence("Ctrl+Shift+S"),
+        "MenuAction_palette.open": QKeySequence("Ctrl+Shift+P"),
+    }
+    found = {
+        a.objectName(): a.shortcut()
+        for a in menu_bar.findChildren(type(menu_bar.actions()[0]))
+        if a.objectName() in expected
+    }
+    for key, seq in expected.items():
+        assert found.get(key) == seq, f"{key} expected {seq.toString()}, got {found.get(key)}"
 
 
 def test_window_title_includes_version(qtbot) -> None:  # type: ignore[no-untyped-def]

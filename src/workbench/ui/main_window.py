@@ -26,7 +26,7 @@ Strict ≤ 200 lines (CLAUDE.md § 3.1 — thin assembler).
 
 from __future__ import annotations
 
-from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QToolBar, QWidget
 
 from workbench import __version__
@@ -80,9 +80,12 @@ class MainWindow(QMainWindow):
 
         register_builtin_commands(self.commands, self._build_command_hooks())
         self._palette = CommandPalette(self.commands, self)
-        self._palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
-        self._palette_shortcut.activated.connect(self.open_command_palette)
 
+        # MainMenuBar owns Ctrl+Shift+E / S / P shortcuts (plan/05 § 5.1
+        # — "All actions are Command"). We avoid registering the same
+        # shortcut on a QToolBar QAction or a free-standing QShortcut
+        # so Qt does not flag them as ambiguous and silently disable
+        # both bindings. The toolbar QAction below is click-only.
         self._menu_bar = MainMenuBar(self, self.commands)
         self.setMenuBar(self._menu_bar)
 
@@ -106,14 +109,16 @@ class MainWindow(QMainWindow):
         group = QActionGroup(self)
         group.setExclusive(True)
 
+        # Toolbar QActions are click-only — MainMenuBar owns the
+        # Ctrl+Shift+E / S shortcuts to avoid Qt's ambiguous-shortcut
+        # suppression that fires when two QActions share a key.
         actions: dict[Workspace, QAction] = {}
-        for ws, label, shortcut in (
-            (Workspace.EDITOR, "Editor", "Ctrl+Shift+E"),
-            (Workspace.SIMULATOR, "Simulator", "Ctrl+Shift+S"),
+        for ws, label in (
+            (Workspace.EDITOR, "Editor"),
+            (Workspace.SIMULATOR, "Simulator"),
         ):
             act = QAction(label, self)
             act.setCheckable(True)
-            act.setShortcut(QKeySequence(shortcut))
             act.triggered.connect(lambda _checked, w=ws: self.selector.set_workspace(w))
             group.addAction(act)
             actions[ws] = act
