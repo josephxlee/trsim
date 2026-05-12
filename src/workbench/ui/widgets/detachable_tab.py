@@ -63,17 +63,30 @@ class FloatingPanel(QMainWindow):
         origin_index: int,
         parent: QWidget | None = None,
     ) -> None:
+        # Qt.Window flag guarantees a fresh top-level frame even when
+        # a parent is supplied — the host QMainWindow stays focusable
+        # in parallel with the floating window, and the parent acts as
+        # a lifetime anchor (closes when the host closes).
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.Window, True)
         self.content = content
         self.origin_title = origin_title
         self.origin_index = origin_index
         self.setObjectName(f"FloatingPanel_{origin_title}")
         self.setWindowTitle(f"TRsim — {origin_title}")
         self.setCentralWidget(content)
+        # QTabWidget.removeTab() hides the page widget; setCentralWidget
+        # alone does not restore visibility. Force it so the user sees
+        # the panel contents in the floating window.
+        content.show()
         # Resize once to a sensible default so the floating window is
         # not collapsed to zero. The content widget's own size hint
         # drives the actual layout; this is just a starting frame.
-        self.resize(640, 480)
+        size_hint = content.sizeHint()
+        self.resize(
+            max(size_hint.width(), 640),
+            max(size_hint.height(), 480),
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 — Qt API
         """Detach the content widget before destruction so the host can

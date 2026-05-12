@@ -73,6 +73,29 @@ def test_floating_panel_carries_origin_metadata(qtbot: object) -> None:
     assert "Tab 2" in floating.windowTitle()
 
 
+def test_floating_panel_content_is_visible_after_detach(qtbot: object) -> None:
+    """QTabWidget.removeTab hides the page; detach_tab must re-show
+    the widget so the floating window is not empty.
+    """
+    tabs, pages = _populated(qtbot)
+    floating = tabs.detach_tab(1)
+    assert floating is not None
+    qtbot.addWidget(floating)  # type: ignore[attr-defined]
+    assert floating.centralWidget() is pages[1]
+    # The page widget itself must not be hidden after detach (Qt's
+    # QWidget.isHidden checks the widget's own flag, not its
+    # screen visibility, so this works under offscreen test runners).
+    assert not pages[1].isHidden()
+
+
+def test_floating_panel_is_top_level_window(qtbot: object) -> None:
+    tabs, _ = _populated(qtbot)
+    floating = tabs.detach_tab(0)
+    assert floating is not None
+    qtbot.addWidget(floating)  # type: ignore[attr-defined]
+    assert floating.isWindow()
+
+
 # ---------------------------------------------------------------------
 # Re-attach on close
 # ---------------------------------------------------------------------
