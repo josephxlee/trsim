@@ -149,17 +149,41 @@ Plugin discovery via Phase 17.4 PluginLoader 는 미래 작업
    의 faces 는 (count, idx0, idx1, ...) 평탄화된 정수 배열.
    ruff format 이 multi-line list 로 풀어버려서 가독성 떨어짐 —
    `# fmt: off` 또는 numpy array 로 미리 빌드하는 게 깔끔.
+6. **PowerShell vs Bash 셸 문법 (재발 방지)** — 사용자 기본 셸은
+   PowerShell. Bash 의 `VAR=value cmd` 한 줄 prefix 패턴이
+   PowerShell 에선 cmdlet 인식 실패로 죽음. 반드시 `$env:VAR =
+   "value"` + `& $exe arg` 2-3 줄로 분리. handoff 의 명령 예시는
+   **PowerShell 버전 우선**으로 작성하고 Bash 변형을 부가로 둘 것.
 
 ## 7. 다음 세션 진입 명령
+
+사용자 기본 셸은 **PowerShell** — Bash 문법 (`VAR=value cmd`) 안
+통하므로 PowerShell 버전 우선:
+
+```powershell
+cd "C:\Workspaces\Claude\Tracking Radar Simulator\trsim"
+git pull --ff-only
+
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONPATH = "$(Get-Location)\src"
+$PY = ".\.venv\Scripts\python.exe"
+
+& $PY -m pytest -q
+# 1986 PASS expected
+
+& ".\.venv\Scripts\lint-imports.exe"
+# 5 contracts KEPT
+```
+
+Bash (Git Bash / WSL) 변형은 동일 변수를 line-prefix 로:
 
 ```bash
 cd "C:/Workspaces/Claude/Tracking Radar Simulator/trsim"
 git pull --ff-only
 PY=".venv/Scripts/python.exe"
 PYTHONUTF8=1 PYTHONPATH="$(pwd)/src" "$PY" -m pytest -q
-# 1986 PASS expected
 PYTHONUTF8=1 PYTHONIOENCODING=utf-8 .venv/Scripts/lint-imports.exe
-# 5 contracts KEPT
 ```
 
 그 다음:

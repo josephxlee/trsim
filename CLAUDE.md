@@ -961,6 +961,25 @@
 - I001: `ruff check --fix` 자동.
 - ruff `format` 도 항상 통과 (commit 전 sandbox 에서 1 차 검증).
 
+## 3.5 셸 문법 — 사용자 환경은 **PowerShell**
+
+handoff / 인계 / 사용자에게 명령 제시할 때는 PowerShell 우선:
+
+```powershell
+$env:PYTHONUTF8 = "1"
+$env:PYTHONPATH = "$(Get-Location)\src"
+$PY = ".\.venv\Scripts\python.exe"
+& $PY -m pytest -q
+```
+
+Bash (`VAR=value cmd`) 한 줄 prefix 패턴은 PowerShell 에서 cmdlet
+인식 실패 (`PYTHONUTF8=1 ... CommandNotFoundException`). 반드시
+`$env:VAR = "value"` 별도 줄 + `& $exe args` call operator 로 분리.
+
+내가 Bash 도구로 실행할 때는 `PYTHONUTF8=1 ... "$PY" ...` Bash
+문법이 동작하지만, **사용자에게 보여주는 명령**은 PowerShell 변형이
+기본. 두 셸 모두 필요하면 둘 다 표시 (PowerShell 우선).
+
 ## 4. Cowork ↔ Windows mount sync 트랩
 
 bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생).
