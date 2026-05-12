@@ -110,6 +110,47 @@ def test_parameters_slider_emits_restitution_signal(qtbot) -> None:  # type: ign
 
 
 # ---------------------------------------------------------------------
+# PL-9.1c — ParametersWidget exposes auto-generated sliders
+# ---------------------------------------------------------------------
+
+
+def test_parameters_widget_exposes_all_four_bouncing_ball_params(qtbot) -> None:  # type: ignore[no-untyped-def]
+    p = ParametersWidget()
+    qtbot.addWidget(p)  # type: ignore[attr-defined]
+    names = p.auto_parameters().parameter_names()
+    assert set(names) == {
+        "gravity_m_s2",
+        "restitution",
+        "initial_height_m",
+        "initial_velocity_m_s",
+    }
+
+
+def test_parameters_widget_forwards_all_param_changes(qtbot) -> None:  # type: ignore[no-untyped-def]
+    p = ParametersWidget()
+    qtbot.addWidget(p)  # type: ignore[attr-defined]
+    received: list[tuple[str, float]] = []
+    p.parameter_changed.connect(lambda n, v: received.append((n, v)))
+    p.auto_parameters().slider_for("gravity_m_s2").setValue(50)
+    assert any(name == "gravity_m_s2" for name, _ in received)
+
+
+def test_parameters_widget_restitution_signal_fires_only_for_restitution(
+    qtbot,
+) -> None:  # type: ignore[no-untyped-def]
+    p = ParametersWidget()
+    qtbot.addWidget(p)  # type: ignore[attr-defined]
+    received: list[float] = []
+    p.restitution_changed.connect(received.append)
+    # Move the gravity slider — restitution signal must stay silent.
+    p.auto_parameters().slider_for("gravity_m_s2").setValue(50)
+    assert received == []
+    # Now move restitution.
+    p.auto_parameters().slider_for("restitution").setValue(30)
+    assert received == [pytest.approx(0.30)]
+
+
+# ---------------------------------------------------------------------
 # BouncingBallController (integration via PhysicsLabWorkspace)
 # ---------------------------------------------------------------------
 

@@ -9,6 +9,14 @@ formulas in :mod:`workbench.physics.reflection.rcs_single`.
 
 from __future__ import annotations
 
+from workbench.domain.physics_lab.parameter_metadata import (
+    BOUNCING_BALL_PARAM_SPECS,
+    SLIDER_TICK_RESOLUTION,
+    ParameterScale,
+    PhysicsParam,
+    get_physics_params,
+    physics_param,
+)
 from workbench.domain.physics_lab.test_objects import (
     TEST_OBJECT_KINDS,
     Cone,
@@ -25,10 +33,14 @@ from workbench.domain.physics_lab.test_objects import (
 )
 
 __all__ = [
+    "BOUNCING_BALL_PARAM_SPECS",
+    "SLIDER_TICK_RESOLUTION",
     "TEST_OBJECT_KINDS",
     "Cone",
     "Cube",
     "Cylinder",
+    "ParameterScale",
+    "PhysicsParam",
     "Plane",
     "Plate",
     "Point",
@@ -37,4 +49,6 @@ __all__ = [
     "VisualKind",
     "Wall",
     "default_library",
+    "get_physics_params",
+    "physics_param",
 ]

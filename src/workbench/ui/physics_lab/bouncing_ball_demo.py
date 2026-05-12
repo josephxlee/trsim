@@ -26,7 +26,6 @@ from collections.abc import Iterable
 import pyqtgraph as pg
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import (
-    QFormLayout,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -43,7 +42,11 @@ from workbench.app.physics_lab import (
     BouncingBallState,
     PhysicsClock,
 )
-from workbench.domain.physics_lab import default_library
+from workbench.domain.physics_lab import (
+    BOUNCING_BALL_PARAM_SPECS,
+    default_library,
+)
+from workbench.ui.physics_lab.auto_parameters import AutoParametersWidget
 from workbench.ui.physics_lab.python_highlighter import PythonSyntaxHighlighter
 
 # ---------------------------------------------------------------------
@@ -362,64 +365,65 @@ class BouncingBallPlot(QWidget):
 # ---------------------------------------------------------------------
 
 
-_RESTITUTION_TICKS: int = 100
-
-
 class ParametersWidget(QWidget):
-    """Restitution slider 0..1 (1 % steps).
+    """Bouncing Ball parameter pane (PL-9.1c).
 
-    plan/19 § 19.5.5 will auto-generate this from a
-    ``@physics_param(0.0, 1.0)`` decorator in Phase 9.3; the MVP
-    ships a hand-wired slider for the single Bouncing Ball
-    parameter.
+    Wraps :class:`AutoParametersWidget` configured with
+    :data:`BOUNCING_BALL_PARAM_SPECS` (gravity / restitution /
+    initial-height / initial-velocity, four sliders auto-generated
+    from ``@physics_param`` metadata).
+
+    Backward-compatible API for the original restitution-only PL-D
+    surface:
+
+    Signals:
+        restitution_changed(float): emitted whenever the restitution
+            slider moves. Fires only for the ``restitution`` row of
+            the underlying :class:`AutoParametersWidget`.
+        parameter_changed(str, float): pass-through of the underlying
+            widget's signal (PL-9.1c) — exposes every slider.
+
+    Methods:
+        :meth:`current_restitution` / :meth:`set_restitution` /
+        :meth:`slider` retain their PL-D behaviour. :meth:`auto_parameters`
+        returns the underlying widget so callers can wire the other
+        sliders (e.g. gravity) to simulator setters.
     """
 
     restitution_changed = Signal(float)
+    parameter_changed = Signal(str, float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("PhysicsLab_ParametersWidget")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(6, 6, 6, 6)
-        layout.setSpacing(4)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        title = QLabel("Parameters", self)
-        title.setStyleSheet("font-size: 14px; font-weight: 600;")
-        layout.addWidget(title)
+        self._auto = AutoParametersWidget(BOUNCING_BALL_PARAM_SPECS, parent=self)
+        layout.addWidget(self._auto)
+        self._auto.parameter_changed.connect(self._on_auto_changed)
 
-        form = QFormLayout()
-        self._slider = QSlider(parent=self)
-        self._slider.setObjectName("PhysicsLab_RestitutionSlider")
-        from PySide6.QtCore import Qt
+    def _on_auto_changed(self, name: str, value: float) -> None:
+        self.parameter_changed.emit(name, value)
+        if name == "restitution":
+            self.restitution_changed.emit(value)
 
-        self._slider.setOrientation(Qt.Orientation.Horizontal)
-        self._slider.setRange(0, _RESTITUTION_TICKS)
-        self._slider.setValue(70)  # 0.70 default
-        self._readout = QLabel("0.70", self)
-        self._readout.setObjectName("PhysicsLab_RestitutionReadout")
-        self._slider.valueChanged.connect(self._on_slider_value)
-
-        row = QHBoxLayout()
-        row.addWidget(self._slider, 1)
-        row.addWidget(self._readout)
-        form.addRow("Restitution", row)
-        layout.addLayout(form)
-        layout.addStretch(1)
-
-    def _on_slider_value(self, tick: int) -> None:
-        value = tick / _RESTITUTION_TICKS
-        self._readout.setText(f"{value:.2f}")
-        self.restitution_changed.emit(value)
+    def auto_parameters(self) -> AutoParametersWidget:
+        return self._auto
 
     def current_restitution(self) -> float:
-        return self._slider.value() / _RESTITUTION_TICKS
+        return self._auto.current_value("restitution")
 
     def set_restitution(self, value: float) -> None:
+        # Public clamping behaviour from PL-D — set_value already
+        # clamps internally, but we keep the explicit ``[0, 1]`` clamp
+        # so callers don't have to know the underlying spec bounds.
         clamped = max(0.0, min(1.0, value))
-        self._slider.setValue(round(clamped * _RESTITUTION_TICKS))
+        self._auto.set_value("restitution", clamped)
 
     def slider(self) -> QSlider:
-        return self._slider
+        return self._auto.slider_for("restitution")
 
 
 # ---------------------------------------------------------------------
