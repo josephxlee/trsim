@@ -34,6 +34,9 @@ against environments without a usable GL context.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 import pyvista as pv
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from pyvistaqt import QtInteractor
@@ -51,73 +54,134 @@ from workbench.domain.physics_lab import (
     Wall,
 )
 
+# Mesh-builder registry (PL-9.3e). User plugins call
+# :func:`register_visual_kind_builder` at load time to teach the panel
+# how to render their custom visual kinds. Built-in 9 kinds are
+# pre-registered below the function definitions.
+MeshBuilder = Callable[[Any], pv.PolyData]
+_VISUAL_KIND_BUILDERS: dict[str, MeshBuilder] = {}
 
-def build_test_object_mesh(obj: TestObject) -> pv.PolyData:
+
+def register_visual_kind_builder(visual: str, builder: MeshBuilder) -> None:
+    """Register a callable that builds a PyVista mesh for ``visual``.
+
+    Plugins call this once at import / load time. Re-registering the
+    same kind overwrites the previous builder so the user can shadow a
+    built-in if they want a custom rendering (sphere with bumpy
+    normals, etc.).
+    """
+    _VISUAL_KIND_BUILDERS[visual] = builder
+
+
+def registered_visual_kinds() -> tuple[str, ...]:
+    """Sorted tuple of every kind known to the registry."""
+    return tuple(sorted(_VISUAL_KIND_BUILDERS))
+
+
+def build_test_object_mesh(obj: TestObject | Any) -> pv.PolyData:
     """Return a PyVista mesh for the given Test Object.
 
-    The mesh is centred at the dataclass's centre (when applicable);
-    Sphere / Cube / Cylinder / Cone all centre at the origin since
-    their dataclasses do not carry an explicit centre.
+    Dispatches by ``obj.visual`` against the
+    :data:`_VISUAL_KIND_BUILDERS` registry. Built-ins are
+    pre-registered at module load; user plugins can extend the
+    registry via :func:`register_visual_kind_builder`.
+
+    The function accepts the :data:`TestObject` Union *or* any
+    duck-typed object satisfying
+    :class:`workbench.sdk.protocols.TestObjectProtocol` (must expose a
+    ``visual`` attribute).
     """
-    visual = obj.visual
-    if visual == "sphere":
-        assert isinstance(obj, Sphere)
-        return pv.Sphere(radius=obj.radius_m)
-    if visual == "cube":
-        assert isinstance(obj, Cube)
-        a = obj.side_length_m
-        return pv.Cube(x_length=a, y_length=a, z_length=a)
-    if visual == "plate":
-        assert isinstance(obj, Plate)
-        return pv.Plane(
-            center=(0.0, 0.0, 0.0),
-            direction=obj.normal_direction,
-            i_size=obj.width_m,
-            j_size=obj.height_m,
-        )
-    if visual == "cylinder":
-        assert isinstance(obj, Cylinder)
-        return pv.Cylinder(
-            center=(0.0, 0.0, 0.0),
-            direction=obj.axis_direction,
-            radius=obj.radius_m,
-            height=obj.length_m,
-        )
-    if visual == "cone":
-        assert isinstance(obj, Cone)
-        return pv.Cone(
-            center=(0.0, 0.0, 0.0),
-            direction=obj.apex_direction,
-            radius=obj.base_radius_m,
-            height=obj.height_m,
-        )
-    if visual == "trihedral":
-        assert isinstance(obj, Trihedral)
-        return _build_trihedral_mesh(obj.side_length_m, obj.center)
-    if visual == "wall":
-        assert isinstance(obj, Wall)
-        return pv.Plane(
-            center=obj.center,
-            direction=obj.normal,
-            i_size=obj.width_m,
-            j_size=obj.height_m,
-        )
-    if visual == "plane":
-        assert isinstance(obj, Plane)
-        # A 20 m square is enough to read as "ground / reference"
-        # without dominating the camera frustum at typical zooms.
-        return pv.Plane(
-            center=obj.point,
-            direction=obj.normal,
-            i_size=20.0,
-            j_size=20.0,
-        )
-    if visual == "point":
-        assert isinstance(obj, Point)
-        # Tiny sphere so the point mass is visible.
-        return pv.Sphere(radius=0.05)
-    msg = f"Unknown Test Object visual kind: {visual!r}"
-    raise ValueError(msg)
+    visual = getattr(obj, "visual", None)
+    if visual is None:
+        msg = f"build_test_object_mesh: object has no 'visual' attribute: {obj!r}"
+        raise ValueError(msg)
+    builder = _VISUAL_KIND_BUILDERS.get(visual)
+    if builder is None:
+        msg = f"Unknown Test Object visual kind: {visual!r}"
+        raise ValueError(msg)
+    return builder(obj)
+
+
+def _sphere_mesh(obj: Sphere) -> pv.PolyData:
+    return pv.Sphere(radius=obj.radius_m)
+
+
+def _cube_mesh(obj: Cube) -> pv.PolyData:
+    a = obj.side_length_m
+    return pv.Cube(x_length=a, y_length=a, z_length=a)
+
+
+def _plate_mesh(obj: Plate) -> pv.PolyData:
+    return pv.Plane(
+        center=(0.0, 0.0, 0.0),
+        direction=obj.normal_direction,
+        i_size=obj.width_m,
+        j_size=obj.height_m,
+    )
+
+
+def _cylinder_mesh(obj: Cylinder) -> pv.PolyData:
+    return pv.Cylinder(
+        center=(0.0, 0.0, 0.0),
+        direction=obj.axis_direction,
+        radius=obj.radius_m,
+        height=obj.length_m,
+    )
+
+
+def _cone_mesh(obj: Cone) -> pv.PolyData:
+    return pv.Cone(
+        center=(0.0, 0.0, 0.0),
+        direction=obj.apex_direction,
+        radius=obj.base_radius_m,
+        height=obj.height_m,
+    )
+
+
+def _trihedral_dispatch(obj: Trihedral) -> pv.PolyData:
+    return _build_trihedral_mesh(obj.side_length_m, obj.center)
+
+
+def _wall_mesh(obj: Wall) -> pv.PolyData:
+    return pv.Plane(
+        center=obj.center,
+        direction=obj.normal,
+        i_size=obj.width_m,
+        j_size=obj.height_m,
+    )
+
+
+def _plane_mesh(obj: Plane) -> pv.PolyData:
+    # A 20 m square is enough to read as "ground / reference"
+    # without dominating the camera frustum at typical zooms.
+    return pv.Plane(
+        center=obj.point,
+        direction=obj.normal,
+        i_size=20.0,
+        j_size=20.0,
+    )
+
+
+def _point_mesh(obj: Point) -> pv.PolyData:
+    # Tiny sphere so the point mass is visible.
+    del obj
+    return pv.Sphere(radius=0.05)
+
+
+# ---------------------------------------------------------------------
+# Pre-register the 9 built-in visual kinds.
+# ---------------------------------------------------------------------
+
+
+register_visual_kind_builder("sphere", _sphere_mesh)
+register_visual_kind_builder("cube", _cube_mesh)
+register_visual_kind_builder("plate", _plate_mesh)
+register_visual_kind_builder("cylinder", _cylinder_mesh)
+register_visual_kind_builder("cone", _cone_mesh)
+register_visual_kind_builder("trihedral", _trihedral_dispatch)
+register_visual_kind_builder("wall", _wall_mesh)
+register_visual_kind_builder("plane", _plane_mesh)
+register_visual_kind_builder("point", _point_mesh)
 
 
 def _build_trihedral_mesh(

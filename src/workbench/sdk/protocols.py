@@ -166,6 +166,38 @@ class PhysicsModelProtocol(Protocol):
 
 
 @runtime_checkable
+class TestObjectProtocol(Protocol):
+    """Physics Lab Test Object plugin (PL-9.3e, plan/19 § 19.7.4).
+
+    Implementations are any dataclass-like object exposing the three
+    attributes the Library + Mesh registry need:
+
+    - ``name``: display label.
+    - ``visual``: short kind identifier (``"sphere"``, ``"cube"``,
+      or a custom string registered via
+      :func:`workbench.ui.physics_lab.register_visual_kind_builder`).
+    - ``analytic_rcs_m2(wavelength_m)``: closed-form RCS at the given
+      wavelength; ``None`` when the object has no analytic reference
+      (Point / Plane / user-defined custom kinds without RCS).
+
+    Built-in 9 Test Objects (Sphere / Cube / Plate / Cylinder / Cone /
+    Trihedral / Wall / Plane / Point) all satisfy this protocol; user
+    plugins instantiate any class that exposes the same surface.
+    """
+
+    name: str
+    visual: str
+
+    def analytic_rcs_m2(self, wavelength_m: float) -> float | None: ...
+
+
+# Stop pytest from collecting the Protocol class as a test (its name
+# starts with "Test"). Set after class definition so ``runtime_checkable``
+# does not include ``__test__`` in the required-attribute set.
+TestObjectProtocol.__test__ = False  # type: ignore[attr-defined]
+
+
+@runtime_checkable
 class NNPluginMixin(Protocol):
     """Optional mixin marking a plugin as NN-backed (plan/07 § 7.3.1).
 
