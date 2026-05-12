@@ -75,3 +75,54 @@ def test_nn_training_panel_object_name_is_set(qtbot) -> None:  # type: ignore[no
     tp = ws.nn_training_panel()
     assert tp.objectName() == "NNTrainingPanel"
     assert tp.layout() is not None
+
+
+def test_simulator_workspace_auto_registers_numpy_pairing_nn(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """A2: Step 2 plugin combo arrives pre-populated with NumpyPairingNN.
+
+    Out-of-the-box, the user can pick a dataset and click Run Eval
+    without first reaching for a Python REPL to call
+    ``register_plugin``.
+    """
+    # Pass an explicit ``nn_datasets_root=None`` so the cwd /datasets
+    # auto-scan stays out of the assertion. Production launches leave
+    # the kwarg out -> scan ``./datasets``.
+    ws = SimulatorWorkspace(nn_datasets_root=None)
+    qtbot.addWidget(ws)
+    combo = ws.nn_step2_panel().plugin_combo()
+    assert combo.findText("numpy_pairing_nn") >= 0
+
+
+def test_simulator_workspace_picks_up_datasets_from_root(  # type: ignore[no-untyped-def]
+    qtbot,
+    tmp_path,
+) -> None:
+    """A2: passing an explicit nn_datasets_root scans the directory at
+    construction time.
+    """
+    from workbench.app.nn import DatasetBuilder
+    from workbench.domain.nn import DatasetVariant, FieldSpec, SampleSpec
+
+    spec = SampleSpec(
+        spec_id="pairing",
+        probe_stage="pairing",
+        inputs=(
+            FieldSpec("up_beats", (4,), "complex64"),
+            FieldSpec("down_beats", (4,), "complex64"),
+        ),
+        labels=(FieldSpec("pair_indices", (4,), "int32"),),
+    )
+    out = tmp_path / "demo_ds.h5"
+    builder = DatasetBuilder(
+        spec=spec,
+        variant=DatasetVariant(variant_id="A"),
+        dataset_id="demo_ds",
+        output_path=out,
+    )
+    builder.finalize()
+    assert out.is_file()
+
+    ws = SimulatorWorkspace(nn_datasets_root=tmp_path)
+    qtbot.addWidget(ws)
+    combo = ws.nn_step2_panel().dataset_combo()
+    assert combo.findText("demo_ds") >= 0

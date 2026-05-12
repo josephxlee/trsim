@@ -1,18 +1,24 @@
-"""Training Panel controller (task 3, plan/07 § 7.5.3).
+"""Training Panel controller (task 3 + A1, plan/07 § 7.5.3).
 
 Wires :class:`TrainingPanel` signals to a :class:`TrainerService` run.
-The MVP TrainerService runs a deterministic fake-loop synchronously,
-so this controller blocks the Qt event loop for the duration of the
-training. The fake loop is fast (microseconds per epoch) so the
-freeze is invisible for the default 10-epoch run; a future real
-backend will need to move the loop onto a QThread.
+The TrainerService backend is read from the panel's ``Backend`` combo
+so the user can flip between the Phase 6.7 ``fake`` decay schedule and
+the task C ``numpy_mlp`` real gradient descent without editing code.
+
+Both backends run synchronously and block the Qt event loop while
+training. The fake loop is fast (microseconds per epoch). The
+numpy_mlp loop is bounded by mini-batch SGD over the (typically
+hundreds-of-samples) Pairing dataset — also fast for the MVP epoch
+counts. A future sub-step moves the loop onto a QThread so the UI
+stays responsive on larger datasets.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
-from workbench.app.nn import TrainerService, TrainingJob, TrainingResult
+from workbench.app.nn import TrainerService, TrainingBackend, TrainingJob, TrainingResult
 from workbench.ui.nn_training.training_panel import TrainingPanel
 
 
@@ -39,16 +45,17 @@ class NNTrainingController:
         if job is None:
             return
 
+        backend = cast(TrainingBackend, self.panel.current_backend())
         self._training_in_flight = True
         self.panel.set_status(f"training: 0 / {job.epochs}")
-        self.panel.append_log(f"Training started: {job.job_id}")
+        self.panel.append_log(f"Training started: {job.job_id} (backend={backend})")
         self._best_seen_val = float("inf")
         self._best_seen_epoch = 0
 
-        service = TrainerService(epoch_callback=self._on_epoch)
+        service = TrainerService(epoch_callback=self._on_epoch, backend=backend)
         try:
             result = service.run(job)
-        except (RuntimeError, OSError) as exc:
+        except (FileNotFoundError, ValueError, RuntimeError, OSError) as exc:
             self.panel.set_status(f"error: {exc}")
             self.panel.append_log(f"Training failed: {exc}")
             self._training_in_flight = False

@@ -1,4 +1,4 @@
-# TRsim MVP — 테스트 가이드 (2026-05-12 rev2)
+# TRsim MVP — 테스트 가이드 (2026-05-12 rev4)
 
 `docs/MVP_USAGE.md` 가 "어떻게 쓰나" 라면, 이 가이드는 "어떻게
 **확인** 하나" — MVP 가 정상 동작하는지 항목별 명령 + 기대 결과
@@ -7,9 +7,11 @@
 
 각 섹션 끝의 ☐ 는 직접 체크. 전부 ✓ 면 MVP 가동 OK.
 
-> **rev2 갱신점** (2026-05-12): 단축키 충돌 해소 + NN-mode 3 tab 이
-> Simulator bottom_tabs 에 직접 mount. DLC tab 의 index 가 3 → 6
-> 으로 밀림. pytest 1570 → 1576 PASS 기대.
+> **rev4 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
+> rev3 (BOM tolerance) + **rev4** (Training panel 의 `Backend` 콤보 =
+> numpy_mlp 기본 + Step 2 자동 register: NumpyPairingNN + cwd/datasets
+> auto-scan). § 5 의 Python fallback 모두 GUI 흐름으로 대체. pytest
+> 1596 PASS 기대.
 
 ---
 
@@ -146,7 +148,7 @@ $env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**기대**: `1576 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
+**기대**: `1596 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
 
 실패 시: 어느 테스트 깨졌는지 출력 보고 보고.
 
@@ -464,7 +466,7 @@ Get-ChildItem ./datasets/
 `Cancel` 을 중간 variant 시점에 누르면, 그 시점까지 완료된 variant
 만 manifest entries 에 등록 + 그 다음 variant 는 시작도 안 함.
 
-### 5.3 NN Training — numpy MLP 학습 (GUI)
+### 5.3 NN Training — numpy MLP 학습 (GUI 전용)
 
 bottom_tabs 의 `NN Training` (index 5) 클릭. panel 폼 기본값:
 
@@ -476,113 +478,58 @@ bottom_tabs 의 `NN Training` (index 5) 클릭. panel 폼 기본값:
 | Epochs | `10` | `20` |
 | LR | `1e-3` | `0.05` |
 | Framework | `numpy_only` | 그대로 |
+| **Backend** | **`numpy_mlp (real gradient descent)`** | 그대로 (rev4) |
 
 `Run Training` 클릭.
 
-**기대**:
-- Status `done: 20 epochs, best_val=0.XX@epoch_Y`
-- 매 epoch log: `epoch 1/20  train=0.XX  val=0.YY` 20 줄
-- `./weights/v1.npz` 생성
-
-**주의**: 기본 backend 는 `"fake"` (Phase 6.7) 임. 현재 TrainingPanel
-의 UI 에서 backend toggle 미노출 → 실제 numpy_mlp 학습은 아래 5.3b
-Python fallback 또는 `NNTrainingController` 직접 호출 필요. 이는
-다음 sub-step 후보 (Training panel 에 backend 선택 콤보 추가).
-
-### 5.3b Python fallback — backend=numpy_mlp 직접
-
-```powershell
-@'
-from pathlib import Path
-from workbench.app.nn import TrainerService, TrainingJob
-
-job = TrainingJob(
-    job_id="pairing_v1", task="pairing",
-    dataset_path=Path("./datasets/pairing_variant_A.h5"),
-    weights_path=Path("./weights/v1.npz"),
-    layer_sizes=(0, 32, 32, 0),
-    activation="relu",
-    learning_rate=0.05,
-    batch_size=8,
-    epochs=20,
-    train_fraction=0.7,
-    val_fraction=0.15,
-)
-
-result = TrainerService(backend="numpy_mlp", rng_seed=0).run(job)
-print(f"epochs    = {result.completed_epochs}")
-print(f"train     = {result.final_train_loss:.4f}")
-print(f"val       = {result.final_val_loss:.4f}")
-print(f"best_val  = {result.best_val_loss:.4f}")
-print(f"weights   -> {result.weights_path}")
-'@ | Out-File -Encoding utf8 _train_demo.py
-
-$env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
-.\.venv\Scripts\python.exe _train_demo.py
-```
+**기대** (numpy_mlp 기본):
+- Status `done: 20/20 epochs`
+- Log: `Training started: pairing_v1 (backend=numpy_mlp)` + 매 epoch
+  status 갱신
+- `./weights/v1.npz` 생성 + 아래 sanity 통과
 
 ```powershell
 .\.venv\Scripts\python.exe -c "import numpy as np; f=np.load('./weights/v1.npz'); print(list(f.files))"
 ```
 
-**기대**: `['layer_0_W', 'layer_0_b', 'layer_1_W', 'layer_1_b', 'layer_2_W', 'layer_2_b']`
+**기대 출력**: `['layer_0_W', 'layer_0_b', 'layer_1_W', 'layer_1_b', 'layer_2_W', 'layer_2_b']`
 
-### 5.4 Step 2 — 4-error 평가 (GUI)
+Backend 콤보를 `fake (deterministic decay — smoke only)` 로 바꾸면:
+- 데이터셋 없이도 동작 (HDF5 read 0)
+- weights 파일은 `layer_0`, `layer_1`, ... (W/b 분리 X) 로 zero matrix
+- training/val loss 가 결정적 exponential decay
+- UI smoke 검증 용도 (실제 학습 X)
+
+### 5.4 Step 2 — 4-error 평가 (GUI 전용)
 
 bottom_tabs 의 `NN Step 2` (index 4) 클릭.
 
-**현재 상태**: controller 의 dataset / plugin 콤보가 코드 register
-구조 (Phase 6.8) — UI 에서 콤보는 빈 상태로 보임. 사용 가능한 워크
-플로우는 두 가지:
+**기본 register 상태** (rev4):
+- Plugin combo: `numpy_pairing_nn` (NumpyPairingNN baseline 자동 등록)
+- Dataset combo: `<cwd>/datasets/*.h5` 자동 scan 결과. 5.2 에서 `./datasets/` 에 4 개 만들었으면 콤보에 `pairing_variant_A`, `_B`, `_C`, `_D` 등 등장 (`trsim ui` 시작 시점의 cwd 가 그 directory 의 parent 여야 함)
 
-(A) 콤보에 명시적 등록 후 UI 사용 — 다음 sub-step 후보 (default
-시나리오 + plugin 자동 register 추가).
-
-(B) Python fallback (현재 실용 경로):
-
-```powershell
-@'
-from pathlib import Path
-from workbench.app.nn import NumpyPairingNN, evaluate
-
-plugin = NumpyPairingNN()
-plugin.load_weights(Path("./weights/v1.npz"))
-
-result = evaluate(
-    plugin,
-    training=Path("./datasets/pairing_variant_A.h5"),
-    dev=Path("./datasets/pairing_variant_B.h5"),
-    test=Path("./datasets/pairing_variant_D.h5"),
-    bayes_error=0.0,
-)
-print(f"training = {result.training_error:.3f}")
-print(f"dev      = {result.dev_error:.3f}")
-print(f"test     = {result.test_error:.3f}")
-print(f"hint     = {result.diagnosis_hint}")
-'@ | Out-File -Encoding utf8 _eval_demo.py
-
-.\.venv\Scripts\python.exe _eval_demo.py
-```
+dataset 콤보 + plugin 콤보 선택 → `Run Eval` 클릭.
 
 **기대**:
-- 4 줄 출력
-- training / dev / test 모두 0.0 ~ 1.0 사이
-- hint 는 `"balanced"` 또는 `"variance high"` / `"data mismatch"` /
-  `"avoidable bias high"` 중 하나
+- 4-error 표의 `Pairing` 행 `RMSE` 셀에 0.0 ~ 1.0 사이 값
+- `Bias` 셀 `0.000`
+- 다른 task 행 (Tracker / Predictor / Classifier) 은 빈 상태 (MVP 미구현)
 
-NumpyPairingNN 은 Hungarian 비학습 baseline 이므로 4 variant 모두
-비슷한 loss 가 정상 (variant 별 차이가 클 수 있음 — closed-form GT 와
-다른 scenario 면).
+NumpyPairingNN 은 Hungarian 비학습 baseline. 4 variant 데이터 모두
+closed-form GT 라 loss 가 작게 (수 % 이하) 나와야 정상.
+
+**dataset 콤보가 비어있을 때**:
+- `trsim ui` 띄운 시점 cwd 의 `./datasets/` 이 비어있음
+- 해결: `trsim ui` 종료 → 그 directory 에서 다시 `trsim ui` 실행. 또는
+  `NNStep2Controller.register_dataset(name, path)` 으로 명시 등록.
 
 ### 5.5 청소
 
 ```powershell
-Remove-Item _train_demo.py, _eval_demo.py
 Remove-Item -Recurse -Force ./datasets, ./weights
 ```
 
-☐ NN 흐름 5 항목 통과 (5.3b / 5.4 는 GUI 통합 미흡 상태에서 Python
-fallback 통과 = OK)
+☐ NN 흐름 5 항목 통과 (전부 GUI 클릭으로 가능 — rev4)
 
 ---
 
@@ -595,7 +542,7 @@ fallback 통과 = OK)
 | 2 | pytest 1576 + ruff + mypy + lint-imports | ☐ |
 | 3 | UI 가동 + workspace 전환 + 5 activity + sidebar + 6 bottom tabs | ☐ |
 | 4 | DLC 자동 로드 (panel mount index 6 + resource sidebar + --no-dlc) | ☐ |
-| 5 | NN Step 1 single + chain (GUI) + numpy_mlp 학습 (Python fallback) + 4-error eval | ☐ |
+| 5 | NN Step 1 single + chain + numpy_mlp 학습 + 4-error eval (전부 GUI) | ☐ |
 
 전부 ✓ 면 MVP 가동 검증 끝. 후속 개발은 [`docs/MVP_USAGE.md`](MVP_USAGE.md)
 § 8 + [`docs/MVP_STATUS.md`](MVP_STATUS.md) § 4.3 "MVP+α" 후보 리스트
@@ -622,4 +569,5 @@ fallback 통과 = OK)
 | DLC tab 이 안 보임 | manifest 잘못 / entry_point typo / `--no-dlc` 켜짐 | § 4.1 manifest 와 1:1 비교 + `--no-dlc` 끄기 |
 | DLC tab 라벨이 `[DLC] _Cls` (pkg 없음) | manifest `[package].id` 가 비었음 | manifest 검증 (kebab-case + SemVer) |
 | numpy_mlp 가 `ValueError "0 sample"` | h5 가 0 frame 으로 빌드됨 | Frames > 0 으로 Step 1 재실행 |
-| Training panel `Run` 클릭 후 loss 일정 (감소 안 함) | backend 가 default `"fake"` (decay 스케줄) | § 5.3b Python fallback 으로 `backend="numpy_mlp"` 호출 |
+| Training panel `Run` 클릭 후 `error: ... No such file ...` | Backend = numpy_mlp (default rev4) 인데 dataset 경로가 없음 | dataset_edit 경로를 5.2 에서 빌드한 `.h5` 로 갱신. 또는 Backend 를 `fake` 로 토글 (smoke 용) |
+| Step 2 dataset combo 비어있음 | `trsim ui` 가동 시점 cwd 의 `./datasets/` 이 빈 디렉토리 | 그 directory 안에서 `trsim ui` 다시 실행. 또는 controller 의 `register_dataset(name, path)` 명시 호출 |

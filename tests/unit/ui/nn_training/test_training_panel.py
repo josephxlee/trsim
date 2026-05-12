@@ -30,6 +30,30 @@ def test_default_input_values(qtbot: object) -> None:
     assert panel.epochs_edit().text() == "10"
     assert panel.lr_edit().text() == "1e-3"
     assert panel.framework_combo().currentText() == "numpy_only"
+    # A1: backend combo defaults to numpy_mlp so the panel produces a
+    # real learning curve without the user editing anything.
+    assert panel.current_backend() == "numpy_mlp"
+
+
+def test_backend_combo_has_two_entries(qtbot: object) -> None:
+    panel = _panel(qtbot)
+    combo = panel.backend_combo()
+    assert combo.count() == 2
+    assert {combo.itemData(i) for i in range(combo.count())} == {"numpy_mlp", "fake"}
+
+
+def test_set_backend_round_trips(qtbot: object) -> None:
+    panel = _panel(qtbot)
+    panel.set_backend("fake")
+    assert panel.current_backend() == "fake"
+    panel.set_backend("numpy_mlp")
+    assert panel.current_backend() == "numpy_mlp"
+
+
+def test_set_backend_unknown_rejected(qtbot: object) -> None:
+    panel = _panel(qtbot)
+    with pytest.raises(ValueError, match=r"unknown backend"):
+        panel.set_backend("torch")
 
 
 def test_default_progress_labels(qtbot: object) -> None:

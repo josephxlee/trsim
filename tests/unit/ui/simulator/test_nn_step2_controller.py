@@ -129,6 +129,62 @@ def test_register_plugin_rejects_empty_name(qtbot: object) -> None:
 
 
 # ---------------------------------------------------------------------
+# Default setup (A2) — out-of-the-box dataset + plugin auto-register
+# ---------------------------------------------------------------------
+
+
+def test_register_default_setup_adds_numpy_pairing_nn(qtbot: object) -> None:
+    """Out-of-the-box plugin: NumpyPairingNN."""
+    panel, controller = _wire(qtbot)
+    n_ds, n_pl = controller.register_default_setup()
+    assert n_ds == 0
+    assert n_pl == 1
+    assert panel.plugin_combo().findText("numpy_pairing_nn") >= 0
+
+
+def test_register_default_setup_scans_datasets_root(qtbot: object, tmp_path: Path) -> None:
+    """Scanning <root>/*.h5 registers every dataset under its stem."""
+    ds_a = _build_identity_dataset(tmp_path)  # tmp_path/identity.h5
+    panel, controller = _wire(qtbot)
+    n_ds, n_pl = controller.register_default_setup(datasets_root=tmp_path)
+    assert n_ds == 1
+    assert n_pl == 1
+    assert panel.dataset_combo().findText("identity") >= 0
+    assert ds_a.is_file()  # sanity: scanned file still exists
+
+
+def test_register_default_setup_missing_root_is_skip(qtbot: object, tmp_path: Path) -> None:
+    panel, controller = _wire(qtbot)
+    n_ds, _ = controller.register_default_setup(datasets_root=tmp_path / "ghost")
+    assert n_ds == 0
+    assert panel.dataset_combo().count() == 1  # only the (none) placeholder
+
+
+def test_register_default_setup_builtin_plugins_false(qtbot: object) -> None:
+    panel, controller = _wire(qtbot)
+    n_ds, n_pl = controller.register_default_setup(builtin_plugins=False)
+    assert n_ds == 0
+    assert n_pl == 0
+    assert panel.plugin_combo().findText("numpy_pairing_nn") < 0
+
+
+def test_register_default_setup_does_not_double_register(qtbot: object) -> None:
+    panel, controller = _wire(qtbot)
+    controller.register_default_setup()
+    _n_ds, n_pl = controller.register_default_setup()
+    assert n_pl == 0  # second call sees the existing plugin and skips
+    # combo still has exactly one numpy_pairing_nn entry
+    assert (
+        sum(
+            1
+            for i in range(panel.plugin_combo().count())
+            if panel.plugin_combo().itemText(i) == "numpy_pairing_nn"
+        )
+        == 1
+    )
+
+
+# ---------------------------------------------------------------------
 # Run evaluation
 # ---------------------------------------------------------------------
 

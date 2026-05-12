@@ -27,6 +27,34 @@
 > workbench-train subprocess wrapping / Physics Lab workspace
 > (v0.40 Phase 9).
 
+- **A1 + A2 (MVP NN UX 완성) DONE** — 사용자 NN 전체 흐름이 Python
+  fallback 없이 GUI 만으로 가능.
+  - **A1 TrainingPanel backend toggle**: `_BACKENDS` literal
+    `("numpy_mlp", "fake")` + `Backend` QComboBox row + `current_
+    backend()` / `set_backend(id)` API. Default = `numpy_mlp` (real
+    gradient descent). `NNTrainingController._on_train` 가 `panel.
+    current_backend()` → `TrainerService(backend=...)` 전달. 로그에
+    `Training started: <job_id> (backend=<backend>)` 출력. 예외 catch
+    에 `FileNotFoundError` 추가 (numpy_mlp 가 missing dataset 일 때).
+    6 신규 tests (panel combo count / default numpy_mlp / set_backend
+    round-trip / unknown reject / fake log / numpy_mlp end-to-end with
+    synthetic HDF5 / numpy_mlp missing dataset error).
+  - **A2 Step 2 default register**: `NNStep2Controller.register_default_
+    setup(*, datasets_root, builtin_plugins=True)` — `datasets_root /
+    "*.h5"` glob scan 후 stem 으로 등록 + `NumpyPairingNN` 자동 등록
+    (`"numpy_pairing_nn"` 키). 이미 등록된 plugin 은 skip
+    (double-register 방지). `SimulatorWorkspace.__init__` 가
+    `nn_datasets_root=<cwd>/datasets` (default) 으로 호출 — `trsim ui`
+    가동 시 cwd 의 datasets/ 자동 scan + plugin 자동 등록. test 격리는
+    `nn_datasets_root=None` 으로 가능 (sentinel `_NN_DATASETS_DEFAULT`).
+    7 신규 tests (controller default plugin / dataset scan / missing
+    root skip / builtin_plugins=False / no double-register / workspace
+    auto-register / workspace explicit datasets_root).
+  - `docs/MVP_GUIDE.md` rev4 갱신: § 5.3 Python fallback 제거 → GUI
+    Backend 콤보 안내. § 5.4 Python fallback 제거 → 자동 등록 plugin
+    +cwd scan 안내. § 7 실패 대처표 2 행 갱신 (numpy_mlp missing
+    dataset / Step 2 dataset combo 비어있음). 누적 **1596 PASS** (+13
+    신규: A1=6, A2=7). 5 contracts KEPT.
 - **TOML BOM tolerance + MVP_GUIDE PowerShell 5.1 fix DONE** — 사용자
   MVP_GUIDE § 4.1 의 `Out-File -Encoding utf8` 가 PowerShell 5.1 에서
   UTF-8 **BOM** 으로 저장 → tomllib 가 `Invalid statement (at line 1,

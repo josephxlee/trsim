@@ -52,6 +52,13 @@ from PySide6.QtWidgets import (
 
 _FRAMEWORKS: tuple[str, ...] = ("numpy_only", "tensorflow", "pytorch")
 
+# TrainerService backend identifiers (must match the Literal in
+# :data:`workbench.app.nn.TrainingBackend`).
+_BACKENDS: tuple[tuple[str, str], ...] = (
+    ("numpy_mlp", "numpy_mlp (real gradient descent)"),
+    ("fake", "fake (deterministic decay — smoke only)"),
+)
+
 
 class TrainingPanel(QWidget):
     """Job config form + epoch progress readout for the Trainer."""
@@ -92,6 +99,14 @@ class TrainingPanel(QWidget):
         self._framework_combo.setObjectName("NNTrainingFramework")
         for fw in _FRAMEWORKS:
             self._framework_combo.addItem(fw)
+        # numpy_mlp = real gradient descent (task C). fake = deterministic
+        # decay (Phase 6.7 smoke). Default is numpy_mlp so the panel
+        # produces a learning curve out of the box. Stored data is the
+        # backend literal; the user-visible text is a longer human label.
+        self._backend_combo = QComboBox(box)
+        self._backend_combo.setObjectName("NNTrainingBackend")
+        for backend_id, label in _BACKENDS:
+            self._backend_combo.addItem(label, backend_id)
 
         form.addRow("Job ID", self._job_id_edit)
         form.addRow("Dataset", self._dataset_edit)
@@ -99,6 +114,7 @@ class TrainingPanel(QWidget):
         form.addRow("Epochs", self._epochs_edit)
         form.addRow("Learning rate", self._lr_edit)
         form.addRow("Framework", self._framework_combo)
+        form.addRow("Backend", self._backend_combo)
         return box
 
     def _build_progress_block(self) -> QGroupBox:
@@ -179,6 +195,23 @@ class TrainingPanel(QWidget):
 
     def framework_combo(self) -> QComboBox:
         return self._framework_combo
+
+    def backend_combo(self) -> QComboBox:
+        return self._backend_combo
+
+    def current_backend(self) -> str:
+        """Return the currently selected :data:`TrainingBackend` literal."""
+        data = self._backend_combo.currentData()
+        return str(data) if isinstance(data, str) else _BACKENDS[0][0]
+
+    def set_backend(self, backend_id: str) -> None:
+        """Programmatic mirror of selecting a backend in the combo."""
+        for idx, (bid, _label) in enumerate(_BACKENDS):
+            if bid == backend_id:
+                self._backend_combo.setCurrentIndex(idx)
+                return
+        msg = f"unknown backend {backend_id!r}; expected one of {[b for b, _ in _BACKENDS]}"
+        raise ValueError(msg)
 
     def status_label(self) -> QLabel:
         return self._status_label

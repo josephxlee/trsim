@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -73,14 +74,28 @@ class DLCMountError:
 class SimulatorWorkspace(QWidget):
     """Composite simulator view with eight runtime panels."""
 
+    # Sentinel: tests pass ``nn_datasets_root=None`` to suppress the
+    # ``<cwd>/datasets`` auto-scan and keep the Step 2 dataset combo
+    # empty. Production callers (``trsim ui``) leave the kwarg out so
+    # the default cwd path is used.
+    _NN_DATASETS_DEFAULT: object = object()
+
     def __init__(
         self,
         parent: QWidget | None = None,
         *,
         panel_registry: PanelRegistry | None = None,
+        nn_datasets_root: Path | None | object = _NN_DATASETS_DEFAULT,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("SimulatorWorkspace")
+        if nn_datasets_root is self._NN_DATASETS_DEFAULT:
+            self._nn_datasets_root: Path | None = Path.cwd() / "datasets"
+        elif isinstance(nn_datasets_root, Path) or nn_datasets_root is None:
+            self._nn_datasets_root = nn_datasets_root
+        else:
+            msg = "nn_datasets_root must be a Path or None"
+            raise TypeError(msg)
 
         # Build panels.
         self._scene_3d_panel = Scene3DPanel(self)
@@ -133,6 +148,11 @@ class SimulatorWorkspace(QWidget):
         self._nn_step1_controller = NNStep1Controller(self._nn_step1_panel)
         self._nn_step2_panel = Step2EvalPanel(self)
         self._nn_step2_controller = NNStep2Controller(self._nn_step2_panel)
+        # Default Step 2 setup: scan <cwd>/datasets/*.h5 (or whatever
+        # path the caller injected) + register NumpyPairingNN so the
+        # panel is usable without the user having to call register_*
+        # by hand.
+        self._nn_step2_controller.register_default_setup(datasets_root=self._nn_datasets_root)
         self._nn_training_panel = TrainingPanel(self)
         self._nn_training_controller = NNTrainingController(self._nn_training_panel)
 

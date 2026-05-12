@@ -21,7 +21,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from pathlib import Path
 
-from workbench.app.nn import pairing_loss
+from workbench.app.nn import NumpyPairingNN, pairing_loss
 from workbench.app.nn.evaluator import _PairingPredictor
 from workbench.ui.simulator.nn_mode.step2_eval import Step2EvalPanel
 
@@ -75,6 +75,44 @@ class NNStep2Controller:
             raise ValueError(msg)
         self._plugins[name] = plugin
         self._refresh_combos()
+
+    def register_default_setup(
+        self,
+        *,
+        datasets_root: Path | None = None,
+        builtin_plugins: bool = True,
+    ) -> tuple[int, int]:
+        """Populate combos with sensible defaults so the panel is usable
+        out of the box.
+
+        Args:
+            datasets_root: Directory scanned for ``*.h5`` datasets. Each
+                file is registered under its stem (``pairing_variant_A``
+                → key ``"pairing_variant_A"``). ``None`` or a missing
+                directory skips the dataset scan.
+            builtin_plugins: When ``True`` (default), registers the
+                workbench-provided :class:`NumpyPairingNN` baseline
+                under ``"numpy_pairing_nn"``. Disable in tests that
+                want a strictly empty plugin registry.
+
+        Returns:
+            ``(n_datasets_registered, n_plugins_registered)`` for the
+            caller to log / sanity-check.
+        """
+        n_ds = 0
+        if datasets_root is not None and datasets_root.is_dir():
+            for entry in sorted(datasets_root.glob("*.h5")):
+                self._datasets[entry.stem] = entry
+                n_ds += 1
+
+        n_pl = 0
+        if builtin_plugins and "numpy_pairing_nn" not in self._plugins:
+            self._plugins["numpy_pairing_nn"] = NumpyPairingNN()
+            n_pl += 1
+
+        if n_ds or n_pl:
+            self._refresh_combos()
+        return n_ds, n_pl
 
     # ------------------------------------------------------------------
     # Slots
