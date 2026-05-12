@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 
 from workbench.app.physics_lab import BouncingBallSimulator, PhysicsClock
 from workbench.domain.physics_lab import default_library
+from workbench.ui.physics_lab.python_highlighter import PythonSyntaxHighlighter
 
 # ---------------------------------------------------------------------
 # Library
@@ -171,6 +172,11 @@ class CodePreview(QWidget):
         self._editor.setReadOnly(True)
         self._editor.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         self._editor.setFontFamily("Consolas")
+        # PL-9.1a — install Python syntax highlighter on the document.
+        # Read-mode shows the built-in step source coloured; Edit-mode
+        # keeps the colours so the user can still navigate the source
+        # they are editing.
+        self._highlighter = PythonSyntaxHighlighter(self._editor.document())
         try:
             self._builtin_src = inspect.getsource(BouncingBallSimulator.step)
         except (OSError, TypeError):
@@ -219,6 +225,9 @@ class CodePreview(QWidget):
 
     def status_label(self) -> QLabel:
         return self._status_label
+
+    def highlighter(self) -> PythonSyntaxHighlighter:
+        return self._highlighter
 
     def is_editing(self) -> bool:
         return self._edit_btn.isChecked()

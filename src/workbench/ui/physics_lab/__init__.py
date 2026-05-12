@@ -15,6 +15,11 @@ from workbench.ui.physics_lab.bouncing_ball_demo import (
     LibraryWidget,
     ParametersWidget,
 )
+from workbench.ui.physics_lab.python_highlighter import (
+    PythonSyntaxHighlighter,
+    TokenSpan,
+    tokenize_python_line,
+)
 from workbench.ui.physics_lab.workspace import PhysicsLabWorkspace
 
 __all__ = [
@@ -24,4 +29,7 @@ __all__ = [
     "LibraryWidget",
     "ParametersWidget",
     "PhysicsLabWorkspace",
+    "PythonSyntaxHighlighter",
+    "TokenSpan",
+    "tokenize_python_line",
 ]
