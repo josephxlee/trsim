@@ -27,6 +27,26 @@
 > workbench-train subprocess wrapping / Physics Lab workspace
 > (v0.40 Phase 9).
 
+- **DLC silent-fail fix DONE** — 사용자 MVP_GUIDE § 4.1+4.2 따라 sample
+  DLC 만들었지만 tab 안 등장. 두 가지 root cause:
+  - **PluginLoader slash-path 미처리**: plan/17 § 17.2.4 표준이
+    `"ui/diagnostic_panel:Panel"` 같은 slash 형식이지만
+    `_import_from_package_root` 가 `module_name.split(".")` 만 했음.
+    이제 `module_name.replace("\\\\", "/").replace("/", ".").split(".")`
+    으로 normalize. Windows 백슬래시도 처리. `unique_name` 도 dot
+    형식으로 통일해 sys.modules 충돌 회피. 2 신규 tests (slash 경로
+    success + backslash 경로 success).
+  - **load_errors silent suppression**: PackageManager + PluginLoader
+    + SimulatorWorkspace 의 `load_errors` / `dlc_mount_errors` 가
+    누적되지만 `trsim ui` 가 stderr 출력 안 함. 사용자는 왜 DLC 안
+    뜨는지 알 길 없음. `cli/main.py` 의 `build_ui_window` 가
+    `_report_dlc_load_errors` + `_report_simulator_mount_errors` 호출 —
+    package error (`[trsim ui] package error <path>: <msg>`), plugin
+    error (`[trsim ui] plugin error <pkg>/<slot> -> <target>:
+    <msg>`), panel mount error (`[trsim ui] panel mount error <pkg>:
+    <msg>`) 모두 stderr 로 echo. 2 신규 tests (잘못된 TOML → package
+    error / 존재하지 않는 entry_point module → plugin error). 누적
+    **1580 PASS** (+4 신규). 5 contracts KEPT.
 - **MVP UI gap fix DONE** — 사용자 MVP_GUIDE 검증에서 발견된 2 개
   진짜 누락점 해소.
   - **단축키 충돌 해소**: toolbar QAction `setShortcut` + standalone

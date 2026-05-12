@@ -255,12 +255,23 @@ class PluginLoader:
 def _import_from_package_root(root: Path, module_name: str) -> Any:
     """Import ``module_name`` from a file under ``root``.
 
+    Accepts both dot-style (``"pkg.sub.mod"``) and slash-style
+    (``"pkg/sub/mod"``) module paths — plan/17 § 17.2.4 manifest
+    examples use slash, while a pure-Python author may prefer dots.
+    Backslash separators are normalised the same way so a Windows
+    author writing ``"ui\\panel"`` is not surprised.
+
     Looks for ``root / <module_name>.py`` first, then for a package
     ``root / <module_name> / __init__.py``. The module is loaded
     into a unique private name to avoid clashing with the host
     workbench's sys.modules entries.
     """
-    parts = module_name.split(".")
+    normalised = module_name.replace("\\", "/").replace("/", ".")
+    parts = [p for p in normalised.split(".") if p]
+    if not parts:
+        msg = f"module path {module_name!r} resolves to an empty segment list"
+        raise ImportError(msg)
+
     candidate_file = root.joinpath(*parts[:-1], parts[-1] + ".py")
     candidate_pkg = root.joinpath(*parts) / "__init__.py"
     if candidate_file.is_file():
@@ -276,8 +287,10 @@ def _import_from_package_root(root: Path, module_name: str) -> Any:
 
     # Use a stable, package-prefixed module name so reload semantics
     # are predictable and so two packages cannot collide on the same
-    # plain module name.
-    unique_name = f"workbench_dlc.{root.name}.{module_name}"
+    # plain module name. Use the normalised dot form so two manifests
+    # spelling the same module differently (slash vs dot) still share
+    # one sys.modules slot.
+    unique_name = f"workbench_dlc.{root.name}.{'.'.join(parts)}"
     spec = importlib.util.spec_from_file_location(unique_name, target_path)
     if spec is None or spec.loader is None:
         msg = f"could not create import spec for {target_path}"

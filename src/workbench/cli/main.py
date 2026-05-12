@@ -208,6 +208,11 @@ def build_ui_window(args: argparse.Namespace) -> object:
     without entering the Qt event loop. The return type is left as
     :class:`object` so callers that never touch the UI do not need
     to import PySide6 for type checking.
+
+    DLC ``load_errors`` (package manifest failures, plugin import
+    failures, panel mount failures) are echoed to stderr so users
+    can tell *why* a sample ``.trsim-pkg`` did not light up the
+    workspace. Errors are accumulated; the window is still built.
     """
     # Local imports keep the CLI usable in headless contexts that
     # never touch the UI subcommand (e.g. CI running `trsim profile`).
@@ -216,9 +221,49 @@ def build_ui_window(args: argparse.Namespace) -> object:
     from workbench.ui.workspace_selector import Workspace
 
     runtime = None if args.no_dlc else build_dlc_runtime()
+    if runtime is not None:
+        _report_dlc_load_errors(runtime)
     window = MainWindow(dlc_runtime=runtime)
+    if runtime is not None:
+        _report_simulator_mount_errors(window)
     window.selector.set_workspace(Workspace(args.workspace))
     return window
+
+
+def _report_dlc_load_errors(runtime: object) -> None:
+    """Echo PackageManager + PluginLoader errors to stderr."""
+    pm_errors = getattr(getattr(runtime, "app", None), "package_manager", None)
+    pm_load_errors = getattr(pm_errors, "load_errors", ()) if pm_errors is not None else ()
+    for err in pm_load_errors:
+        print(f"[trsim ui] package error {err.path}: {err.message}", file=sys.stderr)
+
+    pl = getattr(getattr(runtime, "app", None), "plugin_loader", None)
+    pl_load_errors = getattr(pl, "load_errors", ()) if pl is not None else ()
+    for err in pl_load_errors:
+        print(
+            f"[trsim ui] plugin error {err.package_id}/{err.slot} -> {err.target}: {err.message}",
+            file=sys.stderr,
+        )
+
+
+def _report_simulator_mount_errors(window: object) -> None:
+    """Echo Simulator DLC panel mount errors to stderr (Task D + MVP fix)."""
+    try:
+        from workbench.ui.simulator.workspace import SimulatorWorkspace
+        from workbench.ui.workspace_selector import Workspace
+    except ImportError:  # pragma: no cover — module guaranteed in app
+        return
+    page_getter = getattr(window, "page", None)
+    if page_getter is None:
+        return
+    sim = page_getter(Workspace.SIMULATOR)
+    if not isinstance(sim, SimulatorWorkspace):
+        return
+    for err in sim.dlc_mount_errors:
+        print(
+            f"[trsim ui] panel mount error {err.registration.source_package_id}: {err.message}",
+            file=sys.stderr,
+        )
 
 
 def _cmd_ui(args: argparse.Namespace) -> int:

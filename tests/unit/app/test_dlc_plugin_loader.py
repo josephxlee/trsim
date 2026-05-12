@@ -80,6 +80,47 @@ def test_ui_panel_slot_uses_python_import(tmp_path: Path) -> None:
     assert loader.plugins_for_slot("trsim.ui.panels")[0].attribute is not None
 
 
+def test_python_entry_point_with_slash_path_resolves(tmp_path: Path) -> None:
+    """plan/17 § 17.2.4 manifest examples use slash separators —
+    ``"ui/diagnostic_panel:Panel"`` — and the loader must accept them
+    as readily as ``"ui.diagnostic_panel:Panel"``. Reported during MVP
+    verification: a sample DLC built per MVP_GUIDE § 4.1 silently failed
+    to mount because the loader only split on dots.
+    """
+    _write_package(
+        tmp_path,
+        "demo-panel",
+        entry_points={"trsim.ui.panels": "ui/diagnostic_panel:DiagnosticPanel"},
+        files={
+            "ui/diagnostic_panel.py": "class DiagnosticPanel:\n    pass\n",
+        },
+    )
+    loader = _scanned_loader(tmp_path)
+    loader.load_all()
+    plugins = loader.plugins_for_slot("trsim.ui.panels")
+    assert len(plugins) == 1
+    assert plugins[0].attribute is not None
+    assert plugins[0].attribute.__name__ == "DiagnosticPanel"
+    assert loader.load_errors == ()
+
+
+def test_python_entry_point_with_backslash_path_resolves(tmp_path: Path) -> None:
+    """Windows-authored manifests with ``ui\\panel`` separators load too."""
+    _write_package(
+        tmp_path,
+        "win-author",
+        entry_points={"trsim.ui.panels": "ui\\\\panel:Panel"},
+        files={
+            "ui/panel.py": "class Panel:\n    pass\n",
+        },
+    )
+    loader = _scanned_loader(tmp_path)
+    loader.load_all()
+    plugins = loader.plugins_for_slot("trsim.ui.panels")
+    assert len(plugins) == 1
+    assert plugins[0].attribute is not None
+
+
 def test_python_target_without_colon_records_error(tmp_path: Path) -> None:
     _write_package(
         tmp_path,
