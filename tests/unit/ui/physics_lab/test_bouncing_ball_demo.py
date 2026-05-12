@@ -265,3 +265,58 @@ def test_revert_user_step_restores_built_in(qtbot) -> None:  # type: ignore[no-u
     controller.revert_user_step_code()
     assert controller.simulator.has_step_override is False
     assert "reverted" in ws.code_panel().status_label().text().lower()
+
+
+def test_revert_leaves_editor_with_valid_module_level_source(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """User reported SyntaxError after Revert. Root cause: the editor
+    was being repopulated with ``inspect.getsource(...)`` of the
+    method, which is 4-space indented and carries ``self`` as the
+    first argument — not valid module-level Python. A subsequent
+    Save & Reload would then crash ``exec``.
+
+    Fix: Revert refreshes the editor with the standalone-function
+    scaffold (the same body the very first Edit click installs) so
+    re-saving works without modification.
+    """
+    import ast
+
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    cp = ws.code_panel()
+    # Pretend the user just installed an override.
+    ws.bouncing_ball_controller().apply_user_step_code(
+        "def step(simulator, dt_s):\n    simulator.update_state(simulator.state)\n"
+    )
+    # Revert via the controller (same path the button click takes).
+    ws.bouncing_ball_controller().revert_user_step_code()
+
+    source = cp.current_source()
+    # The body must compile cleanly as a module — that's the
+    # regression: previously it was an indented method.
+    ast.parse(source, mode="exec")
+    assert "def step(simulator, dt_s)" in source
+    # And the Edit toggle drops back to off so the user is not
+    # staring at an editable body that the click just replaced.
+    assert cp.is_editing() is False
+
+
+def test_revert_then_resave_succeeds_without_syntax_error(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """End-to-end of the bug the user surfaced: install a custom step,
+    Revert, then click Save & Reload again. Must apply cleanly.
+    """
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    cp = ws.code_panel()
+
+    controller.apply_user_step_code(
+        "def step(simulator, dt_s):\n    simulator.update_state(simulator.state)\n"
+    )
+    controller.revert_user_step_code()
+    # Re-enter edit mode (the user would click Edit again).
+    cp.edit_button().setChecked(True)
+    # Save & Reload with the scaffold body untouched.
+    ok = controller.apply_user_step_code(cp.current_source())
+    assert ok is True
+    assert controller.simulator.has_step_override is True
+    assert "syntaxerror" not in cp.status_label().text().lower()

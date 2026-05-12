@@ -230,9 +230,23 @@ class CodePreview(QWidget):
         return self._builtin_src
 
     def reset_to_builtin(self) -> None:
-        """Public re-revert hook for the controller."""
-        self._editor.setPlainText(self._builtin_src)
-        self._status_label.setText("reverted — built-in step restored")
+        """Public re-revert hook for the controller.
+
+        The override on the simulator is cleared by the controller —
+        this method only refreshes the editor body. We use
+        :data:`_DEFAULT_USER_STEP` instead of the raw
+        ``inspect.getsource`` dump because the latter is a *method*
+        with 4-space indent + ``self`` arg, which is not valid
+        module-level Python and would crash ``exec`` if the user
+        clicks Save & Reload again. The scaffold mirrors the same
+        physics but in standalone-function form.
+        """
+        self._editor.setPlainText(_DEFAULT_USER_STEP)
+        # Drop back to read-only so the user is not staring at an
+        # editable body that just got swapped under them — the
+        # controller posts a green "reverted" status right after.
+        if self._edit_btn.isChecked():
+            self._edit_btn.setChecked(False)
 
     def set_status(self, message: str, *, ok: bool = True) -> None:
         """Controller posts compile / install results here."""
