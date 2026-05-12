@@ -17,20 +17,83 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Physics Lab Phase 9.1a/b/c DONE** — Code Pane Python syntax
-> highlight + Frame slider (history-based scrub with step-forward /
-> step-back) + `@physics_param` decorator + AutoParametersWidget
-> 자동 슬라이더. ParametersWidget 이 AutoParametersWidget wrapper 로
-> 리팩터링되어 4 슬라이더 (gravity / restitution / initial_height
-> / initial_velocity) 자동 노출. 누적 **1773 PASS** (+81 신규: 31
-> highlighter + 14 frame slider + 36 auto sliders), 5 contracts KEPT.
+> **Physics Lab Phase 9.1 ALL DONE (9.1a~9.1g)** — Code highlight +
+> Frame slider + 자동 슬라이더 + PyVista 3D Test Object viewer + 4
+> 시간 모드 (Static / Run / Compare / Sweep) + Library 3 카테고리
+> (Tests / Models / Saved Experiments) + Save/Load Experiment (TOML)
+> + Air Drag demo (`drag_coefficient_k` 5th param + quadratic drag
+> simulator). ParametersWidget 5 슬라이더 (gravity / restitution /
+> initial_height / initial_velocity / drag_coefficient_k) 자동 노출.
+> 누적 **1850 PASS** (+158 신규 in 9.1 묶음), 5 contracts KEPT.
 >
-> **세션 인계**: `docs/sessions/phase_9_1_abc_handoff_2026_05_12.md`.
-> 다음 세션 진입점 = **Phase 9.1d/e 묶음** (PyVista 3D Test Object
-> mesh + 4 시간 모드 Static/Run/Compare/Sweep). 사용자 우선순위:
-> **physics_lab > simulator > editor** — Phase 9.1 → 9.2 → 9.3 →
+> **세션 인계**: `docs/sessions/phase_9_1_complete_handoff_2026_05_12.md`.
+> 다음 세션 진입점 = **Phase 9.2** (Library Measured Data + Papers
+> + Lab-B Validation Bench + Lab-C Parameter Studio 측정→fit→채택
+> 워크플로). 사용자 우선순위 (변동 없음):
+> **physics_lab > simulator > editor** — Phase 9.1 ✓ → 9.2 → 9.3 →
 > Phase 5 후속 → NN 보강 → Phase 8 HIL → DLC CLI → UI binding →
 > Floating dock 옵션 B / Theme manager 순서로 자동 진행.
+
+- **Phase 9.1d/e/f/g DONE** — Physics Lab 잔여 4 sub-step (2nd + 3rd
+  bundles per `docs/sessions/phase_mvp_a_handoff_2026_05_12.md` § 3).
+  - **9.1d** (`ac1b675`): `ui/physics_lab/test_object_view.py` 신규 —
+    `build_test_object_mesh(obj) -> pv.PolyData` (9 visual kind → pv.
+    Sphere/Cube/Plane/Cylinder/Cone/Trihedral(merged plates)/Wall/
+    Plane(20m ref)/Point(small sphere)). `TestObject3DPanel(QWidget)`
+    가 pyvistaqt.QtInteractor 임베드. PhysicsLabWorkspace 가 viz 영역
+    QStackedWidget (idx 0 = BouncingBallPlot, idx 1 = 3D panel). 3D
+    panel 은 **lazy create** (첫 Test Object 클릭 시) — 워크스페이스
+    생성 시 OpenGL 컨텍스트 안 만들어 headless CI 회피. `enable_3d_
+    viewer=False` kwarg 로 강제 비활성 가능 (테스트 + CLI). domain 에
+    `TestObject` Union 타입 alias 추가. `LibraryWidget.test_object_for
+    (label)` 가 row label → TestObject dataclass 매핑. 14 신규 tests
+    (10 mesh builder + 1 construction-only + 3 workspace integration).
+    `tests/unit/ui/physics_lab/conftest.py` 가 `pyvista.OFF_SCREEN =
+    True` 셋업.
+  - **9.1e** (`10811a9`): `domain/physics_lab/time_modes.py` 신규 —
+    `TimeMode` StrEnum (static/run/compare/sweep) + `TIME_MODES_IN_
+    DISPLAY_ORDER` tuple. `BouncingBallPlot` 가 multi-curve 지원
+    (`PRIMARY_CURVE = "primary"` + `add_overlay_curve / append_to /
+    set_history_of / remove_overlay_curve / overlay_names`). `_Time
+    Controls` Row 1 에 `Mode:` QComboBox 추가. `BouncingBallController.
+    set_mode(mode)` 가 Static 시 transport disable + Compare 시
+    `analytic_peak` overlay 추가 (한 bounce 당 closed-form peak 마커)
+    + Sweep 시 4 sibling simulator (restitution=0.3/0.5/0.7/0.9) 동시
+    실행 + 4 overlay curve. Play tick 이 sweep simulators 도 step.
+    21 신규 tests (enum 2 + combo 2 + controller mode 3 + transport
+    disable 2 + Compare overlay 2 + Sweep 4 + plot multi-curve 6).
+  - **9.1f** (`46e1d64`): `domain/physics_lab/saved_experiments.py`
+    신규 — `SavedExperiment` frozen dataclass + `write_/read_/list_
+    saved_experiments` TOML I/O (manual write 통한 ``[experiment]`` +
+    ``[parameters]`` 2 section, BOM strip + 5 validation). LibraryWidget
+    가 QListWidget → **QTreeWidget** 변경 (3 top-level: Tests / Models
+    / Saved Experiments). Tests = BOUNCING_BALL_ROW + 9 Test Objects;
+    Models = `Gravity (always on)` + `Air Drag (toggle)` placeholders;
+    Saved = `set_saved_experiments(experiments)` 로 동적 populate.
+    `save_requested` / `experiment_selected(SavedExperiment)` 신규
+    signal 2 종. PhysicsLabWorkspace `experiment_root: Path | None`
+    kwarg 추가 + `save_current_experiment(name)` / `load_experiment
+    (exp)` / `refresh_saved_experiments()` 메서드. `BouncingBallController.
+    reset_with(*, gravity, restitution, height, velocity, drag)` 신규
+    (load 시 simulator 교체). 5 신규 tests in test_workspace 갱신
+    (list_widget → tree_widget). 31 신규 tests (16 saved_experiments
+    도메인 + 15 LibraryWidget + workspace save/load).
+  - **9.1g** (`46e1d64`): `BouncingBallSimulator` 에 `drag_coefficient_k:
+    float = 0.0` 5번째 파라미터 추가. step() 가 `a_drag = -k * v *
+    |v|` 적용 (quadratic drag, 0 이면 PL-D 동일 invariant). `set_drag_
+    coefficient(value)` mid-run 변경 + 음수 reject. `@physics_param`
+    decorator 5번째 추가 → BOUNCING_BALL_PARAM_SPECS 5 entries.
+    AutoParametersWidget 자동 5번째 slider 생성. `_on_parameter_changed`
+    dispatcher 가 drag 값 변경 시 simulator.set_drag_coefficient 호출.
+    SavedExperiment + load_experiment 도 drag round-trip. Legacy
+    file (drag 키 없음) 은 0.0 fallback. 11 신규 tests (zero-drag
+    regression + dampened-peak invariant + validation + UI integration
+    + SavedExperiment 통합 + legacy fallback). 기존 3 테스트 갱신 (4
+    → 5 params).
+
+  세션 누적 push: 9.1d (ac1b675) + 9.1e (10811a9) + 9.1f/g (46e1d64).
+  9.1f 와 9.1g 는 같은 commit (작은 변경 묶음). 누적 1850 PASS
+  (+77 across 9.1d-g), 5 contracts KEPT.
 
 - **Phase 9.1a/b/c DONE** — Physics Lab Code Pane / Time controls /
   Parameters pane 본격화 (handoff `docs/sessions/phase_mvp_a_handoff_
