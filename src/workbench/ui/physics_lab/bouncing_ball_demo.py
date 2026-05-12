@@ -44,6 +44,7 @@ from workbench.app.physics_lab import (
 )
 from workbench.domain.physics_lab import (
     BOUNCING_BALL_PARAM_SPECS,
+    TestObject,
     default_library,
 )
 from workbench.ui.physics_lab.auto_parameters import AutoParametersWidget
@@ -58,9 +59,11 @@ class LibraryWidget(QWidget):
     """Sidebar list of Saved Tests + the 9 Test Objects.
 
     Selecting "Bouncing Ball Demo" tells the controller to attach to
-    the live simulator (the only interactive option in PL-D). The 9
-    Test Object rows are read-only for the MVP — Phase 9.1 will
-    couple them to dedicated demos.
+    the live simulator. PL-9.1d wires the 9 Test Object rows to the
+    new :class:`TestObject3DPanel` viewer; the workspace listens to
+    :attr:`demo_selected` and uses :meth:`test_object_for` to resolve
+    the selected label back to the originating
+    :mod:`workbench.domain.physics_lab` dataclass.
 
     Signals:
         demo_selected: ``str`` row text, emitted on selection change.
@@ -82,17 +85,34 @@ class LibraryWidget(QWidget):
 
         self._list = QListWidget(self)
         self._list.setObjectName("PhysicsLab_LibraryList")
-        # Active demo first, Test Object catalogue after (read-only).
+        # Active demo first, Test Object catalogue after.
         QListWidgetItem(self.BOUNCING_BALL_ROW, self._list)
+        # PL-9.1d — map row label -> Test Object so the workspace can
+        # render the 3D mesh on selection.
+        self._label_to_object: dict[str, TestObject] = {}
         for obj in default_library():
-            item = QListWidgetItem(f"{obj.name}  ({obj.visual})", self._list)
+            label = f"{obj.name}  ({obj.visual})"
+            item = QListWidgetItem(label, self._list)
             item.setData(0x0100, obj.name)
+            self._label_to_object[label] = obj
         self._list.currentTextChanged.connect(self.demo_selected.emit)
         self._list.setCurrentRow(0)
         layout.addWidget(self._list, 1)
 
     def list_widget(self) -> QListWidget:
         return self._list
+
+    def test_object_for(self, label: str) -> TestObject | None:
+        """Resolve a Library row label back to its Test Object dataclass.
+
+        Returns ``None`` for the ``BOUNCING_BALL_ROW`` entry or any
+        unrecognised label so the workspace can branch cleanly.
+        """
+        return self._label_to_object.get(label)
+
+    def current_label(self) -> str:
+        item = self._list.currentItem()
+        return "" if item is None else item.text()
 
 
 # ---------------------------------------------------------------------

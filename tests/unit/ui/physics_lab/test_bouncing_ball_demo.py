@@ -156,7 +156,7 @@ def test_parameters_widget_restitution_signal_fires_only_for_restitution(
 
 
 def test_workspace_controller_seeds_plot_with_initial_state(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     plot = ws.viz_panel()
     # One initial sample at t=0 so the chart is not blank.
@@ -164,7 +164,7 @@ def test_workspace_controller_seeds_plot_with_initial_state(qtbot) -> None:  # t
 
 
 def test_step_once_advances_simulator_and_appends_to_plot(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     initial_length = ws.viz_panel().history_length()
@@ -174,7 +174,7 @@ def test_step_once_advances_simulator_and_appends_to_plot(qtbot) -> None:  # typ
 
 
 def test_play_starts_then_pause_freezes_clock(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     controller.play()
@@ -184,7 +184,7 @@ def test_play_starts_then_pause_freezes_clock(qtbot) -> None:  # type: ignore[no
 
 
 def test_stop_resets_simulator_and_plot(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     for _ in range(5):
@@ -198,7 +198,7 @@ def test_stop_resets_simulator_and_plot(qtbot) -> None:  # type: ignore[no-untyp
 
 
 def test_restitution_slider_forwards_to_simulator(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     ws.parameters_panel().set_restitution(0.42)
@@ -211,7 +211,7 @@ def test_restitution_slider_forwards_to_simulator(qtbot) -> None:  # type: ignor
 
 
 def test_history_starts_with_seed_state(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     assert len(controller.history) == 1
@@ -220,7 +220,7 @@ def test_history_starts_with_seed_state(qtbot) -> None:  # type: ignore[no-untyp
 
 
 def test_step_forward_once_appends_history_and_advances_simulator(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     initial_len = len(controller.history)
@@ -231,7 +231,7 @@ def test_step_forward_once_appends_history_and_advances_simulator(qtbot) -> None
 
 
 def test_step_backward_once_rewinds_without_popping_history(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     controller.step_forward_once()
@@ -246,7 +246,7 @@ def test_step_backward_once_rewinds_without_popping_history(qtbot) -> None:  # t
 
 
 def test_step_back_at_zero_is_a_no_op(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     controller.step_backward_once()
@@ -255,7 +255,7 @@ def test_step_back_at_zero_is_a_no_op(qtbot) -> None:  # type: ignore[no-untyped
 
 
 def test_step_forward_after_backward_replays_stored_state(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     controller.step_forward_once()
@@ -269,7 +269,7 @@ def test_step_forward_after_backward_replays_stored_state(qtbot) -> None:  # typ
 
 
 def test_seek_to_frame_clamps_and_snaps_simulator(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     for _ in range(4):
@@ -289,7 +289,7 @@ def test_seek_back_then_forward_truncates_when_play_runs(qtbot) -> None:  # type
     forward beyond the stored end, or via Play), the discarded future
     is replaced by the new trajectory.
     """
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     for _ in range(4):
@@ -306,7 +306,7 @@ def test_seek_back_then_forward_truncates_when_play_runs(qtbot) -> None:  # type
 
 
 def test_stop_clears_history_to_seed(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     for _ in range(5):
@@ -317,7 +317,7 @@ def test_stop_clears_history_to_seed(qtbot) -> None:  # type: ignore[no-untyped-
 
 
 def test_frame_slider_range_tracks_history_length(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     slider = ws.time_controls().frame_slider()
@@ -330,7 +330,7 @@ def test_frame_slider_range_tracks_history_length(qtbot) -> None:  # type: ignor
 
 
 def test_frame_slider_drives_seek(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     for _ in range(4):
@@ -341,7 +341,7 @@ def test_frame_slider_drives_seek(qtbot) -> None:  # type: ignore[no-untyped-def
 
 
 def test_step_back_button_disabled_at_frame_zero(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     back_btn = ws.time_controls().step_back_button()
@@ -353,7 +353,7 @@ def test_step_back_button_disabled_at_frame_zero(qtbot) -> None:  # type: ignore
 
 
 def test_frame_readout_reflects_index(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     readout = ws.time_controls().frame_readout()
@@ -366,7 +366,7 @@ def test_frame_readout_reflects_index(qtbot) -> None:  # type: ignore[no-untyped
 
 
 def test_plot_truncates_to_cursor_on_step_back(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     for _ in range(3):
@@ -383,7 +383,7 @@ def test_step_buttons_click_route_to_controller(qtbot) -> None:  # type: ignore[
     in BouncingBallController.__init__ must forward to step_forward /
     step_backward.
     """
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     ws.time_controls().step_forward_button().click()
@@ -441,7 +441,7 @@ def test_revert_clicked_emits_signal(qtbot) -> None:  # type: ignore[no-untyped-
 
 def test_apply_user_step_freezes_ball(qtbot) -> None:  # type: ignore[no-untyped-def]
     """Controller installs a custom step that keeps the ball frozen."""
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     frozen_source = """
@@ -465,7 +465,7 @@ def step(simulator, dt_s):
 
 
 def test_apply_user_step_with_syntax_error_reports_status(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     ok = controller.apply_user_step_code("def step(\n# missing colon")
@@ -475,7 +475,7 @@ def test_apply_user_step_with_syntax_error_reports_status(qtbot) -> None:  # typ
 
 
 def test_apply_user_step_without_step_symbol_reports_error(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     ok = controller.apply_user_step_code("x = 1\n")
@@ -484,7 +484,7 @@ def test_apply_user_step_without_step_symbol_reports_error(qtbot) -> None:  # ty
 
 
 def test_revert_user_step_restores_built_in(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     controller.apply_user_step_code(
@@ -509,7 +509,7 @@ def test_revert_leaves_editor_with_valid_module_level_source(qtbot) -> None:  # 
     """
     import ast
 
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     cp = ws.code_panel()
     # Pretend the user just installed an override.
@@ -533,7 +533,7 @@ def test_revert_then_resave_succeeds_without_syntax_error(qtbot) -> None:  # typ
     """End-to-end of the bug the user surfaced: install a custom step,
     Revert, then click Save & Reload again. Must apply cleanly.
     """
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     controller = ws.bouncing_ball_controller()
     cp = ws.code_panel()

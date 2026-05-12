@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSlider,
     QSplitter,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -56,6 +57,7 @@ from workbench.ui.physics_lab.bouncing_ball_demo import (
     LibraryWidget,
     ParametersWidget,
 )
+from workbench.ui.physics_lab.test_object_view import TestObject3DPanel
 
 
 class _Placeholder(QWidget):
@@ -163,9 +165,24 @@ class _TimeControls(QWidget):
 
 
 class PhysicsLabWorkspace(QWidget):
-    """3-pane Physics Lab shell mounted alongside Editor / Simulator."""
+    """3-pane Physics Lab shell mounted alongside Editor / Simulator.
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    The ``enable_3d_viewer`` kwarg (default ``True``) decides whether
+    a :class:`TestObject3DPanel` is added to the viz QStackedWidget.
+    Production code paths leave it on; pytest passes ``False`` because
+    each new ``QtInteractor`` instance plus pytest-qt's event-processing
+    interaction triggers a ``vtkWin32OpenGLRenderWindow: failed to get
+    valid pixel format`` access violation on Windows-headless. Panel +
+    mesh-builder tests live in ``test_test_object_view.py`` and create
+    a single panel under careful isolation.
+    """
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        enable_3d_viewer: bool = True,
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("PhysicsLabWorkspace")
 
@@ -178,12 +195,26 @@ class PhysicsLabWorkspace(QWidget):
         self._viz_panel = BouncingBallPlot(self)
         self._parameters_panel = ParametersWidget(self)
 
+        # PL-9.1d — viz area is a QStackedWidget so the Library
+        # selection can swap between the 2D y(t) plot (Bouncing Ball)
+        # and the 3D mesh viewer (any of the 9 Test Objects).
+        # The 3D panel is created lazily on the first Test Object
+        # selection so workspaces that only ever show the Bouncing
+        # Ball never pay for an OpenGL render context, and so headless
+        # CI runs that never click a Test Object never crash.
+        self._viz_stack = QStackedWidget(self)
+        self._viz_stack.setObjectName("PhysicsLabVizStack")
+        self._viz_stack.addWidget(self._viz_panel)
+        self._viz_stack.setCurrentWidget(self._viz_panel)
+        self._enable_3d_viewer = enable_3d_viewer
+        self._test_object_panel: TestObject3DPanel | None = None
+
         # Middle column: Code on top, Visualization below.
         middle = QSplitter(Qt.Orientation.Vertical, self)
         middle.setObjectName("PhysicsLabMiddleSplitter")
         middle.setChildrenCollapsible(False)
         middle.addWidget(self._code_panel)
-        middle.addWidget(self._viz_panel)
+        middle.addWidget(self._viz_stack)
         middle.setStretchFactor(0, 0)
         middle.setStretchFactor(1, 1)
         middle.setSizes([220, 420])
@@ -230,6 +261,9 @@ class PhysicsLabWorkspace(QWidget):
             parent=self,
         )
 
+        # PL-9.1d — Library selection drives the viz swap.
+        self._library_panel.demo_selected.connect(self._on_library_selection)
+
     # ------------------------------------------------------------------
     # Accessors (PL-D ships the live widgets; PL-9.1+ keeps the same API)
     # ------------------------------------------------------------------
@@ -256,3 +290,54 @@ class PhysicsLabWorkspace(QWidget):
 
     def bouncing_ball_controller(self) -> BouncingBallController:
         return self._bouncing_controller
+
+    # ------------------------------------------------------------------
+    # PL-9.1d — viz stack
+    # ------------------------------------------------------------------
+    def viz_stack(self) -> QStackedWidget:
+        return self._viz_stack
+
+    def test_object_panel(self) -> TestObject3DPanel | None:
+        return self._test_object_panel
+
+    def current_viz_widget(self) -> QWidget:
+        widget = self._viz_stack.currentWidget()
+        if widget is None:
+            return self._viz_panel
+        return widget
+
+    def _ensure_test_object_panel(self) -> TestObject3DPanel | None:
+        """Lazy-instantiate the 3D viewer on first Test Object click.
+
+        Returns ``None`` when the workspace was constructed with
+        ``enable_3d_viewer=False`` (tests + CLI smoke runs).
+        """
+        if not self._enable_3d_viewer:
+            return None
+        if self._test_object_panel is None:
+            self._test_object_panel = TestObject3DPanel(self)
+            self._viz_stack.addWidget(self._test_object_panel)
+        return self._test_object_panel
+
+    def _on_library_selection(self, label: str) -> None:
+        """Swap the viz panel based on the Library selection.
+
+        - ``BOUNCING_BALL_ROW`` -> 2D y(t) plot.
+        - Any Test Object row -> ensure the 3D mesh panel exists +
+          push the corresponding dataclass into
+          :meth:`TestObject3DPanel.set_test_object`. No-op when the
+          3D viewer was disabled at construction time
+          (``enable_3d_viewer=False``).
+        - Anything else (currently impossible) -> leave the stack alone.
+        """
+        if label == LibraryWidget.BOUNCING_BALL_ROW:
+            self._viz_stack.setCurrentWidget(self._viz_panel)
+            return
+        obj = self._library_panel.test_object_for(label)
+        if obj is None:
+            return
+        panel = self._ensure_test_object_panel()
+        if panel is None:
+            return
+        panel.set_test_object(obj)
+        self._viz_stack.setCurrentWidget(panel)

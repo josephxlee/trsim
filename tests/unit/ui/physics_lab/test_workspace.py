@@ -22,7 +22,7 @@ pytestmark = pytest.mark.qt
 
 
 def _ws(qtbot: object) -> PhysicsLabWorkspace:
-    ws = PhysicsLabWorkspace()
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     return ws
 
@@ -61,12 +61,17 @@ def test_workspace_top_splitter_has_three_columns(qtbot: object) -> None:
 
 
 def test_workspace_middle_splitter_has_code_above_viz(qtbot: object) -> None:
+    """PL-9.1d: middle splitter's bottom widget is the viz QStackedWidget
+    holding the BouncingBallPlot at index 0 (and optionally the 3D
+    panel at index 1 when ``enable_3d_viewer=True``).
+    """
     ws = _ws(qtbot)
     middle = ws.middle_splitter()
     assert isinstance(middle, QSplitter)
     assert middle.count() == 2
     assert middle.widget(0) is ws.code_panel()
-    assert middle.widget(1) is ws.viz_panel()
+    assert middle.widget(1) is ws.viz_stack()
+    assert ws.viz_stack().widget(0) is ws.viz_panel()
 
 
 def test_workspace_time_controls_expose_three_buttons(qtbot: object) -> None:

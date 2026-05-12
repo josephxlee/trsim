@@ -195,6 +195,7 @@ no_implicit_optional = true
 module = [
     "pyqtgraph.*",
     "pyvista.*",
+    "pyvistaqt.*",
     "vtk.*",
     "h5py.*",
     "watchdog.*",

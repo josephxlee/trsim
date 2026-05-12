@@ -20,6 +20,10 @@ from workbench.ui.physics_lab.python_highlighter import (
     TokenSpan,
     tokenize_python_line,
 )
+from workbench.ui.physics_lab.test_object_view import (
+    TestObject3DPanel,
+    build_test_object_mesh,
+)
 from workbench.ui.physics_lab.workspace import PhysicsLabWorkspace
 
 __all__ = [
@@ -30,6 +34,8 @@ __all__ = [
     "ParametersWidget",
     "PhysicsLabWorkspace",
     "PythonSyntaxHighlighter",
+    "TestObject3DPanel",
     "TokenSpan",
+    "build_test_object_mesh",
     "tokenize_python_line",
 ]

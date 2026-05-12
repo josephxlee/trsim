@@ -436,6 +436,12 @@ TEST_OBJECT_KINDS: Final[tuple[VisualKind, ...]] = (
 only at the end."""
 
 
+# Type alias spanning every concrete Test Object dataclass. Lives in
+# domain so app/ui code can use it without importing visualisation
+# helpers (which carry heavy pyvistaqt deps).
+TestObject = Sphere | Cube | Plate | Cylinder | Cone | Trihedral | Wall | Plane | Point
+
+
 def default_library() -> tuple[
     Sphere,
     Cube,
