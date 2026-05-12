@@ -18,13 +18,27 @@ pytestmark = pytest.mark.qt
 
 
 def test_main_window_default_workspace_is_editor(qtbot) -> None:  # type: ignore[no-untyped-def]
+    from workbench.ui.physics_lab import PhysicsLabWorkspace
+
     win = MainWindow()
     qtbot.addWidget(win)
     assert win.selector.current == Workspace.EDITOR
     assert isinstance(win.page(Workspace.EDITOR), EditorWorkspace)
     assert isinstance(win.page(Workspace.SIMULATOR), SimulatorWorkspace)
+    assert isinstance(win.page(Workspace.PHYSICS_LAB), PhysicsLabWorkspace)
     assert win.workspace_action(Workspace.EDITOR).isChecked()
     assert not win.workspace_action(Workspace.SIMULATOR).isChecked()
+    assert not win.workspace_action(Workspace.PHYSICS_LAB).isChecked()
+
+
+def test_main_window_switches_to_physics_lab(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """PL-A: Ctrl+Shift+L lands on the Physics Lab workspace page."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.selector.set_workspace(Workspace.PHYSICS_LAB)
+    central = win.centralWidget()
+    assert central.currentWidget() is win.page(Workspace.PHYSICS_LAB)
+    assert win.workspace_action(Workspace.PHYSICS_LAB).isChecked()
 
 
 def test_set_workspace_swaps_central_page_and_action_state(qtbot) -> None:  # type: ignore[no-untyped-def]
@@ -62,6 +76,7 @@ def test_main_menu_owns_workspace_and_palette_shortcuts(qtbot) -> None:  # type:
     expected = {
         "MenuAction_workspace.switch_to_editor": QKeySequence("Ctrl+Shift+E"),
         "MenuAction_workspace.switch_to_simulator": QKeySequence("Ctrl+Shift+S"),
+        "MenuAction_workspace.switch_to_physics_lab": QKeySequence("Ctrl+Shift+L"),
         "MenuAction_palette.open": QKeySequence("Ctrl+Shift+P"),
     }
     found = {

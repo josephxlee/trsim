@@ -90,6 +90,7 @@ class MainMenuBar(QMenuBar):
         menu = self._add_top_level("view", "&View", "MenuView")
         self._attach(menu, "workspace.switch_to_editor")
         self._attach(menu, "workspace.switch_to_simulator")
+        self._attach(menu, "workspace.switch_to_physics_lab")
         menu.addSeparator()
         self._attach(menu, "palette.open")
         self._attach(menu, "view.reset_layout")

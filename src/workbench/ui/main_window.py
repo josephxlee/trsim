@@ -44,9 +44,10 @@ from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_menu import MainMenuBar
+from workbench.ui.physics_lab import PhysicsLabWorkspace
 from workbench.ui.simulator.workspace import SimulatorWorkspace
 from workbench.ui.toolbars import SimulationToolbar, TargetRunToolbar
-from workbench.ui.workspace_selector import Workspace, WorkspaceSelector
+from workbench.ui.workspace_selector import WORKSPACE_ORDER, Workspace, WorkspaceSelector
 
 
 class MainWindow(QMainWindow):
@@ -67,8 +68,9 @@ class MainWindow(QMainWindow):
         self._pages: dict[Workspace, QWidget] = {
             Workspace.EDITOR: EditorWorkspace(),
             Workspace.SIMULATOR: SimulatorWorkspace(panel_registry=sim_panel_registry),
+            Workspace.PHYSICS_LAB: PhysicsLabWorkspace(),
         }
-        for ws in (Workspace.EDITOR, Workspace.SIMULATOR):
+        for ws in WORKSPACE_ORDER:
             self._stack.addWidget(self._pages[ws])
         self.setCentralWidget(self._stack)
 
@@ -110,12 +112,13 @@ class MainWindow(QMainWindow):
         group.setExclusive(True)
 
         # Toolbar QActions are click-only — MainMenuBar owns the
-        # Ctrl+Shift+E / S shortcuts to avoid Qt's ambiguous-shortcut
+        # Ctrl+Shift+E / S / L shortcuts to avoid Qt's ambiguous-shortcut
         # suppression that fires when two QActions share a key.
         actions: dict[Workspace, QAction] = {}
         for ws, label in (
             (Workspace.EDITOR, "Editor"),
             (Workspace.SIMULATOR, "Simulator"),
+            (Workspace.PHYSICS_LAB, "Physics Lab"),
         ):
             act = QAction(label, self)
             act.setCheckable(True)
@@ -130,7 +133,7 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Workspace", self)
         toolbar.setObjectName("WorkspaceToolBar")
         toolbar.setMovable(False)
-        for ws in (Workspace.EDITOR, Workspace.SIMULATOR):
+        for ws in WORKSPACE_ORDER:
             toolbar.addAction(actions[ws])
         self.addToolBar(toolbar)
         return toolbar
@@ -157,6 +160,7 @@ class MainWindow(QMainWindow):
         return CommandHooks(
             on_workspace_editor=self._activate_editor,
             on_workspace_simulator=self._activate_simulator,
+            on_workspace_physics_lab=self._activate_physics_lab,
             on_palette_open=self.open_command_palette,
             on_file_exit=self._exit_app,
             on_view_toggle_fullscreen=self._toggle_fullscreen,
@@ -193,6 +197,9 @@ class MainWindow(QMainWindow):
 
     def _activate_simulator(self) -> None:
         self.selector.set_workspace(Workspace.SIMULATOR)
+
+    def _activate_physics_lab(self) -> None:
+        self.selector.set_workspace(Workspace.PHYSICS_LAB)
 
     def open_command_palette(self) -> None:
         """Show the Command Palette dialog (idempotent)."""

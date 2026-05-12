@@ -55,9 +55,10 @@ def _seeded_registry() -> tuple[WorkbenchCommandRegistry, dict[str, list[object]
 def test_register_creates_every_phase_4_2_command() -> None:
     reg, _ = _seeded_registry()
     expected = {
-        # Phase 4.2a
+        # Phase 4.2a + PL-A
         "workspace.switch_to_editor",
         "workspace.switch_to_simulator",
+        "workspace.switch_to_physics_lab",
         "palette.open",
         # Phase 4.2b
         "sim.start",

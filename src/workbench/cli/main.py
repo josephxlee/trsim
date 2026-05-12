@@ -103,7 +103,7 @@ def build_parser() -> argparse.ArgumentParser:
     ui_p = sub.add_parser("ui", help="launch the PySide6 MainWindow (Phase 4.1)")
     ui_p.add_argument(
         "--workspace",
-        choices=("editor", "simulator"),
+        choices=("editor", "simulator", "physics_lab"),
         default="editor",
         help="initial workspace to show (default: editor)",
     )

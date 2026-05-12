@@ -1,13 +1,19 @@
-"""Workspace selector — Editor ↔ Simulator switching primitive (Phase 4.1).
+"""Workspace selector — Editor / Simulator / Physics Lab (Phase 4.1 + PL-A).
 
 The selector owns the current :class:`Workspace` enum value and emits
 ``workspace_changed`` whenever it transitions. The MainWindow (and any
 sidecar UI) listens to this signal to swap the central QStackedWidget
 page or update toolbar state.
 
-Stays in :mod:`workbench.ui` (not under ``ui.editor`` or ``ui.simulator``)
-so it does not violate Contract 2 (workspace-isolation) when both peers
-import it.
+The third workspace — Physics Lab — was added in PL-A. plan/19 places
+it as TRsim's 5th differentiator (now the user's 1st priority per the
+ranking "physics_lab > simulator > editor"): an interactive 3-pane
+environment where the physics formulas backing the simulator are
+proven, visually verified, and (eventually) user-extended.
+
+Stays in :mod:`workbench.ui` (not under ``ui.editor`` or
+``ui.simulator``) so it does not violate Contract 2
+(workspace-isolation) when both peers import it.
 """
 
 from __future__ import annotations
@@ -26,6 +32,18 @@ class Workspace(StrEnum):
 
     EDITOR = "editor"
     SIMULATOR = "simulator"
+    PHYSICS_LAB = "physics_lab"
+
+
+# Declarative order used by the toolbar / menu / cycle helper so the
+# three workspaces always appear in the same sequence: Editor first
+# (the authoring start point), Simulator next (the runtime view),
+# Physics Lab last (the validation / proof environment).
+WORKSPACE_ORDER: tuple[Workspace, ...] = (
+    Workspace.EDITOR,
+    Workspace.SIMULATOR,
+    Workspace.PHYSICS_LAB,
+)
 
 
 class WorkspaceSelector(QObject):
@@ -55,7 +73,11 @@ class WorkspaceSelector(QObject):
         return True
 
     def toggle(self) -> Workspace:
-        """Cycle Editor ↔ Simulator. Returns the new active workspace."""
-        nxt = Workspace.SIMULATOR if self._current == Workspace.EDITOR else Workspace.EDITOR
+        """Cycle through :data:`WORKSPACE_ORDER`. Returns the new active workspace.
+
+        Editor -> Simulator -> Physics Lab -> Editor.
+        """
+        idx = WORKSPACE_ORDER.index(self._current)
+        nxt = WORKSPACE_ORDER[(idx + 1) % len(WORKSPACE_ORDER)]
         self.set_workspace(nxt)
         return nxt

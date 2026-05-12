@@ -48,9 +48,10 @@ class CommandHooks:
     *registration* time, so each ends up zero-arg here too.
     """
 
-    # Phase 4.2a — workspace + palette.
+    # Phase 4.2a + PL-A — workspace + palette.
     on_workspace_editor: Callable[[], None] = field(default=_noop)
     on_workspace_simulator: Callable[[], None] = field(default=_noop)
+    on_workspace_physics_lab: Callable[[], None] = field(default=_noop)
     on_palette_open: Callable[[], None] = field(default=_noop)
 
     # Phase 4.2b — simulation outer layer.
@@ -112,6 +113,15 @@ def register_builtin_commands(
             category="Workspace",
             execute=hooks.on_workspace_simulator,
             shortcut="Ctrl+Shift+S",
+        )
+    )
+    registry.register(
+        WorkbenchCommand(
+            id="workspace.switch_to_physics_lab",
+            title="Switch to Physics Lab Workspace",
+            category="Workspace",
+            execute=hooks.on_workspace_physics_lab,
+            shortcut="Ctrl+Shift+L",
         )
     )
     registry.register(
