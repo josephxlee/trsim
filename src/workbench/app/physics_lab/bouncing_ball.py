@@ -1,4 +1,4 @@
-"""Bouncing Ball simulator — Physics Lab first interactive demo (PL-D).
+"""Bouncing Ball simulator — Physics Lab first interactive demo (PL-D + PL-E).
 
 Vertical 1-D dynamics, no spin, no horizontal motion. The ball falls
 under constant gravity, bounces inelastically off a fixed ground at
@@ -26,11 +26,18 @@ References:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 # Earth-surface gravity; can be replaced by the user later (Phase
 # 9.x will read this from a `@physics_param` slider).
 _DEFAULT_GRAVITY_M_S2: float = 9.81
+
+# Type of a user-supplied step replacement (PL-E Code edit mode):
+# ``step_fn(self, dt_s) -> None`` runs against the simulator
+# instance directly (so the user code reads / writes ``self._state``
+# the same way the built-in step does).
+StepFn = Callable[["BouncingBallSimulator", float], None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +102,10 @@ class BouncingBallSimulator:
             velocity_m_s=initial_velocity_m_s,
             bounces=0,
         )
+        # PL-E — user-supplied step override. None means "use the
+        # built-in semi-implicit Euler step". The Code panel's Save &
+        # Reload action plugs a new function in here.
+        self._step_override: StepFn | None = None
 
     # ------------------------------------------------------------------
     # State surface
@@ -112,7 +123,13 @@ class BouncingBallSimulator:
         self.restitution = value
 
     def reset(self) -> BouncingBallState:
-        """Reset to the constructor-supplied initial state."""
+        """Reset to the constructor-supplied initial state.
+
+        Does **not** clear ``_step_override`` — a custom step survives
+        a reset so the user can iterate without re-uploading code.
+        Use :meth:`set_step_override(None)` to fall back to the
+        built-in semi-implicit Euler.
+        """
         self._state = BouncingBallState(
             time_s=0.0,
             position_m=self.initial_height_m,
@@ -120,6 +137,28 @@ class BouncingBallSimulator:
             bounces=0,
         )
         return self._state
+
+    def set_step_override(self, step_fn: StepFn | None) -> None:
+        """Inject (or remove) a user-supplied step function (PL-E).
+
+        ``step_fn(simulator, dt_s)`` reads / writes
+        ``simulator._state`` directly. ``None`` restores the
+        built-in step.
+        """
+        self._step_override = step_fn
+
+    @property
+    def has_step_override(self) -> bool:
+        return self._step_override is not None
+
+    def update_state(self, new_state: BouncingBallState) -> None:
+        """State setter used by step overrides (and tests).
+
+        Hides the private ``_state`` attribute behind a public hook so
+        downstream code can apply a fresh state without poking at
+        ``sim._state`` directly.
+        """
+        self._state = new_state
 
     # ------------------------------------------------------------------
     # Step
@@ -138,10 +177,20 @@ class BouncingBallSimulator:
         ``restitution``. A bounce counter increments. Sub-mm-per-sec
         residual velocity (``|v| < 1e-3``) collapses to 0 so the ball
         does not jitter forever.
+
+        PL-E: when :meth:`set_step_override` was called with a
+        callable, ``step`` defers to it instead of running the
+        built-in formula. The override receives ``(self, dt_s)`` and
+        is expected to mutate ``self._state`` (typically through
+        :meth:`update_state`).
         """
         if dt_s <= 0.0:
             msg = f"dt_s must be > 0, got {dt_s}"
             raise ValueError(msg)
+
+        if self._step_override is not None:
+            self._step_override(self, dt_s)
+            return self._state
 
         s = self._state
         new_v = s.velocity_m_s - self.gravity_m_s2 * dt_s

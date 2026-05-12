@@ -1,4 +1,4 @@
-# TRsim MVP — 테스트 가이드 (2026-05-12 rev7)
+# TRsim MVP — 테스트 가이드 (2026-05-12 rev8)
 
 `docs/MVP_USAGE.md` 가 "어떻게 쓰나" 라면, 이 가이드는 "어떻게
 **확인** 하나" — MVP 가 정상 동작하는지 항목별 명령 + 기대 결과
@@ -7,12 +7,10 @@
 
 각 섹션 끝의 ☐ 는 직접 체크. 전부 ✓ 면 MVP 가동 OK.
 
-> **rev7 갱신점** (2026-05-12 ~ ): rev2 (단축키 + NN tab mount) +
-> rev3 (BOM tolerance) + rev4 (backend toggle + Step 2 자동 register) +
-> rev5 (Step 1 → Step 2 자동 refresh) + rev6 (Step 1 progress bar +
-> Detach 가능한 bottom tabs) + **rev7** (Physics Lab workspace — 3번째
-> workspace, Ctrl+Shift+L, Bouncing Ball 인터랙티브 데모). pytest
-> 1614 → **1677** PASS.
+> **rev8 갱신점** (2026-05-12 ~ ): rev7 (Physics Lab + Bouncing Ball) +
+> **rev8** (Sim/Target toolbar 가 Simulator workspace 활성 시만 visible
+> + Physics Lab Code 패널 즉석 수정 — Edit / Save & Reload / Revert).
+> pytest 1677 → **1690** PASS.
 
 ---
 
@@ -149,7 +147,7 @@ $env:PYTHONUTF8 = "1"; $env:PYTHONPATH = "$(Get-Location)\src"
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**기대**: `1677 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
+**기대**: `1690 passed in X.Xs` (또는 그 이상). 0 fail, 0 error.
 
 실패 시: 어느 테스트 깨졌는지 출력 보고 보고.
 
@@ -593,10 +591,42 @@ Remove-Item -Recurse -Force ./datasets, ./weights
 - 1.0 = 완전 탄성 (peak 가 항상 h₀ 복귀)
 - 0.0 = 완전 비탄성 (첫 bounce 후 정지)
 
-### 6.4 Code 패널 읽기
+### 6.4 Code 패널 — 즉석 수정 + Save & Reload (PL-E, rev8)
 
-- `BouncingBallSimulator.step(self, dt_s)` 의 semi-implicit Euler 구현이 그대로 표시
-- 사용자가 직접 수정 불가 (rev7 read-only). Phase 9.3 에서 Edit mode + plugin 추가.
+| 행동 | 기대 |
+|---|---|
+| **Edit** 버튼 (체크 가능) 클릭 | 에디터 read-only 해제 + 배경 옅은 녹색 + 본문 자동으로 편집 가능 step 함수 scaffold 로 교체 + status 라벨 "editing — modify, then Save && Reload" |
+| 코드 수정 후 **Save && Reload** 클릭 | controller 가 ast.parse + exec 검증 → simulator 의 step 함수 교체 → status "applied — next tick runs the user step" |
+| syntax error | status 라벨 빨간색 "SyntaxError: ... (line N)" — override 미적용 |
+| `step` 심볼 없음 | status 라벨 빨간색 "no \`step(simulator, dt_s)\` function defined" |
+| **Revert** 클릭 | override 제거 + 에디터를 built-in 소스로 복원 + status "reverted — built-in step restored" |
+| Play 중 Save & Reload | controller 가 자동 pause → 새 step 설치 → 재시작 |
+
+**시험 예시** — 공기 저항 추가:
+
+```python
+def step(simulator, dt_s):
+    from workbench.app.physics_lab import BouncingBallState
+    s = simulator.state
+    DRAG = 0.5  # 1/s, linear drag
+    new_v = s.velocity_m_s - simulator.gravity_m_s2 * dt_s - DRAG * s.velocity_m_s * dt_s
+    new_y = s.position_m + new_v * dt_s
+    new_bounces = s.bounces
+    if new_y <= 0.0:
+        new_y = 0.0
+        new_v = -new_v * simulator.restitution
+        if abs(new_v) < 1e-3:
+            new_v = 0.0
+        new_bounces += 1
+    simulator.update_state(BouncingBallState(
+        time_s=s.time_s + dt_s,
+        position_m=new_y,
+        velocity_m_s=new_v,
+        bounces=new_bounces,
+    ))
+```
+
+Save & Reload 후 Play → 공이 더 빨리 감속 (낙하 속도 < 자유낙하). plot 곡선 비교로 차이 가시.
 
 ### 6.5 9 Test Objects 분석 공식 (Python REPL)
 

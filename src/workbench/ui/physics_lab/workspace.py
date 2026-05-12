@@ -177,6 +177,7 @@ class PhysicsLabWorkspace(QWidget):
             pause_button=self._time_controls.pause_button(),
             stop_button=self._time_controls.stop_button(),
             status_label=self._time_controls.status_label(),
+            code_preview=self._code_panel,
             parent=self,
         )
 

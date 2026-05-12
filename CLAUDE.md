@@ -27,6 +27,30 @@
 > workbench-train subprocess wrapping / Physics Lab workspace
 > (v0.40 Phase 9).
 
+- **PL-E (Code 즉석 수정) + 옵션 A (toolbar visibility) DONE** — 사용자
+  요청 두 가지 동시 처리.
+  - **옵션 A**: `MainWindow._refresh_sim_toolbars_visibility(workspace)`
+    가 `selector.workspace_changed` 에 connect. Simulator 가 아닐 때
+    `SimulationToolbar` + `TargetRunToolbar` setVisible(False). Editor /
+    Physics Lab 에서 화면 정돈. 1 신규 test.
+  - **PL-E**: `BouncingBallSimulator.set_step_override(StepFn | None)` +
+    `update_state(BouncingBallState)` + `has_step_override` property +
+    `_step_override` 사용 분기 in `step()`. reset 시 override 보존
+    (사용자 iteration UX). `CodePreview` 가 read-only QTextEdit →
+    Edit/Save && Reload/Revert 3 버튼 + status label 추가. Edit
+    토글: 첫 클릭 시 자동으로 `_DEFAULT_USER_STEP` scaffold (built-in
+    의 mutable 버전) 로 교체. `save_requested` / `revert_requested`
+    Signal. `BouncingBallController.apply_user_step_code(source)`:
+    `ast.parse` → `exec` → `step` 심볼 추출 → `simulator.set_step_
+    override`. Play 중이면 자동 pause + reload + restart. 오류 (syntax
+    / exec / no step) → `_post_code_status(msg, ok=False)` → CodePreview
+    빨간 status. `revert_user_step_code()` 동일 흐름. 12 신규 tests
+    (simulator 4 + UI 8: read-only default / Edit toggle scaffold /
+    save+revert signal emit / apply 성공 / syntax error / no-step
+    error / revert restores built-in / reset preserves override).
+  - MVP_GUIDE rev8: § 6.4 코드 즉석 수정 사용 시나리오 + 공기 저항
+    예시 코드.
+  - 누적 **1690 PASS** (+13 신규). 5 contracts KEPT.
 - **PL-D Bouncing Ball demo DONE** — Physics Lab 첫 인터랙티브 데모.
   사용자 우선순위 명시 (physics_lab > simulator > editor) 반영.
   plan/19 § 19.12.1 시나리오 실현.

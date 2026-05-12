@@ -154,6 +154,88 @@ def test_first_bounce_peak_matches_analytic_reference_for_lossless_ball() -> Non
     assert max_height_seen == pytest.approx(2.0, rel=0.05)
 
 
+# ---------------------------------------------------------------------
+# PL-E — step override injection
+# ---------------------------------------------------------------------
+
+
+def test_step_override_is_called_in_place_of_built_in() -> None:
+    """``set_step_override`` replaces the step formula for the next tick."""
+    sim = BouncingBallSimulator(initial_height_m=2.0)
+    calls: list[float] = []
+
+    def custom_step(simulator: BouncingBallSimulator, dt_s: float) -> None:
+        calls.append(dt_s)
+        # Trivial override: freeze the ball, just advance time.
+        s = simulator.state
+        from workbench.app.physics_lab import BouncingBallState
+
+        simulator.update_state(
+            BouncingBallState(
+                time_s=s.time_s + dt_s,
+                position_m=s.position_m,
+                velocity_m_s=0.0,
+                bounces=s.bounces,
+            )
+        )
+
+    sim.set_step_override(custom_step)
+    assert sim.has_step_override is True
+    sim.step(0.1)
+    assert calls == [0.1]
+    assert sim.state.position_m == pytest.approx(2.0)  # frozen
+    assert sim.state.velocity_m_s == 0.0
+    assert sim.state.time_s == pytest.approx(0.1)
+
+
+def test_set_step_override_none_restores_built_in() -> None:
+    sim = BouncingBallSimulator(initial_height_m=5.0)
+
+    def freeze(simulator: BouncingBallSimulator, dt_s: float) -> None:
+        from workbench.app.physics_lab import BouncingBallState
+
+        s = simulator.state
+        simulator.update_state(
+            BouncingBallState(
+                time_s=s.time_s + dt_s,
+                position_m=s.position_m,
+                velocity_m_s=0.0,
+                bounces=s.bounces,
+            )
+        )
+
+    sim.set_step_override(freeze)
+    sim.step(0.1)
+    assert sim.state.velocity_m_s == 0.0
+    sim.set_step_override(None)
+    assert sim.has_step_override is False
+    sim.step(0.1)
+    # Built-in step active — velocity now reflects gravity.
+    assert sim.state.velocity_m_s < 0.0
+
+
+def test_reset_preserves_step_override() -> None:
+    """Reset clears state but should leave the override in place so the
+    user can iterate without re-uploading code.
+    """
+    sim = BouncingBallSimulator()
+    sim.set_step_override(lambda _sim, _dt: None)
+    sim.reset()
+    assert sim.has_step_override is True
+
+
+def test_update_state_writes_through_to_state() -> None:
+    """Public state setter used by overrides."""
+    from workbench.app.physics_lab import BouncingBallState
+
+    sim = BouncingBallSimulator()
+    sim.update_state(BouncingBallState(time_s=1.0, position_m=2.5, velocity_m_s=-1.5, bounces=4))
+    assert sim.state.time_s == pytest.approx(1.0)
+    assert sim.state.position_m == pytest.approx(2.5)
+    assert sim.state.velocity_m_s == pytest.approx(-1.5)
+    assert sim.state.bounces == 4
+
+
 def test_initial_drop_time_matches_free_fall_formula() -> None:
     """Time-to-impact from rest at h0 under gravity g: ``sqrt(2 h0 / g)``."""
     h0 = 4.0

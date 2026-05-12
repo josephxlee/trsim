@@ -98,6 +98,15 @@ class MainWindow(QMainWindow):
         self._target_toolbar = TargetRunToolbar(self.commands, self)
         self.addToolBar(self._target_toolbar)
 
+        # Sim + Target toolbars only make sense inside the Simulator
+        # workspace; Editor / Physics Lab don't drive a running
+        # simulation. The toolbars stay built but hide themselves
+        # outside Simulator (option A from the toolbar-visibility
+        # discussion). The selector signal landed earlier in __init__
+        # so the connect goes after the toolbars exist.
+        self._refresh_sim_toolbars_visibility(self.selector.current)
+        self.selector.workspace_changed.connect(self._refresh_sim_toolbars_visibility)
+
         if self._dlc_runtime is not None:
             populate_resource_browser_from_library(
                 self._editor_page().resource_browser(),
@@ -200,6 +209,12 @@ class MainWindow(QMainWindow):
 
     def _activate_physics_lab(self) -> None:
         self.selector.set_workspace(Workspace.PHYSICS_LAB)
+
+    def _refresh_sim_toolbars_visibility(self, workspace: Workspace) -> None:
+        """Show Sim + Target toolbars only on the Simulator workspace."""
+        show = workspace is Workspace.SIMULATOR
+        self._sim_toolbar.setVisible(show)
+        self._target_toolbar.setVisible(show)
 
     def open_command_palette(self) -> None:
         """Show the Command Palette dialog (idempotent)."""

@@ -162,3 +162,106 @@ def test_restitution_slider_forwards_to_simulator(qtbot) -> None:  # type: ignor
     controller = ws.bouncing_ball_controller()
     ws.parameters_panel().set_restitution(0.42)
     assert controller.simulator.restitution == pytest.approx(0.42)
+
+
+# ---------------------------------------------------------------------
+# PL-E — Code edit mode
+# ---------------------------------------------------------------------
+
+
+def test_code_preview_starts_read_only_and_default_status(qtbot) -> None:  # type: ignore[no-untyped-def]
+    cp = CodePreview()
+    qtbot.addWidget(cp)  # type: ignore[attr-defined]
+    assert cp.editor().isReadOnly() is True
+    assert cp.is_editing() is False
+    assert "read-only" in cp.status_label().text()
+    assert cp.save_button().isEnabled() is False
+    assert cp.revert_button().isEnabled() is False
+
+
+def test_edit_toggle_unlocks_editor_and_swaps_default_user_step(qtbot) -> None:  # type: ignore[no-untyped-def]
+    cp = CodePreview()
+    qtbot.addWidget(cp)  # type: ignore[attr-defined]
+    cp.edit_button().setChecked(True)
+    assert cp.editor().isReadOnly() is False
+    assert cp.save_button().isEnabled() is True
+    assert cp.revert_button().isEnabled() is True
+    assert "def step(simulator, dt_s)" in cp.current_source()
+
+
+def test_save_clicked_emits_save_requested_with_source(qtbot) -> None:  # type: ignore[no-untyped-def]
+    cp = CodePreview()
+    qtbot.addWidget(cp)  # type: ignore[attr-defined]
+    received: list[str] = []
+    cp.save_requested.connect(received.append)
+    cp.edit_button().setChecked(True)
+    cp.editor().setPlainText("def step(simulator, dt_s):\n    pass\n")
+    cp.save_button().click()
+    assert received == ["def step(simulator, dt_s):\n    pass\n"]
+
+
+def test_revert_clicked_emits_signal(qtbot) -> None:  # type: ignore[no-untyped-def]
+    cp = CodePreview()
+    qtbot.addWidget(cp)  # type: ignore[attr-defined]
+    seen: list[bool] = []
+    cp.revert_requested.connect(lambda: seen.append(True))
+    cp.edit_button().setChecked(True)
+    cp.revert_button().click()
+    assert seen == [True]
+
+
+def test_apply_user_step_freezes_ball(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """Controller installs a custom step that keeps the ball frozen."""
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    frozen_source = """
+def step(simulator, dt_s):
+    from workbench.app.physics_lab import BouncingBallState
+    s = simulator.state
+    simulator.update_state(BouncingBallState(
+        time_s=s.time_s + dt_s,
+        position_m=s.position_m,
+        velocity_m_s=0.0,
+        bounces=s.bounces,
+    ))
+"""
+    ok = controller.apply_user_step_code(frozen_source)
+    assert ok is True
+    assert controller.simulator.has_step_override is True
+    y0 = controller.simulator.state.position_m
+    controller.step_once()
+    assert controller.simulator.state.position_m == pytest.approx(y0)
+    assert "applied" in ws.code_panel().status_label().text().lower()
+
+
+def test_apply_user_step_with_syntax_error_reports_status(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    ok = controller.apply_user_step_code("def step(\n# missing colon")
+    assert ok is False
+    assert controller.simulator.has_step_override is False
+    assert "syntaxerror" in ws.code_panel().status_label().text().lower()
+
+
+def test_apply_user_step_without_step_symbol_reports_error(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    ok = controller.apply_user_step_code("x = 1\n")
+    assert ok is False
+    assert "no `step" in ws.code_panel().status_label().text()
+
+
+def test_revert_user_step_restores_built_in(qtbot) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace()
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    controller = ws.bouncing_ball_controller()
+    controller.apply_user_step_code(
+        "def step(simulator, dt_s):\n    simulator.update_state(simulator.state)\n"
+    )
+    assert controller.simulator.has_step_override is True
+    controller.revert_user_step_code()
+    assert controller.simulator.has_step_override is False
+    assert "reverted" in ws.code_panel().status_label().text().lower()

@@ -41,6 +41,23 @@ def test_main_window_switches_to_physics_lab(qtbot) -> None:  # type: ignore[no-
     assert win.workspace_action(Workspace.PHYSICS_LAB).isChecked()
 
 
+def test_sim_toolbars_hidden_outside_simulator_workspace(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """Option A: Sim + Target toolbars are Simulator-workspace-only."""
+    win = MainWindow()
+    qtbot.addWidget(win)
+    # Default Editor workspace -> toolbars hidden.
+    assert win.simulation_toolbar().isVisibleTo(win) is False
+    assert win.target_run_toolbar().isVisibleTo(win) is False
+    # Switching to Simulator brings them back.
+    win.selector.set_workspace(Workspace.SIMULATOR)
+    assert win.simulation_toolbar().isVisibleTo(win) is True
+    assert win.target_run_toolbar().isVisibleTo(win) is True
+    # Physics Lab hides them again.
+    win.selector.set_workspace(Workspace.PHYSICS_LAB)
+    assert win.simulation_toolbar().isVisibleTo(win) is False
+    assert win.target_run_toolbar().isVisibleTo(win) is False
+
+
 def test_set_workspace_swaps_central_page_and_action_state(qtbot) -> None:  # type: ignore[no-untyped-def]
     win = MainWindow()
     qtbot.addWidget(win)

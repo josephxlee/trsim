@@ -19,6 +19,7 @@ Drop-in replacements for the PL-B placeholder panes:
 
 from __future__ import annotations
 
+import ast
 import inspect
 from collections.abc import Iterable
 
@@ -91,13 +92,68 @@ class LibraryWidget(QWidget):
 # ---------------------------------------------------------------------
 
 
-class CodePreview(QWidget):
-    """Read-only dump of the active simulator's ``step`` source.
+_DEFAULT_USER_STEP: str = '''def step(simulator, dt_s):
+    """User-editable replacement for BouncingBallSimulator.step.
 
-    PL-D shows :meth:`BouncingBallSimulator.step` so the user can see
-    the formula behind the trajectory. Phase 9.3 layers an Edit mode
-    + Plugin Authoring on top.
+    PL-E Code edit mode entry point. ``simulator`` is the live
+    BouncingBallSimulator instance; ``dt_s`` is the timestep in
+    seconds. Mutate state through ``simulator.update_state(new_state)``
+    so the workspace + plot pick up the change.
+
+    The default body below mirrors the built-in semi-implicit Euler
+    step. Modify it to experiment — air drag, variable gravity,
+    floor below 0, etc. — then click Save & Reload.
     """
+    from workbench.app.physics_lab import BouncingBallState
+
+    s = simulator.state
+    new_v = s.velocity_m_s - simulator.gravity_m_s2 * dt_s
+    new_y = s.position_m + new_v * dt_s
+    new_bounces = s.bounces
+    if new_y <= 0.0:
+        new_y = 0.0
+        new_v = -new_v * simulator.restitution
+        if abs(new_v) < 1e-3:
+            new_v = 0.0
+        new_bounces += 1
+    simulator.update_state(BouncingBallState(
+        time_s=s.time_s + dt_s,
+        position_m=new_y,
+        velocity_m_s=new_v,
+        bounces=new_bounces,
+    ))
+'''
+
+
+class CodePreview(QWidget):
+    """Editable view of the active simulator's ``step`` source (PL-E).
+
+    Three modes:
+
+    - **Read** (default): the source is the verbatim built-in step
+      dumped via :func:`inspect.getsource`. The editor is read-only;
+      the background is the system default.
+    - **Edit**: the user can modify the text. The editor turns
+      writable and the background tints to make the mode visible.
+    - **Saved**: after Save & Reload, the user-edited function is
+      compiled + plugged into the simulator. The editor stays in
+      Edit mode but the controller's ``code_status`` reports either
+      "applied" or the error message that surfaced.
+
+    Signals:
+        save_requested: emitted with the current editor text when the
+            user clicks "Save & Reload". The controller compiles +
+            installs the function and reports back via
+            ``set_status``.
+        revert_requested: clear the override, restore the original
+            source.
+    """
+
+    save_requested = Signal(str)
+    revert_requested = Signal()
+
+    _READ_STYLE: str = ""
+    _EDIT_STYLE: str = "background-color: rgba(120, 180, 120, 32);"
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -116,14 +172,109 @@ class CodePreview(QWidget):
         self._editor.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         self._editor.setFontFamily("Consolas")
         try:
-            src = inspect.getsource(BouncingBallSimulator.step)
+            self._builtin_src = inspect.getsource(BouncingBallSimulator.step)
         except (OSError, TypeError):
-            src = "# source unavailable in this environment"
-        self._editor.setPlainText(src)
+            self._builtin_src = "# source unavailable in this environment"
+        self._editor.setPlainText(self._builtin_src)
         layout.addWidget(self._editor, 1)
+
+        # Action row — Edit toggle + Save & Reload + Revert + status.
+        actions = QHBoxLayout()
+        self._edit_btn = QPushButton("Edit", self)
+        self._edit_btn.setObjectName("PhysicsLab_CodeEditBtn")
+        self._edit_btn.setCheckable(True)
+        self._edit_btn.toggled.connect(self._on_edit_toggled)
+        self._save_btn = QPushButton("Save && Reload", self)
+        self._save_btn.setObjectName("PhysicsLab_CodeSaveBtn")
+        self._save_btn.setEnabled(False)
+        self._save_btn.clicked.connect(self._on_save_clicked)
+        self._revert_btn = QPushButton("Revert", self)
+        self._revert_btn.setObjectName("PhysicsLab_CodeRevertBtn")
+        self._revert_btn.setEnabled(False)
+        self._revert_btn.clicked.connect(self._on_revert_clicked)
+        self._status_label = QLabel("read-only — click Edit to modify", self)
+        self._status_label.setObjectName("PhysicsLab_CodeStatusLabel")
+        self._status_label.setStyleSheet("color: #777;")
+
+        for btn in (self._edit_btn, self._save_btn, self._revert_btn):
+            actions.addWidget(btn)
+        actions.addWidget(self._status_label, 1)
+        layout.addLayout(actions)
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def editor(self) -> QTextEdit:
         return self._editor
+
+    def edit_button(self) -> QPushButton:
+        return self._edit_btn
+
+    def save_button(self) -> QPushButton:
+        return self._save_btn
+
+    def revert_button(self) -> QPushButton:
+        return self._revert_btn
+
+    def status_label(self) -> QLabel:
+        return self._status_label
+
+    def is_editing(self) -> bool:
+        return self._edit_btn.isChecked()
+
+    def current_source(self) -> str:
+        return self._editor.toPlainText()
+
+    def builtin_source(self) -> str:
+        return self._builtin_src
+
+    def reset_to_builtin(self) -> None:
+        """Public re-revert hook for the controller."""
+        self._editor.setPlainText(self._builtin_src)
+        self._status_label.setText("reverted — built-in step restored")
+
+    def set_status(self, message: str, *, ok: bool = True) -> None:
+        """Controller posts compile / install results here."""
+        colour = "#5aa86e" if ok else "#d36a6a"
+        self._status_label.setStyleSheet(f"color: {colour};")
+        self._status_label.setText(message)
+
+    def fill_with_default_user_step(self) -> None:
+        """Replace the read-only built-in dump with the editable
+        scaffold the user starts from. Called automatically on first
+        Edit click.
+        """
+        self._editor.setPlainText(_DEFAULT_USER_STEP)
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _on_edit_toggled(self, checked: bool) -> None:
+        self._editor.setReadOnly(not checked)
+        self._editor.setStyleSheet(self._EDIT_STYLE if checked else self._READ_STYLE)
+        self._save_btn.setEnabled(checked)
+        self._revert_btn.setEnabled(checked)
+        if checked:
+            # Swap the built-in dump for the editable scaffold the
+            # first time the user enters Edit mode so they have a
+            # working starting point.
+            if self._editor.toPlainText().strip() == self._builtin_src.strip():
+                self.fill_with_default_user_step()
+            self._status_label.setStyleSheet("color: #777;")
+            self._status_label.setText("editing — modify, then Save && Reload")
+            self._edit_btn.setText("Editing")
+        else:
+            self._edit_btn.setText("Edit")
+            self._status_label.setStyleSheet("color: #777;")
+            self._status_label.setText("read-only — click Edit to modify")
+
+    def _on_save_clicked(self) -> None:
+        self.save_requested.emit(self._editor.toPlainText())
+
+    def _on_revert_clicked(self) -> None:
+        self.revert_requested.emit()
 
 
 # ---------------------------------------------------------------------
@@ -270,6 +421,7 @@ class BouncingBallController(QObject):
         stop_button: QPushButton,
         status_label: QLabel,
         clock_dt_s: float = 0.02,
+        code_preview: CodePreview | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -281,6 +433,7 @@ class BouncingBallController(QObject):
         self._pause_btn = pause_button
         self._stop_btn = stop_button
         self._status = status_label
+        self._code_preview = code_preview
 
         self._timer = QTimer(self)
         # Slightly faster than the dt so play is smooth without
@@ -292,6 +445,12 @@ class BouncingBallController(QObject):
         self._pause_btn.clicked.connect(self.pause)
         self._stop_btn.clicked.connect(self.stop)
         self._parameters.restitution_changed.connect(self.simulator.set_restitution)
+
+        # PL-E — Code edit hooks. When the CodePreview emits save /
+        # revert, we compile or restore the override.
+        if self._code_preview is not None:
+            self._code_preview.save_requested.connect(self.apply_user_step_code)
+            self._code_preview.revert_requested.connect(self.revert_user_step_code)
 
         # Seed the plot with the initial state at t=0 so the user
         # sees the ball position even before pressing Play.
@@ -348,6 +507,73 @@ class BouncingBallController(QObject):
     # ------------------------------------------------------------------
     # UI surface
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # PL-E — user step code reload
+    # ------------------------------------------------------------------
+
+    def apply_user_step_code(self, source: str) -> bool:
+        """Compile + install a user-supplied ``step`` function.
+
+        Pauses the timer first so the simulator is not stepping while
+        we swap the function pointer. Returns True on success, False
+        on syntax / runtime error (in which case the simulator keeps
+        its existing step).
+
+        The source must define a top-level function named ``step``
+        with signature ``step(simulator, dt_s)``. Compile errors
+        and missing-function errors land on the CodePreview status
+        label in red; the override stays as whatever was in place
+        before the click.
+        """
+        # 1) Syntax check first so a typo doesn't half-install garbage.
+        try:
+            ast.parse(source, mode="exec")
+        except SyntaxError as exc:
+            self._post_code_status(f"SyntaxError: {exc.msg} (line {exc.lineno})", ok=False)
+            return False
+
+        # 2) Exec into a sandbox namespace + pull out the step symbol.
+        namespace: dict[str, object] = {}
+        try:
+            exec(compile(source, "<physics_lab user step>", "exec"), namespace)
+        except Exception as exc:
+            self._post_code_status(f"exec failed: {exc}", ok=False)
+            return False
+
+        step_fn = namespace.get("step")
+        if not callable(step_fn):
+            self._post_code_status(
+                "no `step(simulator, dt_s)` function defined",
+                ok=False,
+            )
+            return False
+
+        # 3) Pause then install. The next tick uses the new function.
+        was_running = self.clock.is_running
+        if was_running:
+            self.pause()
+        self.simulator.set_step_override(step_fn)
+        self._post_code_status("applied — next tick runs the user step", ok=True)
+        if was_running:
+            self.play()
+        return True
+
+    def revert_user_step_code(self) -> None:
+        """Clear the override and restore the built-in step."""
+        was_running = self.clock.is_running
+        if was_running:
+            self.pause()
+        self.simulator.set_step_override(None)
+        if self._code_preview is not None:
+            self._code_preview.reset_to_builtin()
+        self._post_code_status("reverted — built-in step restored", ok=True)
+        if was_running:
+            self.play()
+
+    def _post_code_status(self, message: str, *, ok: bool) -> None:
+        if self._code_preview is not None:
+            self._code_preview.set_status(message, ok=ok)
 
     def _refresh_status(self) -> None:
         s = self.simulator.state
