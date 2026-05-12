@@ -418,6 +418,21 @@ NN-mode 3 tab 이 Simulator bottom_tabs index 3/4/5 에 mount 되어 있다
 
 `trsim ui --workspace simulator` 로 시작.
 
+### 5.0 Output path 의 의미
+
+panel 의 `Output path` 필드는 **Build mode 에 따라 다르게 해석**된다.
+panel 기본값 `./datasets/dataset_v1.h5` 그대로 둬도 두 모드 모두 동작.
+
+| Build mode | path 해석 | 기본값으로 빌드 결과 |
+|---|---|---|
+| `Single variant` | `.h5` **파일** 경로 그대로 | `./datasets/dataset_v1.h5` 한 파일 |
+| `All 4 variants (A/B/C/D)` | suffix 없으면 그대로, 있으면 **parent 디렉토리** | `./datasets/` 안에 4 variant + manifest |
+
+즉 chain mode 에서는 사용자가 `./datasets/dataset_v1.h5` 입력하든
+`./datasets/` 입력하든 결과 동일. controller 가 parent
+(`./datasets/`) 를 output_root 으로 잡고 plan/07 § 7.4.5a 의 표준
+파일명 (`pairing_variant_A.h5` ~ `_D.h5`) 으로 생성.
+
 ### 5.1 Step 1 — Single variant 빌드
 
 bottom_tabs 의 `NN Step 1` (index 3) 클릭. panel 폼에 입력:
@@ -426,7 +441,7 @@ bottom_tabs 의 `NN Step 1` (index 3) 클릭. panel 폼에 입력:
 |---|---|
 | Build mode | `Single variant` |
 | Frames (per variant) | `50` |
-| Output path | `./datasets/demo_single.h5` |
+| Output path | `./datasets/demo_single.h5` (파일 경로) |
 
 `Build Dataset` 클릭.
 
@@ -446,7 +461,7 @@ bottom_tabs 의 `NN Step 1` (index 3) 클릭. panel 폼에 입력:
 |---|---|
 | Build mode | `All 4 variants (A/B/C/D)` |
 | Frames (per variant) | `30` |
-| Output path | `./datasets/` |
+| Output path | `./datasets/` (디렉토리) 또는 panel 기본값 (parent 가 같은 곳이면 OK) |
 
 `Build Dataset` 클릭.
 
@@ -460,7 +475,8 @@ Get-ChildItem ./datasets/
 ```
 
 → `pairing_variant_A.h5`, `_B`, `_C`, `_D`,
-   `pairing_variants_manifest.toml` 5 파일.
+   `pairing_variants_manifest.toml` 5 파일. (`dataset_v1.h5` 는
+   생성 안 됨 — chain mode 가 파일명이 아닌 parent 디렉토리만 사용)
 
 `Cancel` 을 중간 variant 시점에 누르면, 그 시점까지 완료된 variant
 만 manifest entries 에 등록 + 그 다음 variant 는 시작도 안 함.
