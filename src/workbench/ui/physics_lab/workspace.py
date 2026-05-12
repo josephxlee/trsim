@@ -55,6 +55,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.app.physics_lab import FitResult
 from workbench.domain.physics_lab import (
     TIME_MODES_IN_DISPLAY_ORDER,
     MeasuredDataset,
@@ -319,6 +320,11 @@ class PhysicsLabWorkspace(QWidget):
         self._bouncing_controller.validation_metrics_ready.connect(
             self._on_validation_metrics_ready
         )
+        # PL-9.2d — Parameter Studio. Click "Fit to selected" on the
+        # Library and the workspace pushes the dataset to scipy.
+        self._last_fit_result: FitResult | None = None
+        self._library_panel.fit_requested.connect(self._on_fit_requested)
+        self._bouncing_controller.fit_result_ready.connect(self._on_fit_result_ready)
 
     # ------------------------------------------------------------------
     # Accessors (PL-D ships the live widgets; PL-9.1+ keeps the same API)
@@ -438,6 +444,39 @@ class PhysicsLabWorkspace(QWidget):
             f"max|err|={metrics.max_abs_error:.3g} m  "
             f"corr={metrics.pearson_correlation:.3f}  "
             f"(n={metrics.n_samples})"
+        )
+        self._time_controls.status_label().setText(text)
+
+    # ------------------------------------------------------------------
+    # PL-9.2d — Parameter Studio
+    # ------------------------------------------------------------------
+
+    def last_fit_result(self) -> FitResult | None:
+        return self._last_fit_result
+
+    def _on_fit_requested(self, dataset: MeasuredDataset) -> None:
+        """User clicked Library "Fit to selected measurement"."""
+        try:
+            self._bouncing_controller.fit_to_measurement(dataset)
+        except (ValueError, OSError):
+            self._last_fit_result = None
+
+    def _on_fit_result_ready(self, result: FitResult) -> None:
+        self._last_fit_result = result
+        # Push the fitted scalars into the auto-parameters sliders so
+        # the UI shows the result.
+        params = self._parameters_panel.auto_parameters()
+        params.set_value("gravity_m_s2", result.fitted_gravity_m_s2)
+        params.set_value("restitution", result.fitted_restitution)
+        params.set_value("initial_height_m", result.fitted_initial_height_m)
+        params.set_value("drag_coefficient_k", result.fitted_drag_coefficient_k)
+        # Surface the fit summary in the status label.
+        text = (
+            f"fit: rest={result.fitted_restitution:.3f}  "
+            f"drag={result.fitted_drag_coefficient_k:.3f}  "
+            f"RMSE={result.final_rmse:.3g} m  "
+            f"(iters={result.n_iterations}, "
+            f"{'ok' if result.success else 'no-conv'})"
         )
         self._time_controls.status_label().setText(text)
 

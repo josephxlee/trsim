@@ -42,8 +42,11 @@ from PySide6.QtWidgets import (
 from workbench.app.physics_lab import (
     BouncingBallSimulator,
     BouncingBallState,
+    FitConfig,
+    FitResult,
     PhysicsClock,
     analytic_peak_height_m,
+    fit_bouncing_ball,
 )
 from workbench.domain.physics_lab import (
     BOUNCING_BALL_PARAM_SPECS,
@@ -95,6 +98,7 @@ class LibraryWidget(QWidget):
     experiment_selected = Signal(object)
     measured_dataset_selected = Signal(object)
     paper_selected = Signal(object)
+    fit_requested = Signal(object)
 
     BOUNCING_BALL_ROW = "Bouncing Ball Demo"
     CATEGORY_TESTS = "Tests"
@@ -154,13 +158,20 @@ class LibraryWidget(QWidget):
         self._tree.currentItemChanged.connect(self._on_current_item_changed)
         layout.addWidget(self._tree, 1)
 
-        # Save row — workspace hooks save_requested into a Save dialog.
+        # Save row + PL-9.2d Fit row — workspace hooks save_requested
+        # into a Save dialog and fit_requested into the Parameter
+        # Studio scipy run.
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         self._save_btn = QPushButton("Save current experiment...", self)
         self._save_btn.setObjectName("PhysicsLab_LibrarySaveBtn")
         self._save_btn.clicked.connect(self.save_requested.emit)
         row.addWidget(self._save_btn)
+        self._fit_btn = QPushButton("Fit to selected measurement", self)
+        self._fit_btn.setObjectName("PhysicsLab_LibraryFitBtn")
+        self._fit_btn.setEnabled(False)
+        self._fit_btn.clicked.connect(self._on_fit_clicked)
+        row.addWidget(self._fit_btn)
         layout.addLayout(row)
 
         # Restore PL-D default selection (Bouncing Ball Demo).
@@ -175,6 +186,9 @@ class LibraryWidget(QWidget):
 
     def save_button(self) -> QPushButton:
         return self._save_btn
+
+    def fit_button(self) -> QPushButton:
+        return self._fit_btn
 
     def tests_category(self) -> QTreeWidgetItem:
         return self._tests_item
@@ -302,12 +316,24 @@ class LibraryWidget(QWidget):
             return
         label = current.text(0)
         self.demo_selected.emit(label)
+        # Enable Fit only when the active row is a Measured Data leaf.
+        self._fit_btn.setEnabled(label in self._label_to_measured)
         if label in self._label_to_experiment:
             self.experiment_selected.emit(self._label_to_experiment[label])
         if label in self._label_to_measured:
             self.measured_dataset_selected.emit(self._label_to_measured[label])
         if label in self._label_to_paper:
             self.paper_selected.emit(self._label_to_paper[label])
+
+    def _on_fit_clicked(self) -> None:
+        item = self._tree.currentItem()
+        if item is None:
+            return
+        label = item.text(0)
+        dataset = self._label_to_measured.get(label)
+        if dataset is None:
+            return
+        self.fit_requested.emit(dataset)
 
 
 # ---------------------------------------------------------------------
@@ -764,6 +790,7 @@ class BouncingBallController(QObject):
     VALIDATION_DEFAULT_Y_COLUMN: str = "position_m"
 
     validation_metrics_ready = Signal(object)
+    fit_result_ready = Signal(object)
 
     def __init__(
         self,
@@ -1124,6 +1151,62 @@ class BouncingBallController(QObject):
         """Remove the validation overlay curves added by the last run."""
         self._plot.remove_overlay_curve(self.VALIDATION_MEASURED_CURVE)
         self._plot.remove_overlay_curve(self.VALIDATION_SIM_CURVE)
+
+    def fit_to_measurement(
+        self,
+        dataset: MeasuredDataset,
+        *,
+        config: FitConfig | None = None,
+        x_column: str | None = None,
+        y_column: str | None = None,
+        dt_s: float = 0.01,
+        max_iter: int = 200,
+        apply_to_live_state: bool = True,
+    ) -> FitResult:
+        """Run scipy.optimize on ``dataset`` to fit the active params.
+
+        Loads the same columns the Validation Bench uses, hands them to
+        :func:`fit_bouncing_ball` along with the current simulator state
+        as the initial guess, and optionally applies the result to the
+        live simulator + history.
+
+        Emits ``fit_result_ready(result)`` regardless of success.
+
+        Args:
+            dataset: Measured Library row.
+            config: Which parameters to optimise. Default fits
+                restitution only.
+            x_column / y_column: Override the default column pair.
+            dt_s: Simulator step inside each loss evaluation.
+            max_iter: scipy.optimize.minimize max iteration budget.
+            apply_to_live_state: When ``True`` (default), pushes the
+                fitted scalars onto the live simulator via
+                :meth:`reset_with`. Set ``False`` to inspect the
+                result without disturbing the workspace.
+        """
+        measured_x, measured_y = self._load_measurement_columns(dataset, x_column, y_column)
+        sim = self.simulator
+        result = fit_bouncing_ball(
+            measured_x=measured_x,
+            measured_y=measured_y,
+            initial_gravity_m_s2=sim.gravity_m_s2,
+            initial_restitution=sim.restitution,
+            initial_drag_coefficient_k=sim.drag_coefficient_k,
+            initial_height_m=sim.initial_height_m,
+            initial_velocity_m_s=sim.initial_velocity_m_s,
+            config=config,
+            dt_s=dt_s,
+            max_iter=max_iter,
+        )
+        if apply_to_live_state:
+            self.reset_with(
+                gravity_m_s2=result.fitted_gravity_m_s2,
+                restitution=result.fitted_restitution,
+                initial_height_m=result.fitted_initial_height_m,
+                drag_coefficient_k=result.fitted_drag_coefficient_k,
+            )
+        self.fit_result_ready.emit(result)
+        return result
 
     def _load_measurement_columns(
         self,
