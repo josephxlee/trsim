@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 from workbench.domain.types import SpeedMultiplier
 from workbench.ui.nn_training import NNTrainingController, TrainingPanel
 from workbench.ui.panel_registry import PanelRegistration, PanelRegistry
+from workbench.ui.simulator.builtin_pipeline_plugins import BUILTIN_SIMULATOR_PLUGINS
 from workbench.ui.simulator.nn_mode import Step1DatasetPanel, Step2EvalPanel
 from workbench.ui.simulator.nn_mode.step1_controller import NNStep1Controller
 from workbench.ui.simulator.nn_mode.step2_controller import NNStep2Controller
@@ -200,6 +201,11 @@ class SimulatorWorkspace(QWidget):
         if panel_registry is not None:
             self.mount_dlc_panels(panel_registry.get_panels_for_workspace("simulator"))
 
+        # Phase 4 L2 — Populate PluginManager with the curated baseline
+        # of workbench-ships plug-ins. DLC plug-ins discovered via
+        # PluginLoader augment this list in a follow-up sub-step.
+        self._populate_builtin_pipeline_plugins()
+
         # Phase 4 L1 — Run panel live sim_time / frame_id readouts. The
         # controller owns its own SimulationClock + 16 ms QTimer.
         # Tests pass ``autostart_run_timer=False`` for deterministic
@@ -261,6 +267,20 @@ class SimulatorWorkspace(QWidget):
     def dlc_mount_errors(self) -> tuple[DLCMountError, ...]:
         """Tuple of DLC panels that failed to mount."""
         return tuple(self._dlc_mount_errors)
+
+    # ------------------------------------------------------------------
+    # Phase 4 L2 — PluginManager baseline population
+    # ------------------------------------------------------------------
+    def _populate_builtin_pipeline_plugins(self) -> None:
+        """Push the curated built-in plug-in names into the panel.
+
+        Looks up :data:`BUILTIN_SIMULATOR_PLUGINS` and calls
+        :meth:`PluginManagerPanel.set_stage_plugins` per stage. Stages
+        with an empty tuple stay empty (Predictor / Classifier ship no
+        baseline plug-ins as of Phase 9; the UI displays a blank list).
+        """
+        for stage, names in BUILTIN_SIMULATOR_PLUGINS.items():
+            self._plugin_manager_panel.set_stage_plugins(stage, list(names))
 
     # ------------------------------------------------------------------
     # Test helpers / Phase 5+ wiring
