@@ -17,30 +17,71 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 7 remainder (F1~F3) DONE — 3 sub-step 묶음**.
-> app/dlc/installer.py 가 install_package + uninstall_package +
-> InstallResult / UninstallResult + 3 typed errors 추출 (CLI + UI
-> 공유, F1) + ui/editor/package_manager_dialog.py 가
-> PackageManagerDialog (QDialog wrapping 기존 PackageManagerPanel) +
-> PackageManagerController (panel signal ↔ installer 서비스 wire +
-> install_completed/install_failed 등 4 outgoing signals, F2) +
-> MainWindow 가 plugins.manage / plugins.install_package 두 메뉴
-> entry 를 PackageManagerController 에 routing + Plugins 메뉴에
-> "Install Package..." 추가 (F3). 누적 **2360 PASS** (+34 신규
-> in this cycle), 5 contracts KEPT 매 commit. ruff / mypy --strict /
-> import-linter all clean.
+> **Phase 4 UI domain_settings + installation_panel (G1~G4) DONE —
+> 4 sub-step 묶음**. domain/simulation_domain.py 가 `SimulationDomain`
+> frozen+slots dataclass + `OutsideEnvironment` StrEnum 추가 (plan/11
+> § 11.11.3 finally 데이터모델, G1) + ui/editor/map_editor/domain_
+> settings.py 가 `DomainSettingsPanel(QWidget)` (I/O free, 6 spin +
+> 4 radio + Coverage Preview placeholder + Status, validation 은
+> SimulationDomain.__post_init__ 위임, G2) + MapEditor 우측 panel 이
+> `QTabWidget(Layers + Domain)` 로 (`domain_changed`/`outside_
+> environment_changed` forward + `set_map_bounds`/`show_domain_tab`,
+> G3) + ScenarioComposer Installation block 본격 layout (East/North +
+> Altitude readout + AZ/EL + DEM preview placeholder + Coverage Stats
+> 3-readout) + Domain Override block (2 checkbox + 5-item combo) +
+> `CoverageStats` frozen dataclass + `set_terrain_altitude` / `set_
+> coverage_stats` API (G4). 누적 **2434 PASS** (+74 신규 in this
+> cycle), 5 contracts KEPT 매 commit. ruff / mypy --strict / import-
+> linter all clean.
 >
-> **직전 cycle 인계**: `docs/sessions/phase_4_dem_import_wizard_2026_05_13.md`.
+> **이 cycle 인계**: `docs/sessions/phase_4_domain_settings_2026_05_13.md`.
+> **사용자 GUI 손 테스트 체크리스트**: `docs/sessions/user_acceptance_
+> test_2026_05_13.md` (직전 cycle 의 DEM Wizard + Plugins menu 도 함께).
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
 > Phase 6 NN 보강 ✓ → Phase 5 추가 후속 ✓ → Phase 7 DLC CLI ✓ →
-> Phase 7 remainder C7/C8 ✓ → Phase 3 누락 4 모듈 ✓ →
-> Phase 4 dem_import_wizard ✓ → **Phase 7 menu wiring ✓ (이 cycle)** →
-> 다음 cycle 후보: Phase 4 UI domain_settings + installation_panel
-> (중) / Phase 8 HIL 전체 (매우 큼) / Phase 4 UI 실 데이터 binding
-> (큼).
+> Phase 7 remainder C7/C8+F1-F3 ✓ → Phase 3 누락 4 모듈 ✓ → Phase 4
+> dem_import_wizard ✓ → **Phase 4 domain_settings + installation_
+> panel ✓ (이 cycle)** → 다음 cycle 후보: Phase 4 UI 실 데이터 binding
+> (큼, 여러 cycle 분할) / Phase 8 HIL 전체 (매우 큼) / Phase 9 §
+> 19.7.5+ 확장 polish (소-중).
 
-- **Phase 7 remainder menu wiring 3 sub-step (이 cycle)** — Plugins
+- **Phase 4 cycle (G1~G4) 4 sub-step (이 cycle)** — Map Editor 우측
+  panel 이 처음으로 Layers 외 두 번째 탭 갖게 됨. Composer 의
+  Installation block 이 plan/13 § 13.3.3 의 본격 layout 으로 확장.
+  누적 +74 tests.
+
+  | sub | commit | new | 내용 |
+  |---|---|---|---|
+  | G1 | `1403278` | +24 | `SimulationDomain` + `OutsideEnvironment` dataclass (plan/11 § 11.11.3) — `from_map_bounds` classmethod + `contains_bounds` |
+  | G2 | `e0256ef` | +18 | `DomainSettingsPanel(QWidget)` — I/O free + 6 spin + 4 radio + Coverage Preview placeholder + Status |
+  | G3 | `9b70fc1` | +11 | Map Editor 우측 panel → `QTabWidget(Layers + Domain)`; signal forward + `set_map_bounds`/`show_domain_tab` |
+  | G4 | `8460f5f` | +21 | Composer Installation 본격 layout + Domain Override block + `CoverageStats` dataclass |
+
+  학습 (3개):
+  - **PySide6 ``QComboBox.itemData`` 가 Python Enum 객체 identity 잃음** —
+    QVariant wrap 통과 시 `combo.currentData() == MyEnum.X` 가 False.
+    StrEnum 이면 `.value` (str) 저장 + round-trip 시 `MyEnum(value)`.
+  - **Worktree rebase + main 직 push fast-forward** — origin/main 이
+    다른 session 으로 앞서있을 때 `git rebase origin/main` + `git
+    push origin <branch>:main` 으로 ff push (force 차단 안 걸림).
+  - **stale `# type: ignore` 검출** — mypy --strict 가 stale ignore
+    검출. inner panel forward 시 findChild None 가능성 위 `type:
+    ignore[return-value]` 명시 필요.
+
+- **Phase 7 remainder (F1~F3) DONE — 3 sub-step 묶음 (직전 cycle)**.
+  app/dlc/installer.py 가 install_package + uninstall_package +
+  InstallResult / UninstallResult + 3 typed errors 추출 (CLI + UI
+  공유, F1) + ui/editor/package_manager_dialog.py 가
+  PackageManagerDialog (QDialog wrapping 기존 PackageManagerPanel) +
+  PackageManagerController (panel signal ↔ installer 서비스 wire +
+  install_completed/install_failed 등 4 outgoing signals, F2) +
+  MainWindow 가 plugins.manage / plugins.install_package 두 메뉴
+  entry 를 PackageManagerController 에 routing + Plugins 메뉴에
+  "Install Package..." 추가 (F3). 누적 **2360 PASS** (+34 신규
+  in this cycle), 5 contracts KEPT 매 commit.
+
+- **Phase 7 remainder menu wiring 3 sub-step (직전 cycle)** — Plugins
   메뉴에서 처음으로 실제 동작. 누적 +34 tests.
 
   | sub | commit | new | 내용 |
@@ -1139,4 +1180,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — § 3.6 MVP 매트릭스 자동 갱신 규약 추가 + § 9 표에 mvp_status_update 트리거 추가.
+최근 갱신: 2026-05-13 — Phase 4 G1~G4 (domain_settings + installation_panel) 4 sub-step DONE, 2434 PASS.
