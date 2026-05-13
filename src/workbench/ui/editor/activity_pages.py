@@ -8,11 +8,13 @@ Targets / Browser remain placeholder stubs until Phase 4.6+.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from workbench.ui.editor.composer import ScenarioComposer
-from workbench.ui.editor.map_editor import MapEditor
+from workbench.ui.editor.map_editor import DEMImportWizard, MapEditor
 from workbench.ui.editor.radar_editor import RadarEditor
 from workbench.ui.editor.targets_editor import TargetsEditor
 
@@ -60,7 +62,13 @@ class ScenarioComposerPage(QWidget):
 
 
 class MapEditorPage(QWidget):
-    """Activity 2 - hosts the real MapEditor widget (Phase 4.6)."""
+    """Activity 2 - hosts the real MapEditor widget (Phase 4.6).
+
+    Owns the DEM Import Wizard wiring (Phase 4 E3): when the user
+    clicks the Map Editor's "Import DEM..." button, this page opens a
+    :class:`DEMImportWizard` and pushes the result into the edit
+    history.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -70,9 +78,48 @@ class MapEditorPage(QWidget):
         self._map_editor = MapEditor(self)
         layout.addWidget(self._map_editor)
 
+        self._wizard: DEMImportWizard | None = None
+        self._last_imported_path: Path | None = None
+        self._history: list[str] = []
+        self._map_editor.import_dem_requested.connect(self._on_import_requested)
+
     def map_editor(self) -> MapEditor:
         """Return the embedded :class:`MapEditor` (test helper)."""
         return self._map_editor
+
+    # ------------------------------------------------------------------
+    # DEM Import wiring
+    # ------------------------------------------------------------------
+    def active_wizard(self) -> DEMImportWizard | None:
+        """Return the currently open :class:`DEMImportWizard`, if any."""
+        return self._wizard
+
+    def last_imported_path(self) -> Path | None:
+        """Return the path written by the most recent successful import."""
+        return self._last_imported_path
+
+    def _on_import_requested(self) -> None:
+        wiz = DEMImportWizard(self)
+        wiz.setModal(True)
+        wiz.import_completed.connect(self._on_wizard_completed)
+        wiz.import_failed.connect(self._on_wizard_failed)
+        wiz.finished.connect(self._on_wizard_finished)
+        self._wizard = wiz
+        wiz.show()
+
+    def _on_wizard_completed(self, path: Path) -> None:
+        self._last_imported_path = Path(path)
+        self._push_history(f"Imported DEM -> {path}")
+
+    def _on_wizard_failed(self, message: str) -> None:
+        self._push_history(f"Import failed: {message}")
+
+    def _on_wizard_finished(self, _result: int) -> None:
+        self._wizard = None
+
+    def _push_history(self, entry: str) -> None:
+        self._history = [entry, *self._history]
+        self._map_editor.set_history(self._history)
 
 
 class RadarEditorPage(QWidget):
