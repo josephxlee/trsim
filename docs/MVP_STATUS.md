@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 4 G1 (SimulationDomain dataclass) 완료 후.
-**누적 test**: 2384 PASS local, 5 contracts KEPT.
-**HEAD**: G1 `SimulationDomain` + `OutsideEnvironment` 추가 (domain layer prep).
+**최종 갱신**: 2026-05-13 — Phase 4 G2 (DomainSettingsPanel widget) 완료 후.
+**누적 test**: 2402 PASS local, 5 contracts KEPT.
+**HEAD**: G2 `DomainSettingsPanel` UI widget (Map Editor 미통합).
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -105,7 +105,7 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | **Scenario Composer Installation Panel** (DEM + 차폐 Preview + Coverage Stats) | **✗** |
 | Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ |
 | **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4, MVP 4-page distillation: Source/Land-Sea/Output/Summary) |
-| **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | △ (G1, `SimulationDomain` + `OutsideEnvironment` domain dataclass done; Map Editor UI panel pending G2/G3) |
+| **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | △ (G2, dataclass + standalone `DomainSettingsPanel` widget done; Map Editor mount pending G3) |
 | Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
 | Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
 | Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
@@ -261,3 +261,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 F2 — Phase 7 PackageManagerDialog + Controller (2337 → 2354 PASS).
 - 2026-05-13 F3 — Phase 7 MainWindow Plugins menu wiring (Manage + Install Package) ✗ → ✓ (2354 → 2360 PASS).
 - 2026-05-13 G1 — Phase 4 cycle: `SimulationDomain` + `OutsideEnvironment` dataclass (Domain layer prep for Domain Settings panel) (2360 → 2384 PASS).
+- 2026-05-13 G2 — Phase 4 cycle: `DomainSettingsPanel` widget (I/O-free, validates via SimulationDomain.__post_init__) (2384 → 2402 PASS).
