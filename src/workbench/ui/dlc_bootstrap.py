@@ -161,3 +161,39 @@ def _entry_to_item(entry: ResourceEntry, ui_category: UICategory) -> ResourceIte
         category=ui_category,
         status=_SOURCE_TO_STATUS[entry.source],
     )
+
+
+def populate_composer_options_from_library(
+    composer: object,
+    library: ResourceLibrary,
+) -> tuple[int, int, int]:
+    r"""Feed Map / Radar / Target resource ids into the ScenarioComposer dropdowns.
+
+    The Composer widget already exposes
+    :meth:`set_map_options(names)` / :meth:`set_radar_options(names)` /
+    :meth:`set_targets_options(names)` (Phase 4.5 + 4 G4) — this
+    bootstrap pulls the matching :class:`ResourceLibrary` entries and
+    forwards their ``resource_id``\s.
+
+    Args:
+        composer: Any object that exposes the three setters listed
+            above. Typed as ``object`` because dlc_bootstrap must not
+            import :mod:`workbench.ui.editor.composer` directly
+            (Editor / Simulator workspace isolation is enforced by
+            Contract 2; the bootstrap is the join point).
+        library: :class:`ResourceLibrary` containing the entries.
+
+    Returns:
+        ``(n_maps, n_radars, n_targets)`` — how many ids were pushed
+        into each dropdown. Useful for status / log surfaces.
+    """
+    maps = [e.resource_id for e in library.list_resources(AppResourceCategory.MAPS)]
+    radars = [e.resource_id for e in library.list_resources(AppResourceCategory.RADARS)]
+    targets = [e.resource_id for e in library.list_resources(AppResourceCategory.TARGETS)]
+    # Composer's public surface is duck-typed; calling each setter
+    # explicitly keeps the contract loose so test doubles can stub one
+    # method at a time.
+    composer.set_map_options(maps)  # type: ignore[attr-defined]
+    composer.set_radar_options(radars)  # type: ignore[attr-defined]
+    composer.set_targets_options(targets)  # type: ignore[attr-defined]
+    return (len(maps), len(radars), len(targets))

@@ -45,11 +45,12 @@ from workbench.ui.commands import (
 )
 from workbench.ui.dlc_bootstrap import (
     DLCRuntime,
+    populate_composer_options_from_library,
     populate_resource_browser_from_library,
 )
 from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
-from workbench.ui.editor.activity_pages import MapEditorPage
+from workbench.ui.editor.activity_pages import MapEditorPage, ScenarioComposerPage
 from workbench.ui.editor.map_editor import DEMImportController
 from workbench.ui.editor.package_manager_dialog import PackageManagerController
 from workbench.ui.editor.workspace import EditorWorkspace
@@ -128,6 +129,17 @@ class MainWindow(QMainWindow):
         if self._dlc_runtime is not None:
             populate_resource_browser_from_library(
                 self._editor_page().resource_browser(),
+                self._dlc_runtime.app.resource_library,
+            )
+            # Phase 9 cycle — also feed the ScenarioComposer dropdowns
+            # so the Map / Radar / Targets references show real ids
+            # the moment the user lands on the Composer page. The
+            # helper is on the same dlc_bootstrap module the resource
+            # browser uses, so the two surfaces stay in sync.
+            composer_page = self._editor_page().page(Activity.COMPOSER)
+            assert isinstance(composer_page, ScenarioComposerPage)
+            populate_composer_options_from_library(
+                composer_page.composer(),
                 self._dlc_runtime.app.resource_library,
             )
 

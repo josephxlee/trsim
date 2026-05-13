@@ -104,7 +104,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | pyqtgraph + pyvista + pyvistaqt 의존성 | ✓ |
 | Main Window / Workspace selector / Dock manager / Command palette / Toolbar / Menu | ✓ |
 | Editor Activity Selector (5 Activity 좌측 아이콘) + Resource Browser sidebar | ✓ |
-| Scenario Composer widget skeleton | △ (widget.py 만, 실 데이터 binding ✗) |
+| Scenario Composer widget skeleton | △ (widget.py + ResourceLibrary-driven 드롭다운 ✓ via `populate_composer_options_from_library` + MainWindow hook; save/load round-trip ✗ — 후속 cycle) |
 | **Scenario Composer Installation Panel** (DEM + 차폐 Preview + Coverage Stats) | △ (G4, Position 5 row + DEM preview placeholder + Coverage Stats 3-readout + Domain Override block + `CoverageStats` dataclass + `set_terrain_altitude` / `set_coverage_stats` API; 실 Map/Radar/Validator binding ✗) |
 | Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ |
 | **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4, MVP 4-page distillation: Source/Land-Sea/Output/Summary) |
@@ -296,4 +296,5 @@ shell 만 (members 없음).
 - 2026-05-13 Sidequest #7 — Phase 5 #18/#19 reproducibility tests ✗ → ✓. `tests/unit/app/timing/test_reference_timing_reproducibility.py` 신규 (9 tests: PerformanceClock factory bit-identical state / round-trip ms↔Hz / FrameProfiler 동일 sequence → 동일 report / 순서 independent / reset replay invariant / 손계산 percentile golden).
 - 2026-05-13 Sidequest #9 — SDK manifest.py 이동 △ → ✓. `src/workbench/sdk/manifest.py` 신규 + sdk/__init__.py re-export. domain/dlc/ 패키지 전체 삭제 (manifest.py + __init__.py). 6 callers 갱신 (app/dlc/installer.py, app/dlc/package_manager.py, io/package_io.py, sdk/package_validator.py, app/nn/trainer.py docstring, app/dlc/__init__.py docstring). tests/unit/domain/test_dlc_manifest.py → tests/unit/sdk/test_manifest.py 이동 (git mv) + import 갱신. integration test 갱신. plan/02 § 2.6b — SDK 가 DLC author 단일 surface 원칙 정렬.
 - 2026-05-13 Sidequest #6 — Phase 3 Profile mode toggle △ → ✓. `src/workbench/domain/timing/profile_mode.py` 신규 (ProfileMode StrEnum + DEFAULT_PROFILE_MODE=OFF + PROFILE_MODES_IN_DISPLAY_ORDER tuple + parse_profile_mode helper). CLI `trsim run --profile-mode {off,explicit,live}` flag 추가 (default off) + manifest metadata 에 profile_mode 기록. `trsim profile` 도 explicit/live 선택 (default explicit). 9 신규 enum tests + 7 신규 CLI tests. Runtime probe gating 은 Pipeline.step 본격 wire 후 후속.
-**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + Phase 5 #18/#19 + Sidequest #9 + #6 ✓.
+- 2026-05-13 Editor Composer dropdown wiring — `populate_composer_options_from_library` 신규 헬퍼 + MainWindow 가 dlc_runtime 있을 때 `populate_resource_browser_from_library` 옆에서 같이 호출. Composer 의 Map / Radar / Targets 콤보가 처음으로 실 ResourceLibrary 항목으로 채워짐. 3 신규 tests (빈 library / 3 카테고리 round-trip / scenarios 무시).
+**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + #7 + #9 + #6 + Composer dropdown wiring ✓.
