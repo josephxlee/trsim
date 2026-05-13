@@ -183,9 +183,11 @@ plan/04 § 4.3 Phase 3 의 마지막 △ 항목. plan/18 § 18.17.5 specifies
 | Sidequest #7 | `d833889` | +9 |
 | Sidequest #9 | `cf0f57e` | 0 (refactor, 동일 test 재배치) |
 | Sidequest #6 | `5ce10d2` | +16 |
-| **합계** | 10 commit | **+71 tests** |
+| 세션 핸드오프 doc | `da70f65` | 0 |
+| Editor Composer wiring | `3b0f30a` | +3 |
+| **합계** | 12 commit | **+74 tests** |
 
-직전 검증 라인 = 2518 PASS (L1 기준). 사용자 PC 검증 후 = **2589
+직전 검증 라인 = 2518 PASS (L1 기준). 사용자 PC 검증 후 = **2592
 PASS** 예상.
 
 ruff / py_compile / format 전부 통과. mypy --strict / pytest /
