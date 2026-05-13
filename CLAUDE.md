@@ -17,18 +17,22 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 5 추가 후속 (5.7b/5.8b/5.11b/5.12b) DONE — 4 sub-step 묶음**.
-> element_power / ballistic / timing 영역의 scaling / boundary /
-> monotonicity invariant 보강. test-only, src 변경 0. 누적
-> **2131 PASS** (+30 신규 in this cycle), 5 contracts KEPT 매 commit.
+> **Phase 7 DLC CLI (C1~C6) DONE — 6 sub-step 묶음**. Phase 7 (DLC,
+> Wave 2) 의 CLI / SDK / UI / sample / tutorial 단번에 완성. 외부
+> 작성자가 `trsim sdk build` -> `trsim sdk test` -> `trsim install`
+> end-to-end 워크플로 + `examples/dlc/simple_pairing_demo/` 참조
+> 구현 + `docs/dev_guide/creating_dlc.md` 가이드 사용 가능. 누적
+> **2182 PASS** (+51 신규 in this cycle), 5 contracts KEPT 매 commit.
 > ruff / mypy --strict / import-linter all clean.
 >
-> **세션 인계**: `docs/sessions/phase_5_additional_followup_2026_05_13.md`.
+> **세션 인계**: `docs/sessions/phase_7_dlc_cli_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
-> Phase 6 NN 보강 ✓ → **Phase 5 추가 후속 ✓ (이 cycle)** → 다음 cycle
-> 후보 (MVP_STATUS § 우선순위): Phase 7 DLC CLI 완성 / Phase 3 누락
-> 4 모듈 / Phase 8 HIL 전체 / Phase 4 UI 실 데이터 binding.
+> Phase 6 NN 보강 ✓ → Phase 5 추가 후속 ✓ → **Phase 7 DLC CLI ✓
+> (이 cycle)** → 다음 cycle 후보: Phase 3 누락 4 모듈 (bundle_service
+> / evaluator / physics_gate / dem_import) / Phase 8 HIL 전체 / Phase
+> 4 UI 실 데이터 binding / Phase 7 잔여 (resource_schemas /
+> package_validator / Editor "Install Package..." menu wiring).
 
 - **Phase 5 후속 DONE (이 세션)** — 12 sub-step, test-only, 누적
   +79 tests (1986 → 2065). 패턴: 기존 검증 카테고리 각각에 closed-
