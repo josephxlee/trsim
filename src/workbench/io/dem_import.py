@@ -281,3 +281,99 @@ def import_dem_to_terrain_npz(
     """End-to-end helper: read ASCII DEM + write terrain.npz."""
     grid = read_esri_ascii_grid(asc_path)
     return write_terrain_npz(npz_path, grid, land_mask=land_mask)
+
+
+# ---------------------------------------------------------------------
+# Import Wizard orchestrator (Phase 4 dem_import_wizard E2)
+# ---------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class DEMImportRequest:
+    """User-facing input for :func:`run_dem_import`.
+
+    Captures the three knobs the Import Wizard exposes (plan/13
+    § 13.4.5): source DEM file, output ``terrain.npz`` path, and the
+    Land/Sea classification mode + optional threshold.
+
+    Attributes:
+        source_asc_path: Path to the source ``.asc`` file.
+        output_npz_path: Destination ``terrain.npz`` path.
+        land_sea_mode: Which :class:`LandSeaMode` strategy to use.
+        threshold_m: Threshold for :attr:`LandSeaMode.AUTO_THRESHOLD`
+            in metres. Ignored for the other modes. Defaults to
+            ``0.5`` m (plan/11 § 11.5.5).
+    """
+
+    source_asc_path: Path
+    output_npz_path: Path
+    land_sea_mode: LandSeaMode
+    threshold_m: float = 0.5
+
+    def __post_init__(self) -> None:
+        if self.land_sea_mode is LandSeaMode.AUTO_THRESHOLD and not np.isfinite(self.threshold_m):
+            msg = f"threshold_m must be finite, got {self.threshold_m!r}"
+            raise ValueError(msg)
+
+
+@dataclass(frozen=True, slots=True)
+class DEMImportSummary:
+    """Result of a successful :func:`run_dem_import` call.
+
+    Reported to the wizard's summary page so the user can see what
+    actually happened (cell counts, output path).
+    """
+
+    request: DEMImportRequest
+    output_path: Path
+    grid_shape: tuple[int, int]
+    cell_size_m: float
+    land_cell_count: int
+    sea_cell_count: int
+    nodata_cell_count: int
+
+
+def run_dem_import(request: DEMImportRequest) -> DEMImportSummary:
+    """Run the full Import Wizard pipeline (read + classify + write).
+
+    The pipeline (plan/11 § 11.5.2 distilled for MVP):
+
+    1. Parse the ESRI ASCII DEM (:func:`read_esri_ascii_grid`).
+    2. Compute the ``land_mask`` per
+       :attr:`DEMImportRequest.land_sea_mode`
+       (:func:`compute_land_mask`).
+    3. Write the workbench-native ``terrain.npz``
+       (:func:`write_terrain_npz`).
+
+    Args:
+        request: User-supplied wizard inputs.
+
+    Returns:
+        :class:`DEMImportSummary` with cell counts + output path.
+
+    Raises:
+        FileNotFoundError: Source DEM does not exist.
+        ValueError: Source DEM is malformed (re-raised from
+            :func:`read_esri_ascii_grid`).
+    """
+    grid = read_esri_ascii_grid(request.source_asc_path)
+    mask = compute_land_mask(
+        grid,
+        request.land_sea_mode,
+        threshold_m=request.threshold_m,
+    )
+    out = write_terrain_npz(request.output_npz_path, grid, land_mask=mask)
+
+    land_count = int(mask.sum())
+    sea_count = int(mask.size - land_count)
+    nodata_count = int(np.isnan(grid.elevation).sum())
+
+    return DEMImportSummary(
+        request=request,
+        output_path=out,
+        grid_shape=(int(grid.elevation.shape[0]), int(grid.elevation.shape[1])),
+        cell_size_m=float(grid.cell_size_m),
+        land_cell_count=land_count,
+        sea_cell_count=sea_count,
+        nodata_cell_count=nodata_count,
+    )

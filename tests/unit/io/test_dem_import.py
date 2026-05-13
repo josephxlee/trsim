@@ -9,10 +9,13 @@ import pytest
 
 from workbench.io.dem_import import (
     DEMGrid,
+    DEMImportRequest,
+    DEMImportSummary,
     LandSeaMode,
     compute_land_mask,
     import_dem_to_terrain_npz,
     read_esri_ascii_grid,
+    run_dem_import,
     write_terrain_npz,
 )
 
@@ -293,3 +296,134 @@ def test_compute_land_mask_shape_matches_elevation() -> None:
     for mode in LandSeaMode:
         mask = compute_land_mask(grid, mode)
         assert mask.shape == grid.elevation.shape, (mode, mask.shape)
+
+
+# ---------------------------------------------------------------------
+# DEMImportRequest + run_dem_import (Phase 4 dem_import_wizard E2)
+# ---------------------------------------------------------------------
+
+
+def test_request_default_threshold_is_half_metre(tmp_path: Path) -> None:
+    req = DEMImportRequest(
+        source_asc_path=tmp_path / "src.asc",
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.NODATA,
+    )
+    assert req.threshold_m == 0.5
+
+
+def test_request_rejects_nan_threshold(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match=r"threshold_m must be finite"):
+        DEMImportRequest(
+            source_asc_path=tmp_path / "src.asc",
+            output_npz_path=tmp_path / "out.npz",
+            land_sea_mode=LandSeaMode.AUTO_THRESHOLD,
+            threshold_m=float("nan"),
+        )
+
+
+def test_request_allows_nan_threshold_for_non_threshold_mode(tmp_path: Path) -> None:
+    """NODATA / ALL_LAND ignore threshold — NaN is harmless."""
+    req = DEMImportRequest(
+        source_asc_path=tmp_path / "src.asc",
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.ALL_LAND,
+        threshold_m=float("nan"),
+    )
+    assert req.land_sea_mode is LandSeaMode.ALL_LAND
+
+
+def test_run_dem_import_happy_path_nodata_mode(tmp_path: Path) -> None:
+    body = """\
+ncols        2
+nrows        2
+xllcorner    0
+yllcorner    0
+cellsize     5
+NODATA_value -9999
+-9999 30
+10 20
+"""
+    asc = _write_asc(tmp_path / "demo.asc", body)
+    req = DEMImportRequest(
+        source_asc_path=asc,
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.NODATA,
+    )
+    summary = run_dem_import(req)
+    assert isinstance(summary, DEMImportSummary)
+    assert summary.output_path.is_file()
+    assert summary.grid_shape == (2, 2)
+    assert summary.cell_size_m == 5.0
+    assert summary.land_cell_count == 3
+    assert summary.sea_cell_count == 1
+    assert summary.nodata_cell_count == 1
+
+
+def test_run_dem_import_auto_threshold_classifies(tmp_path: Path) -> None:
+    body = """\
+ncols        3
+nrows        1
+xllcorner    0
+yllcorner    0
+cellsize     2
+NODATA_value -9999
+0.0 0.5 5.0
+"""
+    asc = _write_asc(tmp_path / "demo.asc", body)
+    req = DEMImportRequest(
+        source_asc_path=asc,
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.AUTO_THRESHOLD,
+        threshold_m=0.5,
+    )
+    summary = run_dem_import(req)
+    # Cells (0.0, 0.5, 5.0) → (sea, sea, land) at threshold > 0.5.
+    assert summary.land_cell_count == 1
+    assert summary.sea_cell_count == 2
+    loaded = np.load(summary.output_path)
+    np.testing.assert_array_equal(loaded["land_mask"], np.array([[False, False, True]]))
+
+
+def test_run_dem_import_all_land_marks_every_cell(tmp_path: Path) -> None:
+    body = """\
+ncols        2
+nrows        1
+xllcorner    0
+yllcorner    0
+cellsize     1
+NODATA_value -9999
+-9999 5
+"""
+    asc = _write_asc(tmp_path / "demo.asc", body)
+    req = DEMImportRequest(
+        source_asc_path=asc,
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.ALL_LAND,
+    )
+    summary = run_dem_import(req)
+    assert summary.land_cell_count == 2
+    assert summary.sea_cell_count == 0
+    assert summary.nodata_cell_count == 1  # NaN still reported
+
+
+def test_run_dem_import_missing_source_raises(tmp_path: Path) -> None:
+    req = DEMImportRequest(
+        source_asc_path=tmp_path / "ghost.asc",
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.NODATA,
+    )
+    with pytest.raises(FileNotFoundError, match=r"DEM file not found"):
+        run_dem_import(req)
+
+
+def test_run_dem_import_summary_round_trips_request(tmp_path: Path) -> None:
+    asc = _write_asc(tmp_path / "demo.asc")
+    req = DEMImportRequest(
+        source_asc_path=asc,
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.NODATA,
+    )
+    summary = run_dem_import(req)
+    assert summary.request is req
+    assert summary.output_path.is_file()
