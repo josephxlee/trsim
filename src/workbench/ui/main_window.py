@@ -207,7 +207,11 @@ class MainWindow(QMainWindow):
     def _build_command_hooks(self) -> CommandHooks:
         # Phase 5 wiring replaces the no-op defaults for sim/target hooks
         # with calls into SimulationClock / RunManager via CommandBus.
+        # Phase 4 L1 wires the Simulator workspace's run-controller into
+        # the SIM toolbar (play / pause / stop / speed) — Run panel now
+        # shows live sim_t_s / frame_id / state / speed.
         editor = self._editor_page()
+        sim = self._simulator_page()
         return CommandHooks(
             on_workspace_editor=self._activate_editor,
             on_workspace_simulator=self._activate_simulator,
@@ -222,7 +226,16 @@ class MainWindow(QMainWindow):
             on_activity_browser=lambda: self._show_activity(editor, Activity.BROWSER),
             on_plugins_manage=self._open_dlc_manager,
             on_plugins_install_package=self._install_dlc_package,
+            on_sim_start=sim.sim_play,
+            on_sim_pause=sim.sim_pause,
+            on_sim_stop=sim.sim_stop,
+            on_sim_speed=sim.sim_set_speed,
         )
+
+    def _simulator_page(self) -> SimulatorWorkspace:
+        page = self._pages[Workspace.SIMULATOR]
+        assert isinstance(page, SimulatorWorkspace)
+        return page
 
     def _open_dlc_manager(self) -> None:
         """Hook for the ``plugins.manage`` command — open the dialog."""

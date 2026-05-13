@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.domain.types import SpeedMultiplier
 from workbench.ui.nn_training import NNTrainingController, TrainingPanel
 from workbench.ui.panel_registry import PanelRegistration, PanelRegistry
 from workbench.ui.simulator.nn_mode import Step1DatasetPanel, Step2EvalPanel
@@ -54,6 +55,7 @@ from workbench.ui.simulator.panels import (
     StageIOPanel,
 )
 from workbench.ui.simulator.profiler_panel import ProfilerPanel
+from workbench.ui.simulator.run_controller import SimulatorRunController
 from workbench.ui.widgets import DetachableTabWidget
 
 
@@ -86,6 +88,8 @@ class SimulatorWorkspace(QWidget):
         *,
         panel_registry: PanelRegistry | None = None,
         nn_datasets_root: Path | None | object = _NN_DATASETS_DEFAULT,
+        run_tick_interval_ms: int = 16,
+        autostart_run_timer: bool = True,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("SimulatorWorkspace")
@@ -196,6 +200,17 @@ class SimulatorWorkspace(QWidget):
         if panel_registry is not None:
             self.mount_dlc_panels(panel_registry.get_panels_for_workspace("simulator"))
 
+        # Phase 4 L1 — Run panel live sim_time / frame_id readouts. The
+        # controller owns its own SimulationClock + 16 ms QTimer.
+        # Tests pass ``autostart_run_timer=False`` for deterministic
+        # tick control.
+        self._run_controller = SimulatorRunController(
+            run_panel=self._run_panel,
+            tick_interval_ms=run_tick_interval_ms,
+            autostart_timer=autostart_run_timer,
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
     # ------------------------------------------------------------------
@@ -279,6 +294,26 @@ class SimulatorWorkspace(QWidget):
 
     def bottom_tabs(self) -> DetachableTabWidget:
         return self._bottom_tabs
+
+    # ------------------------------------------------------------------
+    # Phase 4 L1 — Run controller (live sim_time / frame_id)
+    # ------------------------------------------------------------------
+    def run_controller(self) -> SimulatorRunController:
+        return self._run_controller
+
+    def sim_play(self) -> None:
+        """Toolbar / hook entry — start simulation clock."""
+        self._run_controller.play()
+
+    def sim_pause(self) -> None:
+        self._run_controller.pause()
+
+    def sim_stop(self) -> None:
+        self._run_controller.stop()
+
+    def sim_set_speed(self, multiplier: int) -> None:
+        """Map toolbar speed int (1/2/4/8) to :class:`SpeedMultiplier`."""
+        self._run_controller.set_speed(SpeedMultiplier(multiplier))
 
     # ------------------------------------------------------------------
     # NN-mode accessors (Phase 4.11 + MVP UI wire-up)

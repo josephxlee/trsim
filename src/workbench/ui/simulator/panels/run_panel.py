@@ -1,4 +1,12 @@
-"""Run metrics panel (Phase 4.9, plan/05 § 5.3.6)."""
+"""Run metrics panel (Phase 4.9, plan/05 § 5.3.6) + L1 live-sim readout.
+
+Phase 4 L1 (2026-05-13) adds a "Simulation Time" group above the
+primary-target metrics. The new group shows the live ``SimulationClock``
+state — ``sim_t_s`` / ``frame_id`` / state label / current speed —
+that :class:`workbench.ui.simulator.run_controller.SimulatorRunController`
+(L1b) drives on every QTimer tick. Before L1 the panel was a fully
+inert placeholder; tests now assert on the live-sim API.
+"""
 
 from __future__ import annotations
 
@@ -12,6 +20,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.domain.types import SimulationState, SpeedMultiplier
+
 
 class RunPanel(QWidget):
     """Primary-target metrics + history list shell."""
@@ -23,6 +33,8 @@ class RunPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
+        layout.addWidget(self._build_sim_time_block())
+
         body = QHBoxLayout()
         body.setSpacing(12)
         body.addWidget(self._build_history_block(), 0)
@@ -32,6 +44,24 @@ class RunPanel(QWidget):
     # ------------------------------------------------------------------
     # Builders
     # ------------------------------------------------------------------
+    def _build_sim_time_block(self) -> QGroupBox:
+        box = QGroupBox("Simulation Time", self)
+        box.setObjectName("RunPanelSimTime")
+        form = QFormLayout(box)
+        self._sim_time_label = QLabel("0.000 s")
+        self._sim_time_label.setObjectName("RunPanelSimTime_t")
+        self._frame_id_label = QLabel("0")
+        self._frame_id_label.setObjectName("RunPanelSimTime_frame")
+        self._state_label = QLabel(SimulationState.STOPPED.value)
+        self._state_label.setObjectName("RunPanelSimTime_state")
+        self._speed_label = QLabel("x1")
+        self._speed_label.setObjectName("RunPanelSimTime_speed")
+        form.addRow("sim_t", self._sim_time_label)
+        form.addRow("frame", self._frame_id_label)
+        form.addRow("state", self._state_label)
+        form.addRow("speed", self._speed_label)
+        return box
+
     def _build_history_block(self) -> QGroupBox:
         box = QGroupBox("Run History", self)
         box.setObjectName("RunPanelHistory")
@@ -91,6 +121,33 @@ class RunPanel(QWidget):
         self._az_rmse_label.setText(f"{az_rmse_deg:.2f} deg")
         self._lag_label.setText(f"{positioner_lag_deg:.2f} deg")
 
+    def set_sim_time(self, sim_t_s: float, frame_id: int) -> None:
+        """Update the live SimulationClock readout (Phase 4 L1).
+
+        Args:
+            sim_t_s: Current simulation time [s], non-negative.
+            frame_id: Monotonic frame counter, >= 0.
+
+        Raises:
+            ValueError: If ``sim_t_s`` is negative or ``frame_id`` is < 0.
+        """
+        if sim_t_s < 0.0:
+            msg = f"sim_t_s must be non-negative, got {sim_t_s}"
+            raise ValueError(msg)
+        if frame_id < 0:
+            msg = f"frame_id must be non-negative, got {frame_id}"
+            raise ValueError(msg)
+        self._sim_time_label.setText(f"{sim_t_s:.3f} s")
+        self._frame_id_label.setText(str(frame_id))
+
+    def set_sim_state(self, state: SimulationState) -> None:
+        """Update the state readout (Phase 4 L1)."""
+        self._state_label.setText(state.value)
+
+    def set_sim_speed(self, speed: SpeedMultiplier) -> None:
+        """Update the speed multiplier readout (Phase 4 L1)."""
+        self._speed_label.setText(f"x{int(speed.value)}")
+
     def history_list(self) -> QListWidget:
         return self._history_list
 
@@ -99,3 +156,15 @@ class RunPanel(QWidget):
 
     def continuity_label(self) -> QLabel:
         return self._continuity_label
+
+    def sim_time_label(self) -> QLabel:
+        return self._sim_time_label
+
+    def frame_id_label(self) -> QLabel:
+        return self._frame_id_label
+
+    def sim_state_label(self) -> QLabel:
+        return self._state_label
+
+    def sim_speed_label(self) -> QLabel:
+        return self._speed_label
