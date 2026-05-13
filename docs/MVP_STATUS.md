@@ -1,241 +1,238 @@
-# MVP 가동 검증 결과 + Top-down Gap 보고 (2026-05-12)
+# TRsim — MVP 전체 작업 매트릭스
 
-사용자가 [`docs/MVP_GUIDE.md`](MVP_GUIDE.md) 따라 검증한 결과, 다수
-항목 fail. 원인 분석 + 진짜 MVP 진행 상태 정리.
+**plan/04 § 4.3 의 Phase 0~9 list 와 실제 구현 상태의 cross-check
+매트릭스**. 새 sub-step 시작 / 끝낼 때 이 파일이 권위. 매 sub-step
+push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 
-## 0. 사용자 보고 사항
-
-| 항목 | 결과 | 1차 진단 |
-|---|---|---|
-| 1.1 `trsim ui --help` 에 `--no-dlc` 없음 | FAIL | 코드 = 동기화 |
-| 2.1 pytest 1484 PASS (1570 기대) | FAIL | 코드 = 동기화 |
-| 2.2 ruff 1 파일 재포맷 필요 | FAIL | 코드 = 동기화 |
-| 3.2 Ctrl+Shift+E/S 단축키 안 됨 | FAIL | 단축키 충돌 (의심) |
-| 3.6 Ctrl+Shift+P 안 됨 | FAIL | 단축키 충돌 (의심) |
-| 4.2 DLC bottom tab 등장 안 함 | FAIL | 코드 = 동기화 |
-| 4.3 user resource sidebar 등장 안 함 | FAIL | 코드 = 동기화 |
-| 4.4 `--no-dlc` 실행 안 됨 | FAIL | 코드 = 동기화 |
-| 5. NN 모드 없음 | FAIL | **진짜 누락** |
-| 기타 1. 패널 floating | 미구현 | **설계 부재** |
-| 기타 2. Physics workspace | 미구현 | **MVP+α (v0.40)** |
-
-5 / 기타 1 / 기타 2 는 **동기화로 해결 안 되는 진짜 MVP 누락**.
-
----
-
-## 1. 동기화 (사용자 측) — 가장 큰 단일 원인
-
-### 1.1 증거
-
-```
-사용자 local main HEAD : 729875f (docs: session handoff)
-worktree HEAD          : 41381b9 (MVP_GUIDE)
-delta                  : 6 commits ahead on origin/main
-```
-
-사용자가 push 후 local main 으로 `git pull` 안 함. `trsim.exe` 가
-`pip install -e .` editable mode 라 src/ 변경 자동 반영되지만,
-src/ 가 옛 commit 그대로.
-
-### 1.2 누락된 6 commits
-
-| commit | 효과 |
+| 상태 | 의미 |
 |---|---|
-| `c297800` Phase 7.6 | `MainWindow(dlc_runtime=...)` + Editor sidebar populate |
-| `96842cd` Task B | Step 1 panel Build-mode 콤보 + variant chain |
-| `d3c247e` Task C | TrainerService `backend="numpy_mlp"` |
-| `025a168` Task D | Simulator bottom_tabs DLC mount + `--no-dlc` 인자 자체는 여기 미포함 |
-| `ae960d4` MVP wrap-up | `trsim ui --no-dlc` 인자 + `build_ui_window` |
-| `41381b9` docs MVP_GUIDE | 검증 가이드 |
+| ✓ | 완료 |
+| △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
+| ✗ | 미구현 |
 
-### 1.3 사용자 측 조치 (3 명령)
+**최종 갱신**: 2026-05-13 — Phase 5 후속 12 sub-step 마감 직후 cross-check.
+**누적 test**: 2065 PASS local, 5 contracts KEPT.
+**HEAD**: `a2e370f` (Phase 5 followup handoff).
 
-```powershell
-cd "C:\Workspaces\Claude\Tracking Radar Simulator\trsim"
-git pull --ff-only
-.\.venv\Scripts\python.exe -m pip install -e . --no-deps
-```
-
-`pip install -e . --no-deps` 가 console-script wrapper (`trsim.exe`)
-재생성 + editable egg-link 갱신. dev extras 는 이미 깔려있으니
-`--no-deps` 면 빠름.
-
-이후:
-- `trsim --version` → 새 trsim ui 헬프에 `--no-dlc` 표시
-- `pytest -q` → 1570 PASS
-- `trsim ui` → DLC 자동 mount + sidebar populate
-
-이걸로 0.X, 1.x, 2.x, 4.x 다수 해결.
+이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
+검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
+(sessions/mvp_status_gap_report_2026_05_12.md) 에 archive.
 
 ---
 
-## 2. 진짜 MVP 누락 — 코드 자체에서 빠진 것
+## 한 줄 요약
 
-### 2.1 NN 모드 UI 진입경로 **0** ❌ ★
-
-**현황**:
-- `src/workbench/ui/simulator/nn_mode/` 안에 `Step1DatasetPanel`,
-  `Step2EvalPanel`, `NNStep1Controller`, `NNStep2Controller` 모두
-  존재 (Phase 4.11 + 6.4c + 6.8 + Task B 에서 만듦)
-- `src/workbench/ui/nn_training/` 안에 `TrainingPanel` +
-  `NNTrainingController` 존재 (task 3)
-- **그러나** `SimulatorWorkspace` / `EditorWorkspace` / `MainWindow`
-  어디에서도 이 panel 들을 instantiate 하지 않는다.
-- `grep "Step1DatasetPanel("` → step1_dataset.py 본인 1 곳뿐
-- `grep "TrainingPanel("` → training_panel.py + training_controller.py 만
-
-**검증**: `python -m workbench ui` 띄워도 NN Step 1/2 또는 Training
-panel 에 접근할 UI 진입점 없음. `Simulator` 워크스페이스의 bottom
-tabs 는 `Run / Stage I/O / Profiler` 3 개 (+ DLC 자동 tab) 만.
-
-**원인**: Phase 4.11 commit message 가 명시함 — "Mode selector UI
-통합은 Phase 4.12". 그런데 Phase 4.12 는 ProfilerPanel composite 가
-되어버렸고 NN mode selector 미통합인 채 Phase 5+ 로 넘어감. 후속
-sub-step (B/C/D, MVP wrap-up) 들도 panel mount 누락에 안 짚음.
-
-**조치 옵션** (선택해야):
-1. **(추천)** Simulator workspace bottom_tabs 에 NN Step1 / NN Step2
-   / NN Training 3 개 tab 추가. 기존 Run/StageIO/Profiler 옆에.
-2. Simulator workspace 에 "Mode" 라디오 (Operation vs NN) 추가하고
-   NN mode 선택 시 별도 stack page 로 switch. plan/05 § 5.1 의
-   principle 6 가 이걸 명시. 더 정석.
-3. Editor 에 NN activity (Ctrl+6) 추가하고 Step1/Step2/Training 을
-   sub-tab 으로. Editor 가 "데이터 만들기 + 학습 컨트롤" 에 자연.
-
-### 2.2 단축키 충돌 의심 ⚠️
-
-**현황**: `_build_workspace_actions` 가 toolbar QAction 에
-`setShortcut("Ctrl+Shift+E/S")` + `MainMenuBar._attach` 가 같은
-command 의 menu QAction 에도 같은 shortcut. **두 QAction 이 동일
-shortcut 보유** → Qt 의 ambiguous shortcut 경고 + 둘 다 disable
-가능성.
-
-`palette.open` 도 `QShortcut(Ctrl+Shift+P, self)` + menu QAction
-shortcut 중복.
-
-**검증 필요**: 사용자 PC pull 후 재시도. 동기화로 어쩌면 해결될 수
-도 있지만 (코드 변경 없음), 코드 자체 충돌이 그대로 남음. Qt 가
-콘솔에 `"QAction::eventFilter: Ambiguous shortcut overload"` 경고
-출력하면 확정.
-
-**조치**: toolbar QAction 의 `setShortcut` 제거 (menu_bar 만 단독
-보유) 또는 QShortcut 에 `setContext(Qt.ApplicationShortcut)`.
-
-### 2.3 패널 floating 미구현 (설계 부재) 🟡
-
-**현황**:
-- `DockManager` (Phase 4.2d) 는 QDockWidget 으로 패널을 dock 으로
-  등록 가능한 인프라.
-- 그러나 실제 패널들 (Editor 5 activity, Simulator 8 panel) 은
-  모두 `QSplitter` 안 fixed layout 으로 박혀있다.
-- DockManager 가 어떤 패널도 실제로 dock 안 함 (register 호출 0).
-
-**plan**: plan/05 § 5.2 + plan/13 § 13.2 에 floating dock window
-관련 명시 0. 두 workspace 모두 fixed splitter layout 으로 설계됨.
-
-**조치 옵션**:
-- (MVP 외): 후속 phase 에서 DockManager 활용 → floating dock 지원.
-- (MVP 가동 목표면): 현재 fixed layout 유지. 사용자 기대치 조정
-  필요.
-
-### 2.4 Physics Lab workspace = **MVP+α v0.40** 🟡
-
-**plan/02 § 2.6c**: Physics Lab 은 **v0.40 신설** 디렉토리:
-- `src/workbench/app/physics_lab/`
-- `src/workbench/ui/physics_lab/`
-- 3-pane 인터랙티브 + 9 Test Objects + 4 시간 모드 + 사용자 물리
-  plugin (`PhysicsModelProtocol`)
-
-**plan/04 § 4.3**: MVP 는 Phase 0~6. Phase 7 (DLC), Phase 8 (HIL),
-Phase 9 (Physics Lab) 모두 MVP+α.
-
-즉 Physics workspace 는 **의도된 부재** — MVP 후 v0.40 추가. 현
-시점에서 없는 게 정상.
+**MVP frame (Phase 0~5) ✓** — 단 Phase 3/4 의 일부 secondary 모듈 미완.
+**MVP+α 4 wave**: Wave 1 (NN) frame ✓, Wave 2 (DLC) runtime ✓ CLI ✗,
+**Wave 3 (HIL) 전체 ✗**, Wave 4 (Physics Lab) ✓.
 
 ---
 
-## 3. MVP 완성도 — 실제 layer 별 상태
+## Phase 0 — 레포 뼈대 + OSS 인프라 ✓
 
-| Layer | 항목 | 상태 |
-|---|---|---|
-| **CLI** | `trsim --version` | ✅ |
-| | `trsim profile` | ✅ |
-| | `trsim run` (placeholder loop) | 🟡 frame loop = MVP placeholder |
-| | `trsim ui` + `--no-dlc` + `--workspace` | ✅ (pull 후) |
-| **Editor workspace** | 5 Activity (Ctrl+1~5) | ✅ |
-| | Resource Browser sidebar | ✅ |
-| | ScenarioComposer | 🟡 4 블록 골격, 실 데이터 binding 미 |
-| | Map editor | 🟡 5 tool 골격, pyqtgraph canvas 미 |
-| | Radar editor | 🟡 폼 골격, beam preview canvas 미 |
-| | Targets editor | 🟡 폼 + CSV I/O 골격, trajectory preview 미 |
-| | Atmosphere panel | ✅ schema round-trip |
-| **Simulator workspace** | 8 built-in panel (FFT/RD/Run/Properties/...) | 🟡 widget 골격, 실 데이터 binding 미 |
-| | Scene3D PyVista 임베드 | ❌ placeholder canvas |
-| | Scope POV cross-hair | ❌ placeholder canvas |
-| | Profiler tab (Timing/Scale/Report) | 🟡 widget OK, 실시간 binding 미 |
-| | DLC panel mount (bottom_tabs) | ✅ (pull 후) |
-| | **NN mode (Step 1 / Step 2 / Training)** | ❌ **UI 진입경로 0** |
-| **App layer** | DatasetBuilder + PipelineRunner | ✅ |
-| | VariantBuildRunner (4-tier chain) | ✅ |
-| | TrainerService (fake + numpy_mlp) | ✅ |
-| | NNEvaluator 4-error | ✅ |
-| | NumpyPairingNN baseline | ✅ |
-| | DLC PackageManager + PluginLoader + ResourceLibrary | ✅ |
-| | UI PanelRegistry | ✅ |
-| **Domain / Physics** | FMCW Triangle + multipath + horizon + glint | ✅ (golden + invariant tests) |
-| | EKF / UKF / GNN | ✅ |
-| | CFAR (OS + CA) | ✅ |
-| | Tracker scenario regression | ✅ |
-| | Coherence validator | ✅ |
-| **Single-process** | pytest 1570 PASS | ✅ |
-| | ruff format + check + mypy strict | ✅ |
-| | import-linter 5 contracts | ✅ |
-| **Floating / docking** | QDockWidget actual mount | ❌ 미구현 (plan 도 미설계) |
-| **Physics Lab workspace** | v0.40 신설 | ❌ MVP+α 영역 |
-
-**범례**: ✅ 완성 / 🟡 골격만 (binding 미) / ❌ 없음
+| 영역 | 상태 |
+|---|---|
+| pyproject.toml + .importlinter + 디렉토리 구조 | ✓ |
+| `python -m workbench` 빈 창 + pytest "hello world" | ✓ |
+| lint-imports 5 contracts KEPT | ✓ |
+| LICENSE / NOTICE / README / CONTRIBUTING / CODE_OF_CONDUCT / GOVERNANCE / SECURITY | ✓ |
+| .github/PULL_REQUEST_TEMPLATE.md + 3 ISSUE templates + ci.yml | ✓ |
 
 ---
 
-## 4. 결론
+## Phase 1 — Primitives ✓
 
-### 4.1 사용자 주장 검증
+| 영역 | 상태 |
+|---|---|
+| physics/fmcw / ray_tracing / reflection / geometry | ✓ |
+| domain/geo / terrain / building / positioner_spec / antenna_spec | ✓ |
+| 최소 스모크 테스트 | ✓ |
 
-> "MVP를 만들다 중단한 것 같아"
+---
 
-**부분 정확**. 더 정확히는:
+## Phase 2 — Domain ✓
 
-- **개발 + 검증** 은 단단함 — 1570 PASS, contracts KEPT.
-- **App + Domain + Physics layer** 는 MVP 가 의도한 모든 기능을 보유.
-- **CLI + 비-UI 흐름** 은 동작.
-- **UI shell + Editor + Simulator workspace** 는 widget 골격까지
-  들어있음.
-- **UI 의 실 데이터 binding + NN mode UI 진입점** 은 누락. 이 누락은
-  Phase 4.11 commit message 에서 "Mode selector UI 통합은 Phase 4.12"
-  로 미루었으나, Phase 4.12 가 ProfilerPanel 로 바뀐 후 잊혀짐.
+| 영역 | 상태 |
+|---|---|
+| contracts.py 6 Protocol + PositionerCommand / CommandSource / types | ✓ |
+| pipeline.py + environment.py + plugins_builtin/default_* | ✓ |
+| Map + 좌표계 (geo / map_resource / coastline / terrain_sampling / simulation_domain) | ✓ |
+| Placement + Motion (placement / wave_response / building / target) | ✓ |
+| Dynamics 6 모듈 (state / params / forces / solver / motion_models / impact) | ✓ |
+| Atmosphere (ISA + rain + refraction) | ✓ |
+| Propagation/multipath (two-ray sea bounce) | ✓ |
+| Antenna (Parabolic / PlanarArray / RXChannelSpec / MonopulseRXConfig) | ✓ |
+| Monopulse (extended target 합성) | ✓ |
+| Extended Target (Scatterer / ExtendedTarget / glint) | ✓ |
+| Tracker (EKF / UKF / GNN Hungarian) + TrackerKind | ✓ |
+| Detection (CACFAR + OSCFAR) | ✓ |
+| Platform + Scenario + io/scenario_loader | ✓ |
+| Reference Timing 데이터 모델 (domain/timing/reference_timing.py) | ✓ |
+| Physics Layer 통합 (PL-1/PL-2 — physics/ 분리, 11번째 PhysicsModelProtocol) | ✓ |
+| 17종 회귀 + Phase 5 후속 보강 | ✓ |
 
-### 4.2 즉시 조치 (사용자 측)
+---
 
-1. `cd "C:\Workspaces\Claude\Tracking Radar Simulator\trsim" && git pull --ff-only && .\.venv\Scripts\python.exe -m pip install -e . --no-deps`
-2. `trsim ui` 재가동 → DLC sidebar / bottom_tab 동작 확인
-3. `pytest -q` → 1570 PASS 확인
+## Phase 3 — Application △
 
-### 4.3 즉시 조치 (개발 측, 다음 sub-step 후보)
+| 모듈 | 상태 |
+|---|---|
+| command_bus / command_registry / commands (5 카테고리: sim/target/positioner/editor/workspace) | ✓ |
+| event_bus / plugin_loader / plugin_scanner (AST GT Isolation) | ✓ |
+| workspace_manager / resource_library / resource_cache / scenario_service | ✓ |
+| simulation_clock (두 레이어 Layer 1) | ✓ |
+| input_buffer / probe_recorder / run_manager | ✓ |
+| **bundle_service** (.scnbundle / .runbundle export·import, v0.20) | **✗** |
+| **evaluator** (Command Lineage 검증, v0.14 Level 3-2) | **✗** |
+| **physics_gate** (물리 건전성 자동 검사) | **✗** |
+| io/run_storage / trace_storage | ✓ |
+| **io/dem_import** (Import Wizard 백엔드, terrain.npz 변환, v0.22) | **✗** |
+| CLI: `trsim run` / `trsim profile` / `trsim ui` | ✓ |
+| Reference Timing v0.39 (performance_clock / frame_boundary / stage_probe / frame_profiler) | ✓ |
+| Profile 모드 toggle (off / explicit / live, Q4) | △ |
+| Warmup discard | ✓ |
 
-**우선순위 ★** = MVP 가동 완전성 회복:
+---
 
-1. ★ **NN mode UI 진입경로 추가** (§ 2.1) — Simulator bottom_tabs
-   에 NN Step1 / NN Step2 / NN Training 3 tab 직접 mount. 한 sub-step.
-2. ★ **단축키 충돌 해소** (§ 2.2) — toolbar QAction 의 setShortcut
-   제거 또는 QShortcut context 변경. 한 commit.
+## Phase 4 — UI △ (골격 ✓, 실 데이터 binding ✗)
 
-**우선순위 보강** = MVP 완성도:
+| 영역 | 상태 |
+|---|---|
+| pyqtgraph + pyvista + pyvistaqt 의존성 | ✓ |
+| Main Window / Workspace selector / Dock manager / Command palette / Toolbar / Menu | ✓ |
+| Editor Activity Selector (5 Activity 좌측 아이콘) + Resource Browser sidebar | ✓ |
+| Scenario Composer widget skeleton | △ (widget.py 만, 실 데이터 binding ✗) |
+| **Scenario Composer Installation Panel** (DEM + 차폐 Preview + Coverage Stats) | **✗** |
+| Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ |
+| **Map Editor DEM Import Wizard** (7 step, v0.22) | **✗** |
+| **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | **✗** |
+| Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
+| Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
+| Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
+| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (placeholder, 실 데이터 binding ✗) |
+| Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | △ (Phase 4.10 lazy create) |
+| Profiler panel (timing breakdown / scale indicator / report) | ✓ |
+| NN mode panels (Step 1 Dataset / Step 2 Eval / Training) | ✓ |
+| 방향키 이벤트 / Mode 전환 UI (DSP ↔ NN) / 단축키 정책 | △ |
 
-3. Editor 5 activity 의 실 데이터 binding (Composer ↔ Map/Radar/
-   Targets resource 등록 + Validate 동작)
-4. Simulator 8 panel 의 실 frame 데이터 binding (FFT/RD/Scene3D
-   에 simulation_clock.tick + RadarPipeline.step 흐름 연결)
-5. Phase 8 HIL / Phase 9 Physics Lab 은 MVP+α 일정 따라 별도
+---
 
-이 가이드 (`docs/MVP_STATUS.md`) 가 다음 세션 진입점. 사용자가 위
-조치 1+2 동의 시 자동 진행 재개.
+## Phase 5 — 물리 검증 ✓
+
+17 카테고리 + 이 세션 12 sub-step 후속 보강 끝 (2065 PASS).
+plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
+#19 (Frame Profiler 결과 재현성) 의 본격 재현성 시험은 △
+(정량 invariant 만 추가, 같은 seed/load → 같은 결과 검증 ✗).
+
+---
+
+## Phase 6 — NN MVP (Wave 1) △
+
+| 항목 | 상태 |
+|---|---|
+| domain/stage_slot + nn_plugin (NNPluginMixin runtime_checkable Protocol) | ✓ |
+| app/nn/data_exporter (HDF5 round-trip) | ✓ |
+| app/nn/dataset_builder (streaming + cancel + finalize) | ✓ |
+| app/nn/evaluator (4-error 진단 + diagnosis_hint) | ✓ |
+| app/nn/trainer (TrainerService, backend ∈ {fake, numpy_mlp}) | ✓ |
+| app/nn/pipeline_runner (Stage probe wire) | ✓ |
+| app/nn/variant_runner (4-tier preset) | ✓ |
+| app/nn/pairing_nn (NumpyPairingNN — Pairing NN 첫 구현) | ✓ |
+| nn_mode panels: Step 1 Dataset Builder + Step 2 Eval + Training | ✓ |
+| **Adam optimizer** (numpy 구현, backend="numpy_mlp_adam") | **✗** |
+| **workbench-train CLI** (external subprocess, TrainingJob TOML) | **✗** |
+| **Step 2 Tracker / Predictor / Classifier 행** (4-error 표의 3 카테고리) | **✗** |
+| **Step 2 multi-step rollout RMSE** metric | **✗** |
+
+---
+
+## Phase 7 — DLC (Wave 2, v0.35) △
+
+| 영역 | 상태 |
+|---|---|
+| SDK: protocols.py (11 Plugin Protocol) | ✓ |
+| **SDK: manifest.py** | △ (domain/dlc/manifest.py 에 있음, sdk/ 이동 고려) |
+| **SDK: resource_schemas.py** | **✗** |
+| **SDK: package_builder.py + `trsim sdk build` CLI** | **✗** |
+| **SDK: package_validator.py** | **✗** |
+| **SDK: test_harness.py + `trsim sdk test` CLI** | **✗** |
+| App: dlc/package_manager + dlc/plugin_loader + panel_registry + dlc_runtime | ✓ |
+| App: resources/library (User > Package > Built-in priority) | ✓ |
+| **io/package_io.py** (.trsim-pkg pack/unpack) | **✗** |
+| **`trsim install` CLI** | **✗** |
+| **ui/editor/package_manager_panel.py** | **✗** |
+| **Editor 메뉴 "Install Package..." + file picker** | **✗** |
+| ResourceLibrary / PluginLoader / PanelRegistry runtime 통합 | ✓ |
+| **Sample DLC 참조 구현** (Stone Soup adapter / IMM tracker 등) | **✗** |
+| **DLC 만드는 튜토리얼** (docs/dev_guide/creating_dlc.md) | **✗** |
+
+---
+
+## Phase 8 — HIL (Wave 3, v0.38) **전체 ✗**
+
+`app/hil/` 디렉토리만 빈 상태 (`__init__.py` 만).
+
+| 8.1 MVP HIL (TCP/JSON + L5 Track) | 상태 |
+|---|---|
+| domain/hil/dut_messages.py (DUTTrack L5 dataclass) | ✗ |
+| domain/hil/tx_signal.py (TXSignalDigital) | ✗ |
+| domain/hil/comparison.py (HILComparisonResult 3-way) | ✗ |
+| sdk/protocols.py 에 DUTAdapter Protocol (10번째, v0.39 lock-step) | ✗ |
+| plugins_builtin/tcp_json_dut_adapter.py | ✗ |
+| app/hil/hil_evaluator.py (L5 비교) | ✗ |
+| app/hil/time_synchronizer.py (sim_time 모드) | ✗ |
+| app/hil/dut_session_manager.py | ✗ |
+| ui/simulator/hil_panel/comparison_view.py (3-way Track plot) | ✗ |
+| Mock DUT (Python sample) | ✗ |
+| Scenario `[hil]` 섹션 (sync_mode / dut_timeout_ms) | ✗ |
+| HIL-A 검증 시나리오 | ✗ |
+| 8.1 Lock-step Handshake (v0.39) | ✗ |
+| 8.2 L2/L4 보강 (DUTSpectrum / DUTPairedDetection / stage_compare UI) | ✗ |
+| 8.3 L1 + AWG + real_time (DUTRawIQ / TXSignalAnalog / AWG 어댑터) | ✗ |
+
+---
+
+## Phase 9 — Physics Lab (Wave 4, v0.40) ✓
+
+| 영역 | 상태 |
+|---|---|
+| 9.1 MVP — 3-pane Workspace + 9 Test Objects + 4 time mode + Code Pane + Parameters | ✓ |
+| 9.2 — Measured Data + Papers Library + Validation Bench + Parameter Studio (scipy fit) | ✓ |
+| 9.3 — Code autocomplete + PhysicsModelProtocol (11번째 SDK) + NN-as-physics + Polynomial fit + Test Object plugin registry | ✓ |
+| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | △ (후속 candidate) |
+
+---
+
+## 미구현 우선순위 리스트 (큰 덩어리 → 작은 덩어리)
+
+다음 작업 결정 시 이 매트릭스 참조. 사용자 우선순위 (변동 없음):
+**physics_lab > simulator > editor**.
+
+| 우선 | 작업 | 크기 | 비고 |
+|---|---|---|---|
+| 1 | **Phase 6 NN 보강** (Adam / workbench-train CLI / Step 2 행) | 중 | 사용자 가시 UX, 작은 단위 분할 가능 |
+| 2 | **Phase 5 추가 후속** (5.7b / 5.8b / 5.11b / 5.12b / #18 / #19 재현성) | 소 | test-only, 안전, src 변경 0 |
+| 3 | **Phase 7 DLC CLI 완성** (sdk build / install / sdk test / io/package_io / package_manager_panel + sample DLC + tutorial) | 대 | DLC ecosystem 시작점 |
+| 4 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock |
+| 5 | **Phase 3 MVP 누락 4 모듈** (bundle_service / evaluator / physics_gate / io/dem_import) | 중 | "MVP" 정의에 포함된 항목 |
+| 6 | **Phase 4 UI dem_import_wizard / domain_settings / installation_panel** | 중 | Editor activity 완성에 필요 |
+| 7 | **Phase 4 UI 실 데이터 binding** (Editor 5 activity / Simulator 8 panel) | 대 | 골격 ✓, 후속 큰 작업 |
+| 8 | **Phase 9 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적) | 소-중 | 후속 polish |
+| 9 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능 |
+
+---
+
+## 갱신 규약
+
+매 sub-step push 후 이 파일의 해당 행 ✓ 또는 △ 갱신. 같은 commit
+에 묶거나 직후 commit. 자세한 절차는
+[`docs/agent_workflows/mvp_status_update.md`](agent_workflows/mvp_status_update.md).
+
+## 진입점
+
+사용자가 "다음 작업?" / "남은 작업?" / "MVP 상태?" 등을 묻거나 새
+세션 시작 시 이 파일 § "미구현 우선순위 리스트" 가 첫 참조.
+
+## 변경 이력 footer
+
+- 2026-05-13 초기 작성 (Phase 5 후속 12 sub-step 마감 시점, 2065 PASS).

@@ -990,6 +990,21 @@
 - I001: `ruff check --fix` 자동.
 - ruff `format` 도 항상 통과 (commit 전 sandbox 에서 1 차 검증).
 
+### 3.6 MVP 매트릭스 자동 갱신 (모든 sub-step push 직후)
+
+`docs/MVP_STATUS.md` 가 plan/04 § 4.3 의 Phase 0~9 list vs 실제 구현
+상태 매트릭스. **매 sub-step push 직후 해당 행을 갱신**하고 follow-up
+commit (`docs: update MVP_STATUS — <항목> ✓ after <sub-step>`) 로
+같은 push 에 묶어 origin/main 으로 보냄. 자세한 절차는
+[`docs/agent_workflows/mvp_status_update.md`](docs/agent_workflows/mvp_status_update.md).
+
+상태 마크: ✓ (완전) / △ (skeleton·placeholder 만, 실 데이터 binding
+또는 CLI 미완) / ✗ (미구현). § "변경 이력 footer" 에 한 줄 append.
+
+새 작업 결정 시 `docs/MVP_STATUS.md § "미구현 우선순위 리스트"` 가
+첫 참조. 매트릭스의 ✓/△/✗ 가 실제 코드와 어긋나면 신뢰가 깨지니
+의심 시 `grep` + `Glob` 으로 cross-check 후 정정.
+
 ## 3.5 셸 문법 — 사용자 환경은 **PowerShell**
 
 handoff / 인계 / 사용자에게 명령 제시할 때는 PowerShell 우선:
@@ -1077,6 +1092,7 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 | "phase 상태", "진행 상황", "dashboard 갱신" | `docs/agent_workflows/phase_status.md` | 진행 보고 + dashboard artifact 갱신 |
 | "sync 체크", "잘림 확인", 모듈 Write 직후 | `docs/agent_workflows/sync_check.md` | py_compile + ruff + tail 검사 |
 | "ci 결과", "ci 봐줘", push 직후 | `docs/agent_workflows/ci_status.md` | scheduled task `trsim-ci-status` 또는 sandbox curl |
+| "다음 작업?", "남은 작업?", "MVP 상태?", sub-step push 직후 | `docs/agent_workflows/mvp_status_update.md` | `docs/MVP_STATUS.md` 매트릭스 갱신 + 우선순위 리스트 참조 |
 
 **중요 도구 위치**:
 - Phase dashboard artifact id = `trsim-phase-dashboard` (cowork 사이드바)
@@ -1086,4 +1102,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-08 — Phase 2.3c 시점 + Cowork 구현 컨벤션 + § 9 명령 매핑 추가.
+최근 갱신: 2026-05-13 — § 3.6 MVP 매트릭스 자동 갱신 규약 추가 + § 9 표에 mvp_status_update 트리거 추가.

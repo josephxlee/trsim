@@ -13,6 +13,9 @@ slash skill 대신 markdown 워크플로 가이드. 사용자가 짧은 명령 (
   lint 빠른 검사. 모듈 작성 직후 자동.
 - **[ci_status.md](ci_status.md)** — `trsim-ci-status` scheduled task
   trigger. push 후 사용자가 결과 받을 때.
+- **[mvp_status_update.md](mvp_status_update.md)** — `docs/MVP_STATUS.md`
+  매트릭스 자동 갱신. 매 sub-step push 직후 + 사용자가 "다음 작업?",
+  "남은 작업?", "MVP 상태?" 질문 시.
 
 ## 새 워크플로 추가
 
