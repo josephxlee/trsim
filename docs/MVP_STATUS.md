@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — 5.8b Ballistic scaling invariants 추가 후.
-**누적 test**: 2117 PASS local, 5 contracts KEPT.
-**HEAD**: 5.8b Ballistic drag/mass/v0/theta scaling.
+**최종 갱신**: 2026-05-13 — 5.11b + 5.12b timing 보강 추가 후.
+**누적 test**: 2131 PASS local, 5 contracts KEPT.
+**HEAD**: 5.12b FrameBoundaryDetector monotonicity + reset semantics.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -242,3 +242,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 A1-d — Phase 6 multi-step rollout RMSE stub ✗ → △ (2099 → 2101 PASS).
 - 2026-05-13 5.7b — Phase 5 Planar array sign/quadrant/boundary invariants △ (2101 → 2112 PASS).
 - 2026-05-13 5.8b — Phase 5 Ballistic drag/mass/v0/theta scaling invariants △ (2112 → 2117 PASS).
+- 2026-05-13 5.11b + 5.12b — Phase 5 timing (PerformanceClock factory + FrameBoundaryDetector monotonicity) △ (2117 → 2131 PASS).
