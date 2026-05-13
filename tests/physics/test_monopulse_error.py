@@ -112,3 +112,107 @@ def test_sum_amplitude_equals_abs_sigma() -> None:
         slope_el=1.0,
     )
     assert err.sum_amplitude == pytest.approx(5.0, rel=_RTOL)
+
+
+# ---------- 5.6b — axis separation + sign + sigma scaling ----------
+
+
+def test_delta_el_zero_keeps_error_el_zero_regardless_of_delta_az() -> None:
+    """Axis decoupling: a non-zero delta_az with zero delta_el must
+    leave error_el untouched (= 0). The two axes are independent in
+    the amplitude-comparison monopulse closed form.
+    """
+    err = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(0.3, 0.0),
+        delta_el=complex(0.0, 0.0),
+        slope_az=1.4,
+        slope_el=1.4,
+    )
+    assert err.error_el_rad == 0.0
+    assert err.error_az_rad == pytest.approx(1.4 * 0.3, rel=_RTOL)
+
+
+def test_error_az_antisymmetric_in_delta_az_sign() -> None:
+    """error_az is linear in delta_az -> flipping the sign of the
+    delta_az channel flips the sign of the angle error exactly.
+    """
+    base = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(0.12, 0.0),
+        delta_el=complex(0.0, 0.0),
+        slope_az=1.0,
+        slope_el=1.0,
+    )
+    flipped = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(-0.12, 0.0),
+        delta_el=complex(0.0, 0.0),
+        slope_az=1.0,
+        slope_el=1.0,
+    )
+    assert flipped.error_az_rad == pytest.approx(-base.error_az_rad, rel=_RTOL)
+
+
+def test_error_linear_in_delta_magnitude() -> None:
+    """Doubling |delta_az| doubles the angle error (matching the
+    doubling-slope invariant, but on the delta axis instead).
+    """
+    base = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(0.05, 0.0),
+        delta_el=complex(0.0, 0.0),
+        slope_az=1.4,
+        slope_el=1.4,
+    )
+    doubled = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(0.10, 0.0),
+        delta_el=complex(0.0, 0.0),
+        slope_az=1.4,
+        slope_el=1.4,
+    )
+    assert doubled.error_az_rad == pytest.approx(2.0 * base.error_az_rad, rel=_RTOL)
+
+
+def test_error_inversely_proportional_to_sigma_magnitude() -> None:
+    """error_axis = slope * Re(delta / sigma) -> doubling |sigma|
+    halves the error at fixed delta. Locks the denominator scaling.
+    """
+    base = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(0.20, 0.0),
+        delta_el=complex(0.0, 0.0),
+        slope_az=1.0,
+        slope_el=1.0,
+    )
+    doubled_sigma = monopulse_error_from_channels(
+        sigma=complex(2.0, 0.0),
+        delta_az=complex(0.20, 0.0),
+        delta_el=complex(0.0, 0.0),
+        slope_az=1.0,
+        slope_el=1.0,
+    )
+    assert doubled_sigma.error_az_rad == pytest.approx(base.error_az_rad / 2.0, rel=_RTOL)
+
+
+def test_slope_az_change_does_not_affect_error_el() -> None:
+    """The two slopes scale their own axis only. Bumping slope_az
+    must leave error_el untouched at fixed delta_el (independent
+    knobs in the closed form).
+    """
+    base = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(0.05, 0.0),
+        delta_el=complex(0.07, 0.0),
+        slope_az=1.0,
+        slope_el=1.2,
+    )
+    bumped = monopulse_error_from_channels(
+        sigma=complex(1.0, 0.0),
+        delta_az=complex(0.05, 0.0),
+        delta_el=complex(0.07, 0.0),
+        slope_az=3.5,  # bumped from 1.0
+        slope_el=1.2,
+    )
+    assert bumped.error_el_rad == pytest.approx(base.error_el_rad, rel=_RTOL)
