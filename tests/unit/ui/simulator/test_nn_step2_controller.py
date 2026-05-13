@@ -298,3 +298,65 @@ def test_export_report_signal_is_handled_without_crash(qtbot: object) -> None:
     assert controller is not None
     panel.export_report_requested.emit()
     # No assertion; success = no exception.
+
+
+# ---------------------------------------------------------------------
+# A1-c — per-category dispatch (Tracker / Predictor / Classifier)
+# ---------------------------------------------------------------------
+
+
+def _row_cell(panel: Step2EvalPanel, row: int, col: int) -> str:
+    item = panel.error_table().item(row, col)
+    assert item is not None
+    return item.text()
+
+
+def test_run_eval_marks_tracker_row_as_not_applicable(qtbot: object, tmp_path: Path) -> None:
+    """Pairing plugin doesn't ship Tracker support; Tracker row must
+    surface ``n/a`` (not the ``err:`` prefix used for genuine failures).
+    """
+    ds = _build_identity_dataset(tmp_path)
+    panel, controller = _wire(
+        qtbot, datasets={"identity": ds}, plugins={"baseline": NumpyPairingNN()}
+    )
+    assert controller is not None
+    _select(panel.dataset_combo, "identity")
+    _select(panel.plugin_combo, "baseline")
+    panel.run_eval_requested.emit()
+    # Pairing (row 0): real loss = 0.000.
+    assert _row_cell(panel, 0, 1) == "0.000"
+    # Tracker / Predictor / Classifier rows (1..3): n/a marker.
+    for row in (1, 2, 3):
+        assert _row_cell(panel, row, 1).startswith("n/a"), _row_cell(panel, row, 1)
+
+
+def test_run_eval_all_four_rows_share_dataset_error(qtbot: object, tmp_path: Path) -> None:
+    """Missing dataset selection -> every row shows the same error
+    (not just Pairing).
+    """
+    panel, controller = _wire(qtbot, plugins={"baseline": NumpyPairingNN()})
+    assert controller is not None
+    _select(panel.plugin_combo, "baseline")
+    panel.run_eval_requested.emit()
+    for row in range(4):
+        text = _row_cell(panel, row, 1)
+        assert "err" in text, f"row {row}: {text}"
+
+
+def test_run_eval_recovery_clears_all_rows(qtbot: object, tmp_path: Path) -> None:
+    """A successful Pairing eval after an error must clear the Pairing
+    row (the others stay at ``n/a``).
+    """
+    ds = _build_identity_dataset(tmp_path)
+    panel, controller = _wire(
+        qtbot, datasets={"identity": ds}, plugins={"baseline": NumpyPairingNN()}
+    )
+    assert controller is not None
+    _select(panel.plugin_combo, "baseline")
+    panel.run_eval_requested.emit()  # error (no dataset)
+    assert "err" in _row_cell(panel, 0, 1)
+    _select(panel.dataset_combo, "identity")
+    panel.run_eval_requested.emit()  # success
+    assert _row_cell(panel, 0, 1) == "0.000"
+    # Tracker still n/a (plugin doesn't support it).
+    assert _row_cell(panel, 1, 1).startswith("n/a")

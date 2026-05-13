@@ -137,6 +137,63 @@ def pairing_loss(plugin: _PairingPredictor, dataset_path: Path | str) -> float:
     return 1.0 - (correct / total)
 
 
+# ---------------------------------------------------------------------
+# A1-c — per-category loss stubs (Step 2 Tracker / Predictor / Classifier)
+# ---------------------------------------------------------------------
+
+
+def tracker_loss(plugin: object, dataset_path: Path | str) -> float:
+    """Position RMSE for Tracker NN plugins (plan/07 § 7.6 stub).
+
+    Concrete implementation lands when a Tracker NN plugin (TrackerProtocol
+    + NNPluginMixin) ships alongside a track-truth dataset spec. The
+    Step 2 controller catches the NotImplementedError raised here and
+    renders ``n/a`` in the Tracker row of the 4-error table — so the
+    UI surfaces the unsupported state explicitly instead of silently
+    leaving the row at the ``--`` placeholder.
+
+    ``plugin`` is typed as :class:`object` because the call surface for
+    Tracker NN plugins isn't pinned down yet — the controller passes
+    whatever Pairing plugin the user selected, and the stub rejects it
+    by raising NotImplementedError before type narrowing matters.
+
+    Args:
+        plugin: Reserved for the future TrackerNNPlugin call surface.
+        dataset_path: HDF5 file with track-truth labels.
+
+    Raises:
+        NotImplementedError: Always — this is a stub awaiting the
+            plan/16 § 16.3.3 + plan/07 § 7.6.x wiring.
+    """
+    del plugin, dataset_path
+    msg = "tracker_loss not yet wired — Phase 6 follow-up (TrackerNNPlugin)"
+    raise NotImplementedError(msg)
+
+
+def predictor_loss(plugin: object, dataset_path: Path | str) -> float:
+    """Next-frame position RMSE for Predictor NN plugins (stub).
+
+    Same shape as :func:`tracker_loss` — raises NotImplementedError so
+    the Step 2 controller can mark the row ``n/a`` until a
+    PredictorNNPlugin ships.
+    """
+    del plugin, dataset_path
+    msg = "predictor_loss not yet wired — Phase 6 follow-up (PredictorNNPlugin)"
+    raise NotImplementedError(msg)
+
+
+def classifier_loss(plugin: object, dataset_path: Path | str) -> float:
+    """``1 - accuracy`` for Classifier NN plugins (stub).
+
+    Same shape as :func:`tracker_loss` — raises NotImplementedError so
+    the Step 2 controller can mark the row ``n/a`` until a
+    ClassifierNNPlugin ships.
+    """
+    del plugin, dataset_path
+    msg = "classifier_loss not yet wired — Phase 6 follow-up (ClassifierNNPlugin)"
+    raise NotImplementedError(msg)
+
+
 def _make_diagnosis_hint(
     avoidable_bias: float | None,
     variance: float,

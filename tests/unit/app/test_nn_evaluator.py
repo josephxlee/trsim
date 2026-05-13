@@ -90,6 +90,35 @@ def test_pairing_loss_one_on_fully_wrong_dataset(tmp_path: Path) -> None:
     assert loss == pytest.approx(1.0, abs=1e-12)
 
 
+def test_tracker_loss_is_a_not_yet_wired_stub(tmp_path: Path) -> None:
+    """A1-c — Tracker NN plugin loss is a stub; controller turns
+    NotImplementedError into ``n/a`` in the Step 2 table.
+    """
+    from workbench.app.nn.evaluator import tracker_loss
+
+    path = _build_identity_dataset(tmp_path, n_samples=2)
+    with pytest.raises(NotImplementedError, match=r"tracker_loss"):
+        tracker_loss(NumpyPairingNN(), path)
+
+
+def test_predictor_loss_is_a_not_yet_wired_stub(tmp_path: Path) -> None:
+    """A1-c — same shape as :func:`tracker_loss`."""
+    from workbench.app.nn.evaluator import predictor_loss
+
+    path = _build_identity_dataset(tmp_path, n_samples=2)
+    with pytest.raises(NotImplementedError, match=r"predictor_loss"):
+        predictor_loss(NumpyPairingNN(), path)
+
+
+def test_classifier_loss_is_a_not_yet_wired_stub(tmp_path: Path) -> None:
+    """A1-c — same shape as :func:`tracker_loss`."""
+    from workbench.app.nn.evaluator import classifier_loss
+
+    path = _build_identity_dataset(tmp_path, n_samples=2)
+    with pytest.raises(NotImplementedError, match=r"classifier_loss"):
+        classifier_loss(NumpyPairingNN(), path)
+
+
 def test_pairing_loss_excludes_unlabelled_positions(tmp_path: Path) -> None:
     """``pair_indices == -1`` are skipped — they do not count as wrong."""
     spec = _pairing_spec(4)

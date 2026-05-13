@@ -22,8 +22,13 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from workbench.app.nn import NumpyPairingNN, pairing_loss
-from workbench.app.nn.evaluator import _PairingPredictor
-from workbench.ui.simulator.nn_mode.step2_eval import Step2EvalPanel
+from workbench.app.nn.evaluator import (
+    _PairingPredictor,
+    classifier_loss,
+    predictor_loss,
+    tracker_loss,
+)
+from workbench.ui.simulator.nn_mode.step2_eval import ERROR_CATEGORIES, Step2EvalPanel
 
 _SENTINEL_NONE = "(none)"
 
@@ -152,29 +157,57 @@ class NNStep2Controller:
         plugin_name = self.panel.plugin_combo().currentText()
 
         if dataset_name in (_SENTINEL_NONE, ""):
-            self._reset_pairing_row_with_error("select a dataset")
+            for cat in ERROR_CATEGORIES:
+                self._reset_row_with_error(cat, "select a dataset")
             return
         if plugin_name in (_SENTINEL_NONE, ""):
-            self._reset_pairing_row_with_error("select an NN plugin")
+            for cat in ERROR_CATEGORIES:
+                self._reset_row_with_error(cat, "select an NN plugin")
             return
 
         dataset_path = self._datasets.get(dataset_name)
         plugin = self._plugins.get(plugin_name)
         if dataset_path is None or plugin is None:
-            self._reset_pairing_row_with_error("registry entry missing")
+            for cat in ERROR_CATEGORIES:
+                self._reset_row_with_error(cat, "registry entry missing")
             return
 
-        try:
-            loss = pairing_loss(plugin, dataset_path)
-        except (FileNotFoundError, ValueError) as exc:
-            self._reset_pairing_row_with_error(f"eval failed: {exc}")
-            return
+        # A1-c: per-category dispatch. Pairing is the only category with
+        # a wired loss function for the MVP; Tracker / Predictor /
+        # Classifier raise NotImplementedError and surface ``n/a`` so the
+        # UI explicitly distinguishes "no plugin support yet" from the
+        # default "--" placeholder. Once a TrackerNNPlugin etc. ships,
+        # only ``app/nn/evaluator.py`` changes — the controller wiring
+        # stays the same.
+        for cat in ERROR_CATEGORIES:
+            try:
+                loss = self._eval_category(cat, plugin, dataset_path)
+            except NotImplementedError:
+                self._reset_row_with_error(cat, "n/a (plugin unsupported)")
+                continue
+            except (FileNotFoundError, ValueError) as exc:
+                self._reset_row_with_error(cat, f"eval failed: {exc}")
+                continue
+            self.panel.set_error_metrics(cat, rmse=loss, bias=0.0)
 
-        # MVP mapping: pairing_loss (1 - accuracy) lives in the RMSE
-        # column; Bias is 0.0 for a classification task without a
-        # natural bias scalar. Full plan/07 § 7.6 split into
-        # train/dev/test rows lands in a later sub-step.
-        self.panel.set_error_metrics("Pairing", rmse=loss, bias=0.0)
+    @staticmethod
+    def _eval_category(category: str, plugin: _PairingPredictor, dataset_path: Path) -> float:
+        """Dispatch the per-category loss function.
+
+        Pairing is wired to :func:`pairing_loss`; the other three call
+        the corresponding stub in ``app/nn/evaluator.py`` which raises
+        NotImplementedError (the caller turns that into ``n/a``).
+        """
+        if category == "Pairing":
+            return pairing_loss(plugin, dataset_path)
+        if category == "Tracker":
+            return tracker_loss(plugin, dataset_path)
+        if category == "Predictor":
+            return predictor_loss(plugin, dataset_path)
+        if category == "Classifier":
+            return classifier_loss(plugin, dataset_path)
+        msg = f"unknown error category {category!r}"
+        raise ValueError(msg)
 
     def _on_export_report(self) -> None:
         # Stub for plan/07 § 7.6.5 report-export flow. The wiring is
@@ -191,8 +224,25 @@ class NNStep2Controller:
         self.panel.set_plugins(sorted(self._plugins.keys()))
 
     def _reset_pairing_row_with_error(self, message: str) -> None:
+        """Backwards-compat alias for the Pairing-only error path used
+        by older tests. Preserved so the public surface doesn't break.
+        """
+        self._reset_row_with_error("Pairing", message)
+
+    def _reset_row_with_error(self, category: str, message: str) -> None:
+        """Write an error / status marker into ``category``'s row.
+
+        ``n/a`` style messages stay terse (no ``err:`` prefix) so the
+        table reads as data, not a debug log. Genuine failures keep
+        the ``err:`` prefix from the legacy Pairing path.
+        """
         from PySide6.QtWidgets import QTableWidgetItem
 
         table = self.panel.error_table()
-        table.setItem(0, 1, QTableWidgetItem(f"err: {message}"))
-        table.setItem(0, 2, QTableWidgetItem("--"))
+        if category not in ERROR_CATEGORIES:
+            msg = f"unknown error category {category!r}"
+            raise ValueError(msg)
+        row = ERROR_CATEGORIES.index(category)
+        prefix = "" if message.startswith("n/a") else "err: "
+        table.setItem(row, 1, QTableWidgetItem(f"{prefix}{message}"))
+        table.setItem(row, 2, QTableWidgetItem("--"))
