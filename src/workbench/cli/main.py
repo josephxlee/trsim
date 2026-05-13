@@ -421,85 +421,51 @@ def _cmd_sdk_test(args: argparse.Namespace) -> int:
 def _cmd_install(args: argparse.Namespace) -> int:
     """`trsim install --package <pkg> [--packages-root <dir>] [--force]`.
 
-    Installs a ``.trsim-pkg`` into ``<packages-root>/<package_id>/``
-    (default: ``~/.trsim/packages/<package_id>/``). The directory is
-    created from a fresh extraction; if it already exists and
-    ``--force`` is not set, the install is aborted with exit code 2.
-
-    With ``--force``, the existing directory is removed (recursive)
-    before extraction. This is the same UX as ``pip install --force-
-    reinstall`` for a single package.
+    Thin wrapper around :func:`workbench.app.dlc.install_package`.
+    Adds stdout / exit-code plumbing on top of the shared service so
+    the Editor's Package Manager dialog and the CLI stay in lockstep.
     """
-    import shutil
+    from workbench.app.dlc import (
+        PackageAlreadyInstalledError,
+        install_package,
+    )
 
-    from workbench.io.package_io import read_manifest_from_package, unpack_package
-
-    pkg_path = Path(args.package).expanduser()
     try:
-        manifest = read_manifest_from_package(pkg_path)
-    except (FileNotFoundError, ValueError) as exc:
+        result = install_package(
+            args.package,
+            args.packages_root,
+            force=args.force,
+        )
+    except (FileNotFoundError, ValueError, PackageAlreadyInstalledError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    if args.packages_root is not None:
-        packages_root = Path(args.packages_root).expanduser().resolve()
-    else:
-        packages_root = (Path.home() / ".trsim" / "packages").resolve()
-    target = packages_root / manifest.package.package_id
-
-    if target.exists():
-        if not args.force:
-            print(
-                f"error: {target} already exists. Use --force to overwrite.",
-                file=sys.stderr,
-            )
-            return 2
-        shutil.rmtree(target)
-
-    packages_root.mkdir(parents=True, exist_ok=True)
-    try:
-        unpack_package(pkg_path, target)
-    except (FileExistsError, ValueError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
-
-    print(f"installed {manifest.package.package_id} {manifest.package.version} -> {target}")
+    pkg = result.manifest.package
+    print(f"installed {pkg.package_id} {pkg.version} -> {result.target_dir}")
     return 0
 
 
 def _cmd_uninstall(args: argparse.Namespace) -> int:
     """`trsim uninstall --package-id <id> [--packages-root <dir>]`.
 
-    Removes ``<packages-root>/<package_id>/`` recursively. Refuses
-    to walk outside ``packages-root`` (so a malformed package_id like
-    ``../`` can't escape). Missing target returns exit 2 with a clear
-    message rather than silently succeeding.
+    Thin wrapper around :func:`workbench.app.dlc.uninstall_package`.
     """
-    import shutil
+    from workbench.app.dlc import (
+        PackageEscapedRootError,
+        PackageNotInstalledError,
+        uninstall_package,
+    )
 
-    if args.packages_root is not None:
-        packages_root = Path(args.packages_root).expanduser().resolve()
-    else:
-        packages_root = (Path.home() / ".trsim" / "packages").resolve()
-    target = (packages_root / args.package_id).resolve()
-    # Sandbox the target inside packages_root — defends against
-    # `--package-id ../../etc/passwd`.
     try:
-        target.relative_to(packages_root)
-    except ValueError:
-        print(
-            f"error: package-id {args.package_id!r} resolves outside packages_root",
-            file=sys.stderr,
-        )
+        result = uninstall_package(args.package_id, args.packages_root)
+    except PackageEscapedRootError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         return 2
-    if not target.exists():
-        print(
-            f"error: no package installed at {target}",
-            file=sys.stderr,
-        )
+    except PackageNotInstalledError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         return 2
-    shutil.rmtree(target)
-    print(f"uninstalled {args.package_id} from {packages_root}")
+
+    print(f"uninstalled {result.package_id} from {result.removed_dir.parent}")
     return 0
 
 

@@ -9,6 +9,15 @@ Phase 7.3+ PluginLoader, layered on top of this.
 
 from __future__ import annotations
 
+from workbench.app.dlc.installer import (
+    InstallResult,
+    PackageAlreadyInstalledError,
+    PackageEscapedRootError,
+    PackageNotInstalledError,
+    UninstallResult,
+    install_package,
+    uninstall_package,
+)
 from workbench.app.dlc.package_manager import (
     LoadedPackage,
     PackageLoadError,
@@ -21,10 +30,17 @@ from workbench.app.dlc.plugin_loader import (
 )
 
 __all__ = [
+    "InstallResult",
     "LoadedPackage",
     "LoadedPlugin",
+    "PackageAlreadyInstalledError",
+    "PackageEscapedRootError",
     "PackageLoadError",
     "PackageManager",
+    "PackageNotInstalledError",
     "PluginLoadError",
     "PluginLoader",
+    "UninstallResult",
+    "install_package",
+    "uninstall_package",
 ]
