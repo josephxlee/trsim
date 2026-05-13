@@ -92,7 +92,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | io/dem_import (ESRI ASCII grid → terrain.npz, NODATA→NaN, north-up flip, land_mask default) | ✓ (D4) |
 | CLI: `trsim run` / `trsim profile` / `trsim ui` | ✓ |
 | Reference Timing v0.39 (performance_clock / frame_boundary / stage_probe / frame_profiler) | ✓ |
-| Profile 모드 toggle (off / explicit / live, Q4) | △ |
+| Profile 모드 toggle (off / explicit / live, Q4) | ✓ (Phase 9 sidequest #6 — `domain/timing/profile_mode.py` ProfileMode StrEnum + `trsim run --profile-mode` CLI flag + manifest metadata 기록. Pipeline / probe runtime gating 은 Pipeline.step 본격 wire 시 후속) |
 | Warmup discard | ✓ |
 
 ---
@@ -229,7 +229,7 @@ shell 만 (members 없음).
 | 3 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | simulator/NN | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
 | 4 | **Phase 6 multi-step rollout RMSE real** | 중 | simulator/NN | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
 | 5 | **Editor 5 activity 실 데이터 binding** (Composer / Map / Radar / Targets / Atmosphere wiring) | 대 (여러 cycle) | editor | 골격 ✓, G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비 — wiring 만 남음. |
-| 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | app | △ — domain dataclass 없음. CLI flag + runtime gating. |
+| ~~6~~ | ~~Phase 3 Profile 모드 toggle~~ | — | app | **이 세션 처리됨** — ProfileMode enum + CLI flag + manifest metadata. Runtime gating 은 후속. |
 | ~~7~~ | ~~Phase 5 #18/#19 재현성 정량 검증~~ | — | physics | **이 세션 처리됨** — `tests/unit/app/timing/test_reference_timing_reproducibility.py` (9 tests). |
 | 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | UI | △ — workspace 안 키 routing 정리. |
 | ~~9~~ | ~~SDK manifest.py 이동~~ | — | refactor | **이 세션 처리됨** — sdk/manifest.py + sdk/__init__.py re-export + 6 callers + 2 tests + 1 integration test 갱신. domain/dlc/ 디렉토리 삭제. |
@@ -295,4 +295,5 @@ shell 만 (members 없음).
 - 2026-05-13 L5 — Phase 4 cycle: SimulatorWorkspace tick handler 가 StageIO 6 box (Transmitter / Environment / Receiver / Detector / Pairing / Tracker) IN/OUT 자리에 deterministic placeholder text 채움 (frame_id + sim_t_s 인코딩). Detector·Pairing·Tracker 는 "pipeline pending" 으로 명시 — 실 pipeline 후 swap. 4 신규 tests (default dash / 첫 tick / 3 tick 진행 / pause freeze).
 - 2026-05-13 Sidequest #7 — Phase 5 #18/#19 reproducibility tests ✗ → ✓. `tests/unit/app/timing/test_reference_timing_reproducibility.py` 신규 (9 tests: PerformanceClock factory bit-identical state / round-trip ms↔Hz / FrameProfiler 동일 sequence → 동일 report / 순서 independent / reset replay invariant / 손계산 percentile golden).
 - 2026-05-13 Sidequest #9 — SDK manifest.py 이동 △ → ✓. `src/workbench/sdk/manifest.py` 신규 + sdk/__init__.py re-export. domain/dlc/ 패키지 전체 삭제 (manifest.py + __init__.py). 6 callers 갱신 (app/dlc/installer.py, app/dlc/package_manager.py, io/package_io.py, sdk/package_validator.py, app/nn/trainer.py docstring, app/dlc/__init__.py docstring). tests/unit/domain/test_dlc_manifest.py → tests/unit/sdk/test_manifest.py 이동 (git mv) + import 갱신. integration test 갱신. plan/02 § 2.6b — SDK 가 DLC author 단일 surface 원칙 정렬.
-**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + Phase 5 #18/#19 + Sidequest #9 ✓.
+- 2026-05-13 Sidequest #6 — Phase 3 Profile mode toggle △ → ✓. `src/workbench/domain/timing/profile_mode.py` 신규 (ProfileMode StrEnum + DEFAULT_PROFILE_MODE=OFF + PROFILE_MODES_IN_DISPLAY_ORDER tuple + parse_profile_mode helper). CLI `trsim run --profile-mode {off,explicit,live}` flag 추가 (default off) + manifest metadata 에 profile_mode 기록. `trsim profile` 도 explicit/live 선택 (default explicit). 9 신규 enum tests + 7 신규 CLI tests. Runtime probe gating 은 Pipeline.step 본격 wire 후 후속.
+**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + Phase 5 #18/#19 + Sidequest #9 + #6 ✓.
