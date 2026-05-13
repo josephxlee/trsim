@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — A1-d multi-step rollout RMSE stub 추가 후.
-**누적 test**: 2101 PASS local, 5 contracts KEPT.
-**HEAD**: A1-d sequence-level rollout RMSE stub.
+**최종 갱신**: 2026-05-13 — 5.7b Planar array invariants 추가 후.
+**누적 test**: 2112 PASS local, 5 contracts KEPT.
+**HEAD**: 5.7b Planar array element_power sign/quadrant/boundary.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -240,3 +240,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 A1-b — Phase 6 workbench-train CLI ✗ → ✓ (2078 → 2093 PASS).
 - 2026-05-13 A1-c — Phase 6 Step 2 per-category dispatch ✗ → △ (2093 → 2099 PASS).
 - 2026-05-13 A1-d — Phase 6 multi-step rollout RMSE stub ✗ → △ (2099 → 2101 PASS).
+- 2026-05-13 5.7b — Phase 5 Planar array sign/quadrant/boundary invariants △ (2101 → 2112 PASS).
