@@ -42,6 +42,8 @@ from workbench.ui.dlc_bootstrap import (
 )
 from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
+from workbench.ui.editor.activity_pages import MapEditorPage
+from workbench.ui.editor.map_editor import DEMImportController
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_menu import MainMenuBar
 from workbench.ui.physics_lab import PhysicsLabWorkspace
@@ -112,6 +114,16 @@ class MainWindow(QMainWindow):
                 self._editor_page().resource_browser(),
                 self._dlc_runtime.app.resource_library,
             )
+
+        # Wire the DEM Import wizard so the MapEditor's "Import DEM..."
+        # button opens it (Phase 4 dem_import_wizard E4).
+        editor_page = self._editor_page()
+        map_page = editor_page.page(Activity.MAP)
+        assert isinstance(map_page, MapEditorPage)
+        self._dem_import_controller = DEMImportController(
+            map_editor=map_page.map_editor(),
+            parent=self,
+        )
 
     # ------------------------------------------------------------------
     # Toolbar / actions
@@ -254,3 +266,7 @@ class MainWindow(QMainWindow):
     def dlc_runtime(self) -> DLCRuntime | None:
         """Return the bound :class:`DLCRuntime`, or ``None``."""
         return self._dlc_runtime
+
+    def dem_import_controller(self) -> DEMImportController:
+        """Return the wired :class:`DEMImportController` (test helper)."""
+        return self._dem_import_controller

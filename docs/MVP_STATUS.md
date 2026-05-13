@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 3 D1~D4 모두 완료 후.
-**누적 test**: 2280 PASS local, 5 contracts KEPT.
-**HEAD**: D4 ESRI ASCII grid → terrain.npz import.
+**최종 갱신**: 2026-05-13 — Phase 4 dem_import_wizard E1~E4 모두 완료 후.
+**누적 test**: 2326 PASS local, 5 contracts KEPT.
+**HEAD**: E4 MainWindow ↔ MapEditor.import_dem_requested → DEMImportController.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -104,7 +104,7 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | Scenario Composer widget skeleton | △ (widget.py 만, 실 데이터 binding ✗) |
 | **Scenario Composer Installation Panel** (DEM + 차폐 Preview + Coverage Stats) | **✗** |
 | Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ |
-| **Map Editor DEM Import Wizard** (7 step, v0.22) | **✗** |
+| **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4, MVP 4-page distillation: Source/Land-Sea/Output/Summary) |
 | **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | **✗** |
 | Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
 | Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
@@ -217,7 +217,7 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | 3 | **Phase 7 DLC CLI 완성** (sdk build / install / sdk test / io/package_io / package_manager_panel + sample DLC + tutorial) | 대 | DLC ecosystem 시작점 |
 | 4 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock |
 | 5 | **Phase 3 MVP 누락 4 모듈** (bundle_service / evaluator / physics_gate / io/dem_import) | 중 | "MVP" 정의에 포함된 항목 |
-| 6 | **Phase 4 UI dem_import_wizard / domain_settings / installation_panel** | 중 | Editor activity 완성에 필요 |
+| 6 | **Phase 4 UI domain_settings + installation_panel** (dem_import_wizard ✓) | 중 | Editor activity 완성에 필요 |
 | 7 | **Phase 4 UI 실 데이터 binding** (Editor 5 activity / Simulator 8 panel) | 대 | 골격 ✓, 후속 큰 작업 |
 | 8 | **Phase 9 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적) | 소-중 | 후속 polish |
 | 9 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능 |
@@ -253,3 +253,7 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 D2 — Phase 3 physics_gate ✗ → ✓ (2214 → 2251 PASS).
 - 2026-05-13 D3 — Phase 3 command_evaluator ✗ → ✓ (2251 → 2266 PASS).
 - 2026-05-13 D4 — Phase 3 io/dem_import ✗ → ✓ (2266 → 2280 PASS).
+- 2026-05-13 E1 — Phase 4 LandSeaMode + compute_land_mask (2280 → 2288 PASS).
+- 2026-05-13 E2 — Phase 4 DEMImportRequest + run_dem_import orchestrator (2288 → 2295 PASS).
+- 2026-05-13 E3 — Phase 4 DEMImportWizard QDialog ✗ → ✓ (2295 → 2316 PASS).
+- 2026-05-13 E4 — Phase 4 DEMImportController + MainWindow wiring (2316 → 2326 PASS).
