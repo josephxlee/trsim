@@ -32,7 +32,7 @@ def test_sample_dlc_source_exists() -> None:
 
 def test_sample_dlc_manifest_parses_via_python_api() -> None:
     """Hand-rolled manifest must parse through the canonical loader."""
-    from workbench.domain.dlc.manifest import load_manifest_from_toml
+    from workbench.sdk.manifest import load_manifest_from_toml
 
     manifest = load_manifest_from_toml(SAMPLE_DLC_SOURCE / MANIFEST_FILENAME)
     assert manifest.package.package_id == "simple-pairing-demo"

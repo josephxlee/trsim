@@ -235,7 +235,7 @@ cp -r my_advanced_tracker ~/.trsim/packages/
   탭 등장
 
 `trsim install <pkg>.trsim-pkg` 자동 압축 해제 CLI 는 후속 sub-step
-(현재 미구현 — manifest 검증은 `workbench.domain.dlc.load_manifest_
+(현재 미구현 — manifest 검증은 `workbench.sdk.manifest.load_manifest_
 from_toml` 가 담당).
 
 ---

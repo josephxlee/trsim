@@ -24,7 +24,7 @@ import zipfile
 from collections.abc import Iterator
 from pathlib import Path
 
-from workbench.domain.dlc.manifest import PackageManifest, load_manifest_from_toml
+from workbench.sdk.manifest import PackageManifest, load_manifest_from_toml
 
 MANIFEST_FILENAME: str = "manifest.toml"
 """Required file at the zip root. Mirrors plan/17 § 17.2.4."""
@@ -39,7 +39,7 @@ def pack_package(source_dir: Path | str, output_path: Path | str) -> Path:
     The output file's extension must be ``.trsim-pkg`` so downstream
     tooling can recognise it from the path alone. ``source_dir`` must
     contain a top-level ``manifest.toml`` that parses through
-    :func:`workbench.domain.dlc.manifest.load_manifest_from_toml`;
+    :func:`workbench.sdk.manifest.load_manifest_from_toml`;
     anything else is rejected before any bytes are written.
 
     All regular files under ``source_dir`` are added to the archive
@@ -187,7 +187,7 @@ def read_manifest_from_package(pkg_path: Path | str) -> PackageManifest:
 
     # Defer validation to the same blob loader used by the on-disk
     # path (`load_manifest_from_toml` -> `_manifest_from_blob`).
-    from workbench.domain.dlc.manifest import _manifest_from_blob
+    from workbench.sdk.manifest import _manifest_from_blob
 
     return _manifest_from_blob(data, source=str(pkg))
 

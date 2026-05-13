@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from workbench.domain.dlc import (
+from workbench.sdk.manifest import (
     CompatibilitySpec,
     PackageManifest,
     PackageMeta,

@@ -157,7 +157,7 @@ percentile golden).
 | 영역 | 상태 |
 |---|---|
 | SDK: protocols.py (11 Plugin Protocol) | ✓ |
-| **SDK: manifest.py** | △ (domain/dlc/manifest.py 에 있음, sdk/ 이동 고려) |
+| **SDK: manifest.py** | ✓ (sdk/manifest.py 로 이동 — Phase 9 sidequest #9, plan/02 § 2.6b: SDK 가 DLC author 의 단일 surface) |
 | SDK: resource_schemas.py (`validate_resource_toml_blob`, 4 categories) | ✓ (C8) |
 | SDK: package_builder.py + `trsim sdk build` CLI | ✓ (C2) |
 | SDK: test_harness.py + `trsim sdk test` CLI | ✓ (C3) |
@@ -232,7 +232,7 @@ shell 만 (members 없음).
 | 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | app | △ — domain dataclass 없음. CLI flag + runtime gating. |
 | ~~7~~ | ~~Phase 5 #18/#19 재현성 정량 검증~~ | — | physics | **이 세션 처리됨** — `tests/unit/app/timing/test_reference_timing_reproducibility.py` (9 tests). |
 | 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | UI | △ — workspace 안 키 routing 정리. |
-| 9 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | refactor | 위치만 옮김 + import 갱신 + test 갱신. |
+| ~~9~~ | ~~SDK manifest.py 이동~~ | — | refactor | **이 세션 처리됨** — sdk/manifest.py + sdk/__init__.py re-export + 6 callers + 2 tests + 1 integration test 갱신. domain/dlc/ 디렉토리 삭제. |
 | 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | optional | 미루기 가능. |
 | — | ~~Phase 8 HIL 전체~~ | — | — | **사용자 결정 (2026-05-13): MVP 공간만, 실 작업 ✗**. Phase 8 행 (전체 ✗) 유지. |
 
@@ -294,4 +294,5 @@ shell 만 (members 없음).
 - 2026-05-13 L4 — Phase 4 cycle: SimulatorWorkspace Properties panel 도 tick handler 가 paint (sim_t_s/frame_id/state/speed 4-row form 자동 갱신) + `show_selected_in_properties(label, properties)` / `clear_property_selection()` public API (user selection pin 시 tick handler 가 안 덮어씀). `_properties_owned_by_selection` 플래그. 5 신규 tests (initial nothing-selected / tick paints simulator context / selection pin invariant / clear returns to live / sim_t_s 매 tick 갱신).
 - 2026-05-13 L5 — Phase 4 cycle: SimulatorWorkspace tick handler 가 StageIO 6 box (Transmitter / Environment / Receiver / Detector / Pairing / Tracker) IN/OUT 자리에 deterministic placeholder text 채움 (frame_id + sim_t_s 인코딩). Detector·Pairing·Tracker 는 "pipeline pending" 으로 명시 — 실 pipeline 후 swap. 4 신규 tests (default dash / 첫 tick / 3 tick 진행 / pause freeze).
 - 2026-05-13 Sidequest #7 — Phase 5 #18/#19 reproducibility tests ✗ → ✓. `tests/unit/app/timing/test_reference_timing_reproducibility.py` 신규 (9 tests: PerformanceClock factory bit-identical state / round-trip ms↔Hz / FrameProfiler 동일 sequence → 동일 report / 순서 independent / reset replay invariant / 손계산 percentile golden).
-**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + Phase 5 #18/#19 reproducibility ✓.
+- 2026-05-13 Sidequest #9 — SDK manifest.py 이동 △ → ✓. `src/workbench/sdk/manifest.py` 신규 + sdk/__init__.py re-export. domain/dlc/ 패키지 전체 삭제 (manifest.py + __init__.py). 6 callers 갱신 (app/dlc/installer.py, app/dlc/package_manager.py, io/package_io.py, sdk/package_validator.py, app/nn/trainer.py docstring, app/dlc/__init__.py docstring). tests/unit/domain/test_dlc_manifest.py → tests/unit/sdk/test_manifest.py 이동 (git mv) + import 갱신. integration test 갱신. plan/02 § 2.6b — SDK 가 DLC author 단일 surface 원칙 정렬.
+**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + Phase 5 #18/#19 + Sidequest #9 ✓.
