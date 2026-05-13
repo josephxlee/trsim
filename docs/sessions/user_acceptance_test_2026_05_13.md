@@ -192,6 +192,44 @@ $PY = ".\.venv\Scripts\python.exe"
 
 ---
 
+## F. Phase 9 I1-I2 PluginLoader physics-model discovery (이 cycle)
+
+### F.1 manifest.toml 의 trsim.physics_model 슬롯 (Python API only)
+
+이 cycle 은 GUI 직접 변화 없음 — DLC 가 manifest 의 `trsim.physics_
+model` entry_points 슬롯으로 사용자 정의 PhysicsModelProtocol 을 ship
+가능해진 backend 작업. MainWindow 가 DLC 의 physics model 을 자동
+register 하는 wiring 은 후속 cycle.
+
+직접 검증하려면 Python REPL 또는 사용자 작성 script:
+
+```powershell
+$PY = ".\.venv\Scripts\python.exe"
+$env:PYTHONPATH = "$(Get-Location)\src"
+& $PY -c @'
+from workbench.app.physics_lab import (
+    builtin_physics_models, register_discovered_physics_models,
+    registered_physics_models, unregister_all_physics_models,
+)
+print("built-in 3:", [m.name for m in builtin_physics_models()])
+# 사용자 DLC 가 install 되어 있다면:
+# from workbench.app.dlc import PackageManager, PluginLoader
+# mgr = PackageManager(Path.home() / ".trsim" / "packages"); mgr.scan()
+# loader = PluginLoader(mgr); plugins = loader.load_all()
+# print(register_discovered_physics_models(plugins))
+unregister_all_physics_models()
+'@
+```
+
+### 알려진 한계 / stub
+- MainWindow 가 DLCRuntime mount 시 자동으로 register_discovered_
+  physics_models 호출 ✗ — 후속 cycle. 현재 GUI 에서 DLC 의 physics
+  model 은 안 보임.
+- Validation Bench (BouncingBallController.run_validation_from_dataset)
+  가 BouncingBall 만 — 임의 PhysicsModelProtocol 일반화 후속.
+
+---
+
 ## D. 회귀 (기존 기능이 안 깨졌는지)
 
 ### D.1 Workspace 전환 단축키
@@ -247,12 +285,19 @@ $PY = ".\.venv\Scripts\python.exe"
 |---|---|
 | H1 LibraryWidget set_physics_models API | ✓ |
 | H2 model_registry + workspace integration | ✓ |
-| 누적 test | 2468 PASS |
+
+### 2026-05-13 cycle 8 = I1-I2 (Phase 9 PluginLoader discovery)
+
+| 영역 | 상태 |
+|---|---|
+| I1 PluginLoader `trsim.physics_model` singleton slot | ✓ |
+| I2 app/physics_lab/discovery.py (LoadedPlugin → registry) | ✓ |
+| 누적 test | 2486 PASS |
 | import-linter | 5 contracts KEPT |
 
 다음 cycle 후보 — `docs/MVP_STATUS.md § "미구현 우선순위 리스트"`:
-- 1. Phase 4 UI 실 데이터 binding (Editor 5 activity / Simulator 8
-     panel placeholder → 실 데이터). 큰 작업, 여러 cycle 분할.
+- 1. Phase 4 UI 실 데이터 binding (큼, 여러 cycle 분할).
 - 2. Phase 8 HIL 전체. 매우 큰 작업.
-- 3. Phase 9 § 19.7.5+ remainder (Validation Bench 일반화 /
-     PluginLoader discovery).
+- 3. MainWindow → DLC physics-model auto-register wiring (작음 — 직전
+     2 cycle 의 H+I 결과를 GUI 에서 처음 visible 하게).
+- 4. Phase 9 § 19.7.5+ Validation Bench 일반화 (소-중).

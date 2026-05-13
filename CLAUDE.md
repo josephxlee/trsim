@@ -17,20 +17,26 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **Phase 9 PluginLoader Physics-Model Discovery (I1~I2) DONE —
+> 2 sub-step 묶음**. app/dlc/plugin_loader.py 가 새 `_PYTHON_IMPORT_
+> EXACT_SLOTS` frozenset (9 singleton slot 포함 — `trsim.physics_model`,
+> `trsim.tracker`, etc.) 와 `_is_python_import_slot` 의 exact-set
+> 우선 dispatch 로 SDK 의 `KNOWN_ENTRY_POINT_SLOTS` 와 정합 (I1) +
+> app/physics_lab/discovery.py 신규 — `DiscoveryError` /
+> `DiscoveryResult` frozen dataclass + `physics_models_from_loaded_
+> plugins(loaded)` pure transform + `register_discovered_physics_
+> models(loaded)` side-effect helper (한 broken DLC 가 다른 차단 X,
+> built-in name collision silent skip) (I2). 누적 **2486 PASS** (+18
+> 신규 in this cycle), 5 contracts KEPT 매 commit.
+
 > **Phase 9 Library Models 동적 채우기 (H1~H2) DONE — 2 sub-step
-> 묶음**. ui/physics_lab/bouncing_ball_demo.py 의 `LibraryWidget` 가
-> `set_physics_models(Iterable[PhysicsModelProtocol])` + `physics_
-> model_for(label)` + `physics_model_selected(model)` signal 신규
-> (H1, plan/19 § 19.7.5+). 빈 iterable 시 legacy 2 placeholder
-> backward-compat. + app/physics_lab/model_registry.py 신규 — `builtin_
-> physics_models()` (Gravity + BouncingBall + FreeSpaceLoss) +
-> `register_physics_model(model)` global plug-in hook (test-object
-> registry pattern) + `default_physics_models()` 어셈블리 (built-ins +
-> plug-ins) + `physics_models_from(*, include_builtins, extra)` custom
-> helper. PhysicsLabWorkspace `__init__` 에 `physics_models` kwarg
-> (default None → default_physics_models() 자동) + `set_physics_models`
-> / `refresh_physics_models` / `physics_models()` (H2). 누적 **2468
-> PASS** (+34 신규 in this cycle), 5 contracts KEPT 매 commit.
+> 묶음 (직전 cycle)**. ui/physics_lab/bouncing_ball_demo.py 의
+> `LibraryWidget` 가 `set_physics_models` / `physics_model_for` /
+> `physics_model_selected` 신규 (H1) + app/physics_lab/model_registry.
+> py 신규 (`builtin_physics_models` / `register_physics_model` /
+> `default_physics_models` / `physics_models_from`) + PhysicsLabWorkspace
+> `physics_models` kwarg + `set_/refresh_/physics_models()` (H2).
+> 누적 2434 → 2468 PASS (+34).
 
 > **Phase 4 UI domain_settings + installation_panel (G1~G4) DONE —
 > 4 sub-step 묶음 (직전 cycle)**. domain/simulation_domain.py 가
@@ -44,21 +50,31 @@
 > Domain Override block + `CoverageStats` frozen dataclass (G4).
 > 누적 2360 → 2434 PASS (+74).
 >
-> **이 cycle 인계**: `docs/sessions/phase_9_library_models_2026_05_13.md`.
+> **이 cycle 인계**: `docs/sessions/phase_9_plugin_discovery_2026_05_13.md`.
 > **사용자 GUI 손 테스트 체크리스트**: `docs/sessions/user_acceptance_
-> test_2026_05_13.md` (E1-E4 DEM Wizard + F1-F3 Plugins menu + G1-G4
-> Domain Settings + H1-H2 Library Models 동적 모두 포함).
+> test_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
 > Phase 6 NN 보강 ✓ → Phase 5 추가 후속 ✓ → Phase 7 DLC CLI ✓ →
 > Phase 7 remainder C7/C8+F1-F3 ✓ → Phase 3 누락 4 모듈 ✓ → Phase 4
 > dem_import_wizard ✓ → Phase 4 domain_settings + installation_panel ✓
-> → **Phase 9 § 19.7.5+ Library Models 동적 ✓ (이 cycle)** → 다음
-> cycle 후보: Phase 4 UI 실 데이터 binding (큼, 여러 cycle 분할) /
-> Phase 8 HIL 전체 (매우 큼) / Phase 9 § 19.7.5+ remainder (Validation
-> Bench 일반화 / PluginLoader discovery).
+> → Phase 9 § 19.7.5+ Library Models 동적 ✓ → **Phase 9 § 19.7.5+
+> Plugin discovery via PluginLoader ✓ (이 cycle)** → 다음 cycle 후보:
+> Phase 4 UI 실 데이터 binding (큼) / Phase 8 HIL 전체 (매우 큼) /
+> Phase 9 § 19.7.5+ Validation Bench 일반화 (소-중) / MainWindow → DLC
+> physics-model auto-register wiring (소).
 
-- **Phase 9 cycle (H1~H2) 2 sub-step (이 cycle)** — Physics Lab
+- **Phase 9 cycle (I1~I2) 2 sub-step (이 cycle)** — DLC 가 manifest 의
+  `trsim.physics_model` 슬롯으로 사용자 정의 PhysicsModel 을 ship
+  가능. plan/19 § 19.7.5+ "Plugin discovery via PluginLoader" ✓.
+  누적 +18 tests.
+
+  | sub | commit | new | 내용 |
+  |---|---|---|---|
+  | I1 | `0e9a01f` | +4 | PluginLoader `_PYTHON_IMPORT_EXACT_SLOTS` frozenset + `trsim.physics_model` / `trsim.tracker` 등 9 singleton 슬롯 + error msg 갱신 |
+  | I2 | `eed2640` | +14 | `app/physics_lab/discovery.py` — `DiscoveryError` / `DiscoveryResult` frozen dataclass + `physics_models_from_loaded_plugins` pure transform + `register_discovered_physics_models` side-effect helper |
+
+- **Phase 9 cycle (H1~H2) 2 sub-step (직전 cycle)** — Physics Lab
   Library Models 카테고리가 처음으로 PhysicsModelProtocol 인스턴스
   를 받게 됨. plan/19 § 19.7.5+ "Library Models 동적 채우기" ✓.
   PhysicsLabWorkspace 가 default 3 built-in (Gravity / BouncingBall /
@@ -1203,4 +1219,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 9 H1~H2 (Library Models 동적) 2 sub-step DONE, 2468 PASS.
+최근 갱신: 2026-05-13 — Phase 9 I1~I2 (PluginLoader physics-model discovery) 2 sub-step DONE, 2486 PASS.
