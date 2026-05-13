@@ -103,3 +103,6 @@ profile.json
 # - Cowork sandbox 가 Windows mount 의 git lockfile 못 다뤄서 사용자가 Git Bash 로 실행
 # - 한 번 실행 후 의미 없음 — 로컬에 보존, repo 에는 push X
 git_sh/
+
+# Claude Code worktree-local settings (auto-generated per worktree)
+.claude/settings.local.json
