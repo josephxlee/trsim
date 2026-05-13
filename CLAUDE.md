@@ -17,26 +17,55 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Physics Lab Phase 9.1 + 9.2 + 9.3 ALL DONE** — Phase 9 전부
-> 완료. 9.3 추가 사항: Code Pane autocomplete (QCompleter + Python
-> keywords + Bouncing Ball API + multi-function / import 검증),
-> PhysicsModelProtocol (11번째 SDK protocol) + 3 built-in
-> implementations (GravityOnlyModel / BouncingBallModel /
-> FreeSpaceLossModel), NN-as-physics (NumpyNNPhysicsModel wrapping
-> Phase 6 numpy_mlp), PolynomialFitModel (symbolic regression
-> baseline via numpy.polyfit), TestObjectProtocol + Pyramid sample
-> plugin (mesh-builder registry pattern via register_visual_kind_
-> builder). 누적 **1986 PASS** (+57 신규 in 9.3 묶음: 15 autocomplete
-> + 14 PhysicsModelProtocol + 16 NN/poly + 12 plugin registry),
-> 5 contracts KEPT.
+> **Phase 5 후속 (도메인 정량 보강) DONE — 12 sub-step 묶음**. 17 검증
+> 카테고리 중 11개에 scaling-invariant / boundary / multi-band 정량
+> 보강 추가. 누적 **2065 PASS** (+79 신규 across 12 sub-steps),
+> 5 contracts KEPT. src 변경 0 (test-only). 다음 진입점은 사용자
+> 우선순위 다음 단계: **NN 보강** (Adam optimizer / workbench-train
+> CLI / Step 2 Tracker/Predictor/Classifier 행).
 >
-> **세션 인계**: `docs/sessions/phase_9_3_complete_handoff_2026_05_12.md`.
-> Phase 9 전부 끝났으므로 다음 진입점은 사용자 우선순위 다음 단계.
+> **세션 인계**: `docs/sessions/phase_5_followup_2026_05_13.md`
+> (이 세션 12 sub-step 요약 + 다음 진입점).
 > 사용자 우선순위 (변동 없음):
-> **physics_lab > simulator > editor** — Phase 9.1 ✓ → 9.2 ✓ →
-> 9.3 ✓ → **Phase 5 후속 (도메인 정량 보강)** → NN 보강 → Phase 8
-> HIL → DLC CLI → UI binding → Floating dock 옵션 B / Theme
-> manager 순서로 자동 진행.
+> **physics_lab > simulator > editor** — Phase 9 ✓ → **Phase 5 후속
+> ✓ (이 세션)** → **NN 보강** → Phase 8 HIL → DLC CLI → UI binding
+> → Floating dock 옵션 B / Theme manager.
+
+- **Phase 5 후속 DONE (이 세션)** — 12 sub-step, test-only, 누적
+  +79 tests (1986 → 2065). 패턴: 기존 검증 카테고리 각각에 closed-
+  form scaling invariant / boundary case / multi-band golden /
+  monotonicity / cross-axis decoupling 정량 추가. src 변경 0.
+
+  | sub | commit | new | 보강 카테고리 |
+  |---|---|---|---|
+  | 5.21b | `1588b1f` | +9 | ExtendedTarget glint — N=2/5/10 × L=4/12/40 scaling, plan/14 § 14.10.6 closed-form lock |
+  | 5.22b | `36f3e9c` | +6 | Tracker — Bar-Shalom CT (1.6 g) sustained maneuver, plateau invariant |
+  | 5.19c/5.20c | `abfe398` | +12 | Multipath/horizon — S-band (constructive) / Ku-band lobing / k=1/1.5 horizon |
+  | 5.18b | `e21ed86` | +5 | GNN — 4×4 dense / 3+1 clutter / boundary gating (calibrated offset) / chi² quadratic |
+  | 5.13b | `dab6492` | +6 | FrameProfiler — warmup boundary off-by-one / bimodal+ramp distribution / reset idempotent |
+  | 5.4b | `452f079` | +7 | ISA — stratosphere T/rho clamp / ideal gas law / rain monotonicity |
+  | 5.10b | `b76a695` | +5 | CFAR — alpha asymptotic `-ln(Pfa)` / N-monotonic / CA-mask vs OS-recover (interferer) |
+  | 5.9b | `2390ee2` | +6 | RCS — Rayleigh r⁶/λ⁻⁴ / cylinder linear-in-r / trihedral 3x flat-plate / dBsm 6-decade round-trip |
+  | 5.2b | `f0139e4` | +7 | FMCW — linear in (B, R, 1/T_s) / doppler antisymmetric / receding-target round-trip |
+  | 5.3b | `90635cb` | +5 | Parabolic — BW inverse-f / G +6 dB on 2x D / radial symmetry / monotone descent |
+  | 5.6b | `17cca72` | +5 | Monopulse — axis decoupling / sign symmetry / Re(δ/σ) sigma scaling |
+  | 5.5b | `13210b3` | +6 | Drag — v²/A/Cd scaling / altitude decrease / antiparallel-to-v / gravity ENU lock |
+
+  공통 패턴 학습:
+  - itertools.pairwise 우선 (RUF007). `zip(..., strict=False)` 도 RUF007.
+  - mypy --strict 의 `[unused-ignore]` 가 stale `# type: ignore`
+    잡아냄. 검증 파일 손댈 때 함께 cleanup.
+  - boundary 검증은 measured 기반 (`_calibrated_offset_for_chi2`)
+    로 fragility 회피. `H P H^T + R` 처럼 implementation 내부에
+    숨겨진 scaling 이 있으면 closed-form lock 대신 measure-and-
+    lock pattern 권고.
+  - amplitude-weighted centroid (5.21b uniform-line target) 은
+    RCS 균등이면 geometric centroid 가 고정 → L² scaling artifact.
+    glint scaling 검증은 asymmetric RCS 또는 monotonicity 만.
+  - bimodal distribution percentile (5.13b): numpy linear-interp
+    p99 가 outlier 1개에선 안 잡힘 — 5 outlier 비율 필요.
+
+
 
 - **Phase 9.3a/b/c/d/e DONE** — Physics Lab 고급 기능 (plan/19 § 19.8 +
   § 19.9.5 + § 19.7.4). 5 commits push.
