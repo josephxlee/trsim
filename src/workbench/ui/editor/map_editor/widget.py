@@ -15,10 +15,15 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QPushButton,
+    QTabWidget,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
+
+from workbench.domain.map_resource import MapBounds
+from workbench.domain.simulation_domain import OutsideEnvironment, SimulationDomain
+from workbench.ui.editor.map_editor.domain_settings import DomainSettingsPanel
 
 
 class MapTool(StrEnum):
@@ -78,6 +83,8 @@ class MapEditor(QWidget):
     import_dem_requested = Signal()
     validate_requested = Signal()
     reset_to_source_requested = Signal()
+    domain_changed = Signal(SimulationDomain)
+    outside_environment_changed = Signal(OutsideEnvironment)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -98,7 +105,7 @@ class MapEditor(QWidget):
         body.setSpacing(12)
         body.addWidget(self._build_tool_palette(), 0)
         body.addWidget(self._build_canvas(), 1)
-        body.addWidget(self._build_layers_panel(), 0)
+        body.addWidget(self._build_right_panel(), 0)
         layout.addLayout(body, 1)
 
         layout.addWidget(self._build_history_block(), 0)
@@ -159,6 +166,18 @@ class MapEditor(QWidget):
             v.addWidget(cb)
         v.addStretch(1)
         return box
+
+    def _build_right_panel(self) -> QTabWidget:
+        tabs = QTabWidget(self)
+        tabs.setObjectName("MapEditorRightTabs")
+        tabs.setMinimumWidth(280)
+        tabs.addTab(self._build_layers_panel(), "Layers")
+        self._domain_panel = DomainSettingsPanel(self)
+        self._domain_panel.domain_changed.connect(self.domain_changed)
+        self._domain_panel.outside_environment_changed.connect(self.outside_environment_changed)
+        tabs.addTab(self._domain_panel, "Domain")
+        self._right_tabs = tabs
+        return tabs
 
     def _build_history_block(self) -> QGroupBox:
         box = QGroupBox("Edit History", self)
@@ -234,6 +253,40 @@ class MapEditor(QWidget):
     def current_tool(self) -> MapTool:
         return self._current_tool
 
+    def current_domain(self) -> SimulationDomain:
+        """Current :class:`SimulationDomain` selection from the Domain tab."""
+        return self._domain_panel.current_domain()
+
+    def current_outside_environment(self) -> OutsideEnvironment:
+        """Current outside-Map terrain policy."""
+        return self._domain_panel.current_outside_environment()
+
+    def set_domain(self, domain: SimulationDomain) -> None:
+        """Programmatically replace the SimulationDomain (mirrors UI edits)."""
+        self._domain_panel.set_domain(domain)
+
+    def set_outside_environment(self, mode: OutsideEnvironment) -> None:
+        self._domain_panel.set_outside_environment(mode)
+
+    def set_map_bounds(self, bounds: MapBounds | None) -> None:
+        """Update the Domain panel's Map bounds readout.
+
+        Passing ``None`` resets the label to ``(no map loaded)``.
+        """
+        if bounds is None:
+            self._domain_panel.set_map_bounds_readout("(no map loaded)")
+            return
+        self._domain_panel.set_map_bounds_readout(
+            f"E:[{bounds.east_min_m:.0f}, {bounds.east_max_m:.0f}] "
+            f"N:[{bounds.north_min_m:.0f}, {bounds.north_max_m:.0f}] (m)"
+        )
+
+    def show_domain_tab(self) -> None:
+        """Programmatic mirror of clicking the Domain tab."""
+        idx = self._right_tabs.indexOf(self._domain_panel)
+        if idx >= 0:
+            self._right_tabs.setCurrentIndex(idx)
+
     # ------------------------------------------------------------------
     # Test helpers
     # ------------------------------------------------------------------
@@ -245,3 +298,9 @@ class MapEditor(QWidget):
 
     def history_list(self) -> QListWidget:
         return self._history_list
+
+    def domain_panel(self) -> DomainSettingsPanel:
+        return self._domain_panel
+
+    def right_tabs(self) -> QTabWidget:
+        return self._right_tabs
