@@ -18,6 +18,7 @@ land in Phase 4.6.x as the canvas gains pyqtgraph backing.
 
 from __future__ import annotations
 
+from workbench.ui.editor.map_editor.dem_import_wizard import DEMImportWizard
 from workbench.ui.editor.map_editor.widget import MapEditor, MapTool
 
-__all__ = ["MapEditor", "MapTool"]
+__all__ = ["DEMImportWizard", "MapEditor", "MapTool"]
