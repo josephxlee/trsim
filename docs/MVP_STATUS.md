@@ -214,21 +214,24 @@ shell 만 (members 없음).
 다음 작업 결정 시 이 매트릭스 참조. 사용자 우선순위 (변동 없음):
 **physics_lab > simulator > editor**.
 
-직전 2-day 자동 모드 끝 시점 — 9 cycle (E1-J1) 으로 우선순위
-1~3/5/6 모두 완료. 새 잔여 항목 리스트:
+**사용자 결정 (2026-05-13, L1 직후)**: Phase 8 HIL 은 **MVP 공간만 두고
+실 작업 하지 않음**. `domain/hil/` + `app/hil/` + `ui/simulator/hil_panel/`
+빈 디렉토리 + `sdk/DUTAdapterProtocol` declaration shell (△) 유지.
+아래 우선순위에서 제외.
 
-| 우선 | 작업 | 크기 | 비고 |
-|---|---|---|---|
-| 1 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock. `sdk/DUTAdapterProtocol` 만 ✓; `app/hil/` 비어있고 `domain/hil/` 도 비어있음. |
-| 2 | **Phase 4 UI 실 데이터 binding** (Editor 5 activity / Simulator 8 panel / Map Editor `set_map_bounds` wire) | 대 | 골격 ✓, 후속 큰 작업. 여러 cycle 분할 필요. G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비됨 — wiring 만 남음. |
-| 3 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연. |
-| 4 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
-| 5 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
-| 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | △ — domain dataclass 없음. CLI flag + runtime gating. |
-| 7 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
-| 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
-| 9 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 우선 | 작업 | 크기 | 영역 | 비고 |
+|---|---|---|---|---|
+| 1 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | physics_lab | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연 후속. |
+| 2 | **Simulator 8 panel 실 데이터 binding 잔여 5개** (FFT / RD / Properties / PluginMgr / StageIO) | 대 (여러 cycle) | simulator | L1 으로 Run panel 만 ✓. 직전 cycle 사용자 "Simulation 가장 시급" 명시. 여러 sub-step 분할. |
+| 3 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | simulator/NN | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
+| 4 | **Phase 6 multi-step rollout RMSE real** | 중 | simulator/NN | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
+| 5 | **Editor 5 activity 실 데이터 binding** (Composer / Map / Radar / Targets / Atmosphere wiring) | 대 (여러 cycle) | editor | 골격 ✓, G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비 — wiring 만 남음. |
+| 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | app | △ — domain dataclass 없음. CLI flag + runtime gating. |
+| 7 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | physics | test-only. seed/load → same result. |
+| 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | UI | △ — workspace 안 키 routing 정리. |
+| 9 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | refactor | 위치만 옮김 + import 갱신 + test 갱신. |
+| 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | optional | 미루기 가능. |
+| — | ~~Phase 8 HIL 전체~~ | — | — | **사용자 결정 (2026-05-13): MVP 공간만, 실 작업 ✗**. Phase 8 행 (전체 ✗) 유지. |
 
 ---
 
@@ -279,3 +282,4 @@ shell 만 (members 없음).
 - 2026-05-13 J1 — Phase 9 cycle: MainWindow auto-register `trsim.physics_model` plug-ins → PhysicsLabWorkspace Library 표시 (2486 → 2490 PASS). H+I 결과 사용자 GUI visible.
 - 2026-05-13 cross-check retro-update — Phase 7 `SDK: package_validator.py | ✗` 행 (row 159 의 ✓ row 와 duplicate, 모순) 제거. § 한 줄 요약 갱신 (Wave 2 CLI ✗ → ✓). § 미구현 우선순위 리스트 9 → 10 행 재작성 (직전 1/2/3/5/6 다 완료 반영). Phase 9 § 19.7.5+ 행에 J1 추가. Phase 8 row 4 (DUTAdapter Protocol) ✗ → △ (declaration shell 만, members ✗).
 - 2026-05-13 L1 — Phase 4 cycle: Simulator Run panel 실 sim_time/frame_id binding + `SimulatorRunController` (16ms QTimer + SimulationClock) + MainWindow sim.start/pause/stop/speed hooks (2490 → 2518 PASS). Simulator Run panel 실 데이터 binding ✗ → ✓.
+- 2026-05-13 user decision — Phase 8 HIL "MVP 공간만, 실 작업 하지 않음" 결정 → 우선순위 리스트 재정렬 (HIL 제외, physics_lab > simulator > editor 적용). Validation Bench 일반화 가 1순위.
