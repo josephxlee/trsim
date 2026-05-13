@@ -17,21 +17,18 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 6 NN 보강 (A1-a/b/c/d) DONE — 4 sub-step 묶음**. Adam
-> optimizer + workbench-train CLI 는 실 구현 (A1-a/b), Step 2 per-
-> category dispatch + multi-step rollout RMSE 는 framework + stub
-> (A1-c/d, TBD: TrackerNNPlugin / PredictorNNPlugin / 시퀀스 dataset
-> spec). 누적 **2101 PASS** (+36 신규 across 4 sub-steps),
-> 5 contracts KEPT 매 commit. ruff / mypy --strict / import-linter
-> all clean.
+> **Phase 5 추가 후속 (5.7b/5.8b/5.11b/5.12b) DONE — 4 sub-step 묶음**.
+> element_power / ballistic / timing 영역의 scaling / boundary /
+> monotonicity invariant 보강. test-only, src 변경 0. 누적
+> **2131 PASS** (+30 신규 in this cycle), 5 contracts KEPT 매 commit.
+> ruff / mypy --strict / import-linter all clean.
 >
-> **세션 인계**: `docs/sessions/phase_6_augmentation_2026_05_13.md`
-> (이 세션 4 sub-step 요약 + 다음 진입점).
+> **세션 인계**: `docs/sessions/phase_5_additional_followup_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
-> **Phase 6 NN 보강 ✓ (이 세션)** → 다음은 `docs/MVP_STATUS.md`
-> § "미구현 우선순위 리스트" 참조 (Phase 5 추가 후속 / Phase 7 DLC
-> CLI / Phase 3 누락 4 모듈 / Phase 8 HIL 순).
+> Phase 6 NN 보강 ✓ → **Phase 5 추가 후속 ✓ (이 cycle)** → 다음 cycle
+> 후보 (MVP_STATUS § 우선순위): Phase 7 DLC CLI 완성 / Phase 3 누락
+> 4 모듈 / Phase 8 HIL 전체 / Phase 4 UI 실 데이터 binding.
 
 - **Phase 5 후속 DONE (이 세션)** — 12 sub-step, test-only, 누적
   +79 tests (1986 → 2065). 패턴: 기존 검증 카테고리 각각에 closed-
