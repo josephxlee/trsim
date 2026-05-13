@@ -122,10 +122,13 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 
 ## Phase 5 — 물리 검증 ✓
 
-17 카테고리 + 이 세션 12 sub-step 후속 보강 끝 (2065 PASS).
+17 카테고리 + 이 세션 12 sub-step 후속 보강 끝.
 plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
-#19 (Frame Profiler 결과 재현성) 의 본격 재현성 시험은 △
-(정량 invariant 만 추가, 같은 seed/load → 같은 결과 검증 ✗).
+#19 (Frame Profiler 결과 재현성): ✓ 정량 reproducibility tests
+(`tests/unit/app/timing/test_reference_timing_reproducibility.py` —
+PerformanceClock factory 결정성 / FrameProfiler 동일 sample sequence
+→ 동일 StageReport / 순서 독립성 / reset replay invariant / 손계산
+percentile golden).
 
 ---
 
@@ -227,7 +230,7 @@ shell 만 (members 없음).
 | 4 | **Phase 6 multi-step rollout RMSE real** | 중 | simulator/NN | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
 | 5 | **Editor 5 activity 실 데이터 binding** (Composer / Map / Radar / Targets / Atmosphere wiring) | 대 (여러 cycle) | editor | 골격 ✓, G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비 — wiring 만 남음. |
 | 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | app | △ — domain dataclass 없음. CLI flag + runtime gating. |
-| 7 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | physics | test-only. seed/load → same result. |
+| ~~7~~ | ~~Phase 5 #18/#19 재현성 정량 검증~~ | — | physics | **이 세션 처리됨** — `tests/unit/app/timing/test_reference_timing_reproducibility.py` (9 tests). |
 | 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | UI | △ — workspace 안 키 routing 정리. |
 | 9 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | refactor | 위치만 옮김 + import 갱신 + test 갱신. |
 | 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | optional | 미루기 가능. |
@@ -290,4 +293,5 @@ shell 만 (members 없음).
 - 2026-05-13 L3 — Phase 4 cycle: SimulatorWorkspace `_on_run_tick_completed` 슬롯 (controller.tick_completed → FFT/RD/StageIO 의 `set_frame(frame_id)` fan-out). 5 신규 tests (defaults dash / 단일 tick / pause invariant / stop replay 1 부터 / 5 lock-step). Run panel + downstream panel frame_id 항상 일치 invariant.
 - 2026-05-13 L4 — Phase 4 cycle: SimulatorWorkspace Properties panel 도 tick handler 가 paint (sim_t_s/frame_id/state/speed 4-row form 자동 갱신) + `show_selected_in_properties(label, properties)` / `clear_property_selection()` public API (user selection pin 시 tick handler 가 안 덮어씀). `_properties_owned_by_selection` 플래그. 5 신규 tests (initial nothing-selected / tick paints simulator context / selection pin invariant / clear returns to live / sim_t_s 매 tick 갱신).
 - 2026-05-13 L5 — Phase 4 cycle: SimulatorWorkspace tick handler 가 StageIO 6 box (Transmitter / Environment / Receiver / Detector / Pairing / Tracker) IN/OUT 자리에 deterministic placeholder text 채움 (frame_id + sim_t_s 인코딩). Detector·Pairing·Tracker 는 "pipeline pending" 으로 명시 — 실 pipeline 후 swap. 4 신규 tests (default dash / 첫 tick / 3 tick 진행 / pause freeze).
-**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 simulator panel binding (Run + PluginMgr + frame fan-out + Properties + StageIO) ✓.
+- 2026-05-13 Sidequest #7 — Phase 5 #18/#19 reproducibility tests ✗ → ✓. `tests/unit/app/timing/test_reference_timing_reproducibility.py` 신규 (9 tests: PerformanceClock factory bit-identical state / round-trip ms↔Hz / FrameProfiler 동일 sequence → 동일 report / 순서 independent / reset replay invariant / 손계산 percentile golden).
+**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + Phase 5 #18/#19 reproducibility ✓.
