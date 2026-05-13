@@ -61,6 +61,7 @@ from workbench.domain.physics_lab import (
     load_measured_csv,
     load_measured_hdf5,
 )
+from workbench.sdk.protocols import PhysicsModelProtocol
 from workbench.ui.physics_lab.auto_parameters import AutoParametersWidget
 from workbench.ui.physics_lab.code_editor import PythonCodeEditor
 from workbench.ui.physics_lab.python_highlighter import PythonSyntaxHighlighter
@@ -100,6 +101,7 @@ class LibraryWidget(QWidget):
     measured_dataset_selected = Signal(object)
     paper_selected = Signal(object)
     fit_requested = Signal(object)
+    physics_model_selected = Signal(object)
 
     BOUNCING_BALL_ROW = "Bouncing Ball Demo"
     CATEGORY_TESTS = "Tests"
@@ -133,6 +135,7 @@ class LibraryWidget(QWidget):
         self._label_to_experiment: dict[str, SavedExperiment] = {}
         self._label_to_measured: dict[str, MeasuredDataset] = {}
         self._label_to_paper: dict[str, PaperReference] = {}
+        self._label_to_model: dict[str, PhysicsModelProtocol] = {}
 
         # Tests category: Bouncing Ball Demo + 9 Test Objects.
         self._tests_item = QTreeWidgetItem(self._tree, [self.CATEGORY_TESTS])
@@ -303,6 +306,56 @@ class LibraryWidget(QWidget):
             self._label_to_paper[label] = paper
         self._tree.expandItem(self._papers_item)
 
+    def set_physics_models(self, models: Iterable[PhysicsModelProtocol]) -> None:
+        """Replace the Models sub-tree with registered PhysicsModelProtocol entries.
+
+        When ``models`` is empty, fall back to the original two
+        placeholders (``Gravity (always on)`` / ``Air Drag (toggle)``)
+        so legacy users see the same shell. Each registered model's
+        leaf label is ``"<name>  (<category>)"``; the model itself is
+        retrievable via :meth:`physics_model_for` and reported via the
+        ``physics_model_selected`` signal when the user clicks the row.
+
+        Args:
+            models: Iterable of objects implementing
+                :class:`workbench.sdk.protocols.PhysicsModelProtocol`.
+                Order is preserved.
+
+        Raises:
+            ValueError: If two models share a ``name`` (the Library uses
+                ``name`` as the lookup key).
+        """
+        materialised = list(models)
+        names = [m.name for m in materialised]
+        if len(names) != len(set(names)):
+            seen: set[str] = set()
+            dupes: list[str] = []
+            for n in names:
+                if n in seen:
+                    dupes.append(n)
+                seen.add(n)
+            msg = f"Duplicate physics-model names not allowed: {dupes!r}"
+            raise ValueError(msg)
+        self._label_to_model.clear()
+        self._models_item.takeChildren()
+        if not materialised:
+            for model_label in self._DEFAULT_MODELS:
+                QTreeWidgetItem(self._models_item, [model_label])
+            return
+        for model in materialised:
+            label = f"{model.name}  ({model.category})"
+            QTreeWidgetItem(self._models_item, [label])
+            self._label_to_model[label] = model
+        self._tree.expandItem(self._models_item)
+
+    def physics_model_for(self, label: str) -> PhysicsModelProtocol | None:
+        """Resolve a Library leaf label to its PhysicsModelProtocol instance.
+
+        Returns ``None`` for the legacy placeholders and any non-model
+        row, so the workspace can branch cleanly.
+        """
+        return self._label_to_model.get(label)
+
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
@@ -325,6 +378,8 @@ class LibraryWidget(QWidget):
             self.measured_dataset_selected.emit(self._label_to_measured[label])
         if label in self._label_to_paper:
             self.paper_selected.emit(self._label_to_paper[label])
+        if label in self._label_to_model:
+            self.physics_model_selected.emit(self._label_to_model[label])
 
     def _on_fit_clicked(self) -> None:
         item = self._tree.currentItem()
