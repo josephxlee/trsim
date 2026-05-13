@@ -180,6 +180,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="overwrite an existing installation of the same package_id",
     )
 
+    uninstall_p = sub.add_parser(
+        "uninstall",
+        help="remove an installed DLC package by id (C7)",
+    )
+    uninstall_p.add_argument(
+        "--package-id",
+        required=True,
+        help="package_id of the installed DLC to remove",
+    )
+    uninstall_p.add_argument(
+        "--packages-root",
+        default=None,
+        help="override the install root (default: ~/.trsim/packages/)",
+    )
+
     ui_p = sub.add_parser("ui", help="launch the PySide6 MainWindow (Phase 4.1)")
     ui_p.add_argument(
         "--workspace",
@@ -452,6 +467,42 @@ def _cmd_install(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_uninstall(args: argparse.Namespace) -> int:
+    """`trsim uninstall --package-id <id> [--packages-root <dir>]`.
+
+    Removes ``<packages-root>/<package_id>/`` recursively. Refuses
+    to walk outside ``packages-root`` (so a malformed package_id like
+    ``../`` can't escape). Missing target returns exit 2 with a clear
+    message rather than silently succeeding.
+    """
+    import shutil
+
+    if args.packages_root is not None:
+        packages_root = Path(args.packages_root).expanduser().resolve()
+    else:
+        packages_root = (Path.home() / ".trsim" / "packages").resolve()
+    target = (packages_root / args.package_id).resolve()
+    # Sandbox the target inside packages_root — defends against
+    # `--package-id ../../etc/passwd`.
+    try:
+        target.relative_to(packages_root)
+    except ValueError:
+        print(
+            f"error: package-id {args.package_id!r} resolves outside packages_root",
+            file=sys.stderr,
+        )
+        return 2
+    if not target.exists():
+        print(
+            f"error: no package installed at {target}",
+            file=sys.stderr,
+        )
+        return 2
+    shutil.rmtree(target)
+    print(f"uninstalled {args.package_id} from {packages_root}")
+    return 0
+
+
 def build_ui_window(args: argparse.Namespace) -> object:
     """Construct (but do not show / exec) the :class:`MainWindow`.
 
@@ -552,6 +603,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_sdk(args)
     if args.command == "install":
         return _cmd_install(args)
+    if args.command == "uninstall":
+        return _cmd_uninstall(args)
     if args.command == "ui":  # pragma: no cover — GUI loop
         return _cmd_ui(args)
     parser.print_help()

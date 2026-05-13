@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 7 C5/C6 (package_manager_panel + sample DLC + tutorial) 추가 후.
-**누적 test**: 2182 PASS local, 5 contracts KEPT.
-**HEAD**: C6 sample DLC + creating_dlc.md tutorial + end-to-end round-trip.
+**최종 갱신**: 2026-05-13 — Phase 7 C7/C8 (uninstall + resource_schemas + package_validator) 추가 후.
+**누적 test**: 2198 PASS local, 5 contracts KEPT.
+**HEAD**: C8 sdk.validate_entry_point_slots + sdk.validate_resource_toml_blob.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -152,10 +152,12 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 |---|---|
 | SDK: protocols.py (11 Plugin Protocol) | ✓ |
 | **SDK: manifest.py** | △ (domain/dlc/manifest.py 에 있음, sdk/ 이동 고려) |
-| **SDK: resource_schemas.py** | **✗** |
+| SDK: resource_schemas.py (`validate_resource_toml_blob`, 4 categories) | ✓ (C8) |
 | SDK: package_builder.py + `trsim sdk build` CLI | ✓ (C2) |
 | **SDK: package_validator.py** | **✗** |
 | SDK: test_harness.py + `trsim sdk test` CLI | ✓ (C3) |
+| SDK: package_validator.py (`validate_entry_point_slots` + curated KNOWN_ENTRY_POINT_SLOTS) | ✓ (C8) |
+| `trsim uninstall` CLI (`--package-id` + path-escape defence) | ✓ (C7) |
 | App: dlc/package_manager + dlc/plugin_loader + panel_registry + dlc_runtime | ✓ |
 | App: resources/library (User > Package > Built-in priority) | ✓ |
 | io/package_io.py (.trsim-pkg pack/unpack + zip-slip defence + manifest probe) | ✓ (C1) |
@@ -246,3 +248,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 C1 — Phase 7 io/package_io ✗ → ✓ (2131 → 2146 PASS).
 - 2026-05-13 C2 + C3 + C4 — Phase 7 sdk build / sdk test / install CLI ✗ → ✓ (2146 → 2163 PASS).
 - 2026-05-13 C5 + C6 — Phase 7 PackageManagerPanel + Sample DLC + tutorial ✗ → ✓ (2163 → 2182 PASS).
+- 2026-05-13 C7 + C8 — Phase 7 uninstall CLI + resource_schemas + package_validator ✗ → ✓ (2182 → 2198 PASS).

@@ -146,3 +146,81 @@ def test_install_missing_archive_returns_error(
     assert rc == 2
     captured = capsys.readouterr()
     assert "error" in captured.err.lower()
+
+
+# ---------------------------------------------------------------------
+# uninstall (C7)
+# ---------------------------------------------------------------------
+
+
+def test_parser_recognises_uninstall_subcommand(tmp_path: Path) -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "uninstall",
+            "--package-id",
+            "demo-tracker",
+            "--packages-root",
+            str(tmp_path / "pkgs"),
+        ]
+    )
+    assert args.command == "uninstall"
+    assert args.package_id == "demo-tracker"
+    assert args.packages_root == str(tmp_path / "pkgs")
+
+
+def test_uninstall_removes_installed_directory(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pkg = _build_pkg(tmp_path)
+    pkgs_root = tmp_path / "pkgs"
+    main(["install", "--package", str(pkg), "--packages-root", str(pkgs_root)])
+    target = pkgs_root / "demo-tracker"
+    assert target.exists()
+
+    rc = main(
+        [
+            "uninstall",
+            "--package-id",
+            "demo-tracker",
+            "--packages-root",
+            str(pkgs_root),
+        ]
+    )
+    assert rc == 0
+    assert not target.exists()
+    captured = capsys.readouterr()
+    assert "uninstalled demo-tracker" in captured.out
+
+
+def test_uninstall_missing_package_id_returns_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rc = main(
+        [
+            "uninstall",
+            "--package-id",
+            "never-installed",
+            "--packages-root",
+            str(tmp_path / "pkgs"),
+        ]
+    )
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "no package installed" in captured.err
+
+
+def test_uninstall_rejects_path_escape(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A package_id of ``../../etc`` must not escape packages_root."""
+    rc = main(
+        [
+            "uninstall",
+            "--package-id",
+            "../../etc",
+            "--packages-root",
+            str(tmp_path / "pkgs"),
+        ]
+    )
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "outside packages_root" in captured.err
