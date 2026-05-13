@@ -17,17 +17,24 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **Phase 9 MainWindow DLC Physics-Model Auto-Register (J1) DONE —
+> 1 sub-step**. ui/main_window.py 가 DLCRuntime 받으면 (즉
+> `dlc_runtime != None`) PhysicsLabWorkspace 생성 *전에* `_register_
+> dlc_physics_models(dlc_runtime)` 모듈-레벨 헬퍼로 plugin_loader 의
+> `trsim.physics_model` 슬롯 결과를 register_discovered_physics_models
+> 로 push. PhysicsLabWorkspace `physics_models=None` default 가
+> default_physics_models() 를 호출해 built-in 3 + 방금 등록된 plug-in
+> 다 picks up. 신규 `physics_discovery_result()` accessor → `DiscoveryResult
+> | None`. 사용자가 DLC install 후 Physics Lab Library 의 Models 카테
+> 고리에서 즉시 plug-in 모델 확인 가능. 누적 **2490 PASS** (+4 신규
+> in this cycle), 5 contracts KEPT.
+
 > **Phase 9 PluginLoader Physics-Model Discovery (I1~I2) DONE —
-> 2 sub-step 묶음**. app/dlc/plugin_loader.py 가 새 `_PYTHON_IMPORT_
-> EXACT_SLOTS` frozenset (9 singleton slot 포함 — `trsim.physics_model`,
-> `trsim.tracker`, etc.) 와 `_is_python_import_slot` 의 exact-set
-> 우선 dispatch 로 SDK 의 `KNOWN_ENTRY_POINT_SLOTS` 와 정합 (I1) +
-> app/physics_lab/discovery.py 신규 — `DiscoveryError` /
-> `DiscoveryResult` frozen dataclass + `physics_models_from_loaded_
-> plugins(loaded)` pure transform + `register_discovered_physics_
-> models(loaded)` side-effect helper (한 broken DLC 가 다른 차단 X,
-> built-in name collision silent skip) (I2). 누적 **2486 PASS** (+18
-> 신규 in this cycle), 5 contracts KEPT 매 commit.
+> 2 sub-step 묶음 (직전 cycle)**. app/dlc/plugin_loader.py 의
+> `_PYTHON_IMPORT_EXACT_SLOTS` 신설 + 9 singleton slot 지원 (I1) +
+> app/physics_lab/discovery.py 신규 (`DiscoveryError` /
+> `DiscoveryResult` + pure transform + side-effect helper) (I2). 누적
+> 2468 → 2486 PASS (+18).
 
 > **Phase 9 Library Models 동적 채우기 (H1~H2) DONE — 2 sub-step
 > 묶음 (직전 cycle)**. ui/physics_lab/bouncing_ball_demo.py 의
@@ -50,21 +57,27 @@
 > Domain Override block + `CoverageStats` frozen dataclass (G4).
 > 누적 2360 → 2434 PASS (+74).
 >
-> **이 cycle 인계**: `docs/sessions/phase_9_plugin_discovery_2026_05_13.md`.
+> **이 cycle 인계**: `docs/sessions/phase_9_mainwindow_autoregister_2026_05_13.md`.
 > **사용자 GUI 손 테스트 체크리스트**: `docs/sessions/user_acceptance_
 > test_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
-> **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
-> Phase 6 NN 보강 ✓ → Phase 5 추가 후속 ✓ → Phase 7 DLC CLI ✓ →
-> Phase 7 remainder C7/C8+F1-F3 ✓ → Phase 3 누락 4 모듈 ✓ → Phase 4
-> dem_import_wizard ✓ → Phase 4 domain_settings + installation_panel ✓
-> → Phase 9 § 19.7.5+ Library Models 동적 ✓ → **Phase 9 § 19.7.5+
-> Plugin discovery via PluginLoader ✓ (이 cycle)** → 다음 cycle 후보:
-> Phase 4 UI 실 데이터 binding (큼) / Phase 8 HIL 전체 (매우 큼) /
-> Phase 9 § 19.7.5+ Validation Bench 일반화 (소-중) / MainWindow → DLC
-> physics-model auto-register wiring (소).
+> **physics_lab > simulator > editor** — Phase 9 / Phase 5 후속 / Phase
+> 6 NN 보강 / Phase 5 추가 후속 / Phase 7 DLC CLI / Phase 7 remainder /
+> Phase 3 누락 4 모듈 / Phase 4 dem_import_wizard / Phase 4 domain_
+> settings + installation_panel / Phase 9 § 19.7.5+ Library Models 동적
+> + PluginLoader discovery + MainWindow auto-register 전부 ✓ → 다음
+> cycle 후보: Phase 4 UI 실 데이터 binding (큼) / Phase 8 HIL 전체
+> (매우 큼) / Phase 9 § 19.7.5+ Validation Bench 일반화 (소-중).
 
-- **Phase 9 cycle (I1~I2) 2 sub-step (이 cycle)** — DLC 가 manifest 의
+- **Phase 9 cycle (J1) 1 sub-step (이 cycle)** — DLC 의 physics-model
+  plug-in 이 사용자 GUI 에서 처음으로 visible. plan/19 § 19.7.5+
+  전체 ✓. 누적 +4 tests.
+
+  | sub | commit | new | 내용 |
+  |---|---|---|---|
+  | J1 | `0b03e3e` | +4 | MainWindow `_register_dlc_physics_models(dlc_runtime)` helper + PhysicsLabWorkspace 생성 전 register 호출 + `physics_discovery_result()` accessor |
+
+- **Phase 9 cycle (I1~I2) 2 sub-step (직전 cycle)** — DLC 가 manifest 의
   `trsim.physics_model` 슬롯으로 사용자 정의 PhysicsModel 을 ship
   가능. plan/19 § 19.7.5+ "Plugin discovery via PluginLoader" ✓.
   누적 +18 tests.
@@ -1219,4 +1232,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 9 I1~I2 (PluginLoader physics-model discovery) 2 sub-step DONE, 2486 PASS.
+최근 갱신: 2026-05-13 — Phase 9 J1 (MainWindow auto-register DLC physics models) DONE, 2490 PASS. plan/19 § 19.7.5+ 전체 ✓.

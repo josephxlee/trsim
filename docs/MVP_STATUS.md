@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 9 I2 (PluginLoader → discovery → registry) 완료 후.
-**누적 test**: 2486 PASS local, 5 contracts KEPT.
-**HEAD**: I2 PluginLoader 의 `trsim.physics_model` 슬롯 결과를 PhysicsLabWorkspace 가 자동 mount.
+**최종 갱신**: 2026-05-13 — Phase 9 J1 (MainWindow auto-register DLC physics models) 완료 후.
+**누적 test**: 2490 PASS local, 5 contracts KEPT.
+**HEAD**: J1 MainWindow 가 DLCRuntime 의 trsim.physics_model 자동 register, PhysicsLabWorkspace Library 에 표시.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -268,3 +268,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 H2 — Phase 9 cycle: `app/physics_lab/model_registry.py` + PhysicsLabWorkspace `physics_models` kwarg (default = 3 built-in) (2446 → 2468 PASS). Phase 9 § 19.7.5+ Library Models 동적 채우기 ✗ → ✓.
 - 2026-05-13 I1 — Phase 9 cycle: PluginLoader `_PYTHON_IMPORT_EXACT_SLOTS` 신설, `trsim.physics_model` 등 9 singleton 슬롯 지원 (2468 → 2472 PASS).
 - 2026-05-13 I2 — Phase 9 cycle: `app/physics_lab/discovery.py` (LoadedPlugin → PhysicsModelProtocol → registry, bridge) (2472 → 2486 PASS). Phase 9 § 19.7.5+ Plugin discovery via PluginLoader ✗ → ✓.
+- 2026-05-13 J1 — Phase 9 cycle: MainWindow auto-register `trsim.physics_model` plug-ins → PhysicsLabWorkspace Library 표시 (2486 → 2490 PASS). H+I 결과 사용자 GUI visible.
