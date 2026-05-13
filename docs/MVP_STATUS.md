@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 3 D2 (physics_gate) 추가 후.
-**누적 test**: 2251 PASS local, 5 contracts KEPT.
-**HEAD**: D2 physics sanity gate (5 check functions + report).
+**최종 갱신**: 2026-05-13 — Phase 3 D3 (command_evaluator) 추가 후.
+**누적 test**: 2266 PASS local, 5 contracts KEPT.
+**HEAD**: D3 command Lineage Level 3-2 evaluator (3 rules).
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -83,7 +83,7 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | simulation_clock (두 레이어 Layer 1) | ✓ |
 | input_buffer / probe_recorder / run_manager | ✓ |
 | bundle_service (.scnbundle / .runbundle export·import + tar-slip defence + manifest probe) | ✓ (D1) |
-| **evaluator** (Command Lineage 검증, v0.14 Level 3-2) | **✗** |
+| command_evaluator (Command Lineage Level 3-2: monotonic_sim_time / tracker_source_provenance / initial_scan_single_dispatch) | ✓ (D3) |
 | physics_gate (velocity<c / mass>0 / altitude / radar freq / finite position checks + PhysicsGateReport) | ✓ (D2) |
 | io/run_storage / trace_storage | ✓ |
 | **io/dem_import** (Import Wizard 백엔드, terrain.npz 변환, v0.22) | **✗** |
@@ -251,3 +251,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 C7 + C8 — Phase 7 uninstall CLI + resource_schemas + package_validator ✗ → ✓ (2182 → 2198 PASS).
 - 2026-05-13 D1 — Phase 3 bundle_service ✗ → ✓ (2198 → 2214 PASS).
 - 2026-05-13 D2 — Phase 3 physics_gate ✗ → ✓ (2214 → 2251 PASS).
+- 2026-05-13 D3 — Phase 3 command_evaluator ✗ → ✓ (2251 → 2266 PASS).
