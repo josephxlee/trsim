@@ -204,7 +204,79 @@ def test_unknown_slot_prefix_records_error(tmp_path: Path) -> None:
     )
     loader = _scanned_loader(tmp_path)
     loader.load_all()
-    assert any("unknown slot prefix" in e.message for e in loader.load_errors)
+    assert any("unknown slot" in e.message for e in loader.load_errors)
+
+
+# ---------------------------------------------------------------------
+# Phase 9 I1 — singleton Python-import slots (trsim.physics_model etc.)
+# ---------------------------------------------------------------------
+
+
+def test_trsim_physics_model_slot_loads_as_python_import(tmp_path: Path) -> None:
+    _write_package(
+        tmp_path,
+        "physics-pkg",
+        entry_points={"trsim.physics_model": "my_model:Model"},
+        files={
+            "my_model.py": (
+                "class Model:\n"
+                "    name = 'plug_model'\n"
+                "    category = 'other'\n"
+                "    parameters = ()\n"
+                "    time_mode = 'static'\n"
+                "    visualization = '2d'\n"
+                "    def compute(self, state, params, dt_s):\n"
+                "        return dict(state)\n"
+            )
+        },
+    )
+    loader = _scanned_loader(tmp_path)
+    plugins = loader.load_all()
+    assert "trsim.physics_model" in plugins
+    (plugin,) = plugins["trsim.physics_model"]
+    assert plugin.package_id == "physics-pkg"
+    assert plugin.attribute is not None
+    # The resolved attribute is the class itself — instantiating gives
+    # a runtime_checkable PhysicsModelProtocol instance (verified via the
+    # consumer in Phase 9 H2's discovery; here we just confirm it loaded).
+    instance = plugin.attribute()  # type: ignore[operator]
+    assert instance.name == "plug_model"
+
+
+def test_trsim_physics_model_slot_missing_attribute_records_error(tmp_path: Path) -> None:
+    _write_package(
+        tmp_path,
+        "broken-pkg",
+        entry_points={"trsim.physics_model": "my_model:Missing"},
+        files={"my_model.py": "class Other: pass\n"},
+    )
+    loader = _scanned_loader(tmp_path)
+    loader.load_all()
+    assert any(e.slot == "trsim.physics_model" for e in loader.load_errors)
+
+
+def test_trsim_physics_model_slot_in_known_singleton_slots() -> None:
+    """Sanity — the slot is wired into the same singleton-set the validator
+    relies on (test guards against accidental rename / typo)."""
+    from workbench.app.dlc.plugin_loader import _PYTHON_IMPORT_EXACT_SLOTS
+
+    assert "trsim.physics_model" in _PYTHON_IMPORT_EXACT_SLOTS
+
+
+def test_existing_singleton_slots_still_load(tmp_path: Path) -> None:
+    """Tracker / Pairing / etc. were listed by the SDK validator as known
+    slots but the loader previously rejected them with "unknown slot
+    prefix". I1 fixes that — verify tracker round-trips."""
+    _write_package(
+        tmp_path,
+        "tracker-pkg",
+        entry_points={"trsim.tracker": "my_tracker:Tracker"},
+        files={"my_tracker.py": "class Tracker:\n    name = 'tk'\n"},
+    )
+    loader = _scanned_loader(tmp_path)
+    plugins = loader.load_all()
+    assert "trsim.tracker" in plugins
+    assert loader.load_errors == ()
 
 
 # ---------------------------------------------------------------------

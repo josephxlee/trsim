@@ -47,6 +47,25 @@ _PYTHON_IMPORT_SLOT_PREFIXES: tuple[str, ...] = (
     "trsim.ui.",
 )
 
+# Singleton entry-point slots that resolve to a Python class via
+# ``module:attr`` — same target shape as ``_PYTHON_IMPORT_SLOT_PREFIXES``
+# but the slot name is exact (no trailing dot, no sub-categorisation).
+# Phase 9 § 19.7.5+ "Plugin discovery" introduces ``trsim.physics_model``
+# for plan/19 PhysicsModelProtocol implementations.
+_PYTHON_IMPORT_EXACT_SLOTS: frozenset[str] = frozenset(
+    {
+        "trsim.physics_model",
+        "trsim.tracker",
+        "trsim.pairing",
+        "trsim.predictor",
+        "trsim.classifier",
+        "trsim.data_associator",
+        "trsim.angle_estimator",
+        "trsim.detector",
+        "trsim.dut_adapter",
+    }
+)
+
 _PATH_SLOT_PREFIXES: tuple[str, ...] = ("trsim.resources.",)
 
 
@@ -90,6 +109,8 @@ class PluginLoadError:
 
 
 def _is_python_import_slot(slot: str) -> bool:
+    if slot in _PYTHON_IMPORT_EXACT_SLOTS:
+        return True
     return any(slot.startswith(p) for p in _PYTHON_IMPORT_SLOT_PREFIXES)
 
 
@@ -155,7 +176,11 @@ class PluginLoader:
                 package_id=pkg.package_id,
                 slot=slot,
                 target=target,
-                message="unknown slot prefix; expected trsim.plugins.* / trsim.ui.* / trsim.resources.*",
+                message=(
+                    "unknown slot; expected trsim.plugins.* / trsim.ui.* / "
+                    "trsim.resources.* or a singleton slot "
+                    f"in {sorted(_PYTHON_IMPORT_EXACT_SLOTS)!r}"
+                ),
             )
         )
         return None
