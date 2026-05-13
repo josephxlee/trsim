@@ -183,6 +183,119 @@ def test_initial_velocity_field_must_be_three_tuple() -> None:
         BallisticDynamics(mass_kg=1.0, initial_velocity_mps=(1.0, 2.0))  # type: ignore[arg-type]
 
 
+# ---------- 5.8b — drag / mass / v0 / theta scaling invariants ----------
+
+
+def _oblique_throw_range(v0: float, theta_rad: float) -> float:
+    """Run a vacuum oblique throw at (v0, theta) and return horizontal range."""
+    vx = v0 * math.cos(theta_rad)
+    vz = v0 * math.sin(theta_rad)
+    dyn = _vacuum_dynamics()
+    atm = AtmosphereState()
+    f = make_ballistic_force_fn(dyn, atm)
+    state = RigidBodyState(
+        east_m=0.0,
+        north_m=0.0,
+        altitude_m=0.0,
+        velocity_east_mps=vx,
+        velocity_north_mps=0.0,
+        velocity_up_mps=vz,
+        roll_rad=0.0,
+        pitch_rad=0.0,
+        yaw_rad=0.0,
+    )
+    flight_time = 2.0 * vz / _G
+    end = integrate(state, f, dyn.mass_kg, flight_time, n_substeps=400)
+    return float(end.east_m)
+
+
+def test_drag_coef_monotonic_in_descent_reduction() -> None:
+    """Larger Cd -> smaller |descent| after a fixed time at fixed v0.
+    Three Cd values (0.0 / 0.5 / 1.0) must order monotonically.
+    """
+    atm = AtmosphereState()
+    state = RigidBodyState(
+        east_m=0.0,
+        north_m=0.0,
+        altitude_m=1000.0,
+        velocity_east_mps=0.0,
+        velocity_north_mps=0.0,
+        velocity_up_mps=-100.0,  # already falling fast
+        roll_rad=0.0,
+        pitch_rad=0.0,
+        yaw_rad=0.0,
+    )
+    altitudes: list[float] = []
+    for cd in (0.0, 0.5, 1.0):
+        dyn = BallisticDynamics(mass_kg=10.0, drag_coef=cd, reference_area_m2=0.5)
+        end = integrate(state, make_ballistic_force_fn(dyn, atm), dyn.mass_kg, 1.0, n_substeps=200)
+        altitudes.append(float(end.altitude_m))
+    # Larger Cd = higher remaining altitude (less descent).
+    assert altitudes[0] < altitudes[1] < altitudes[2], altitudes
+
+
+def test_30_and_60_deg_oblique_throws_share_range_sin_2theta_symmetry() -> None:
+    """In vacuum: range = v0^2 sin(2*theta) / g. sin(2*30°) = sin(2*60°)
+    = sqrt(3)/2, so the two throws land at the exact same distance.
+    Pins the sin(2*theta) symmetry of the closed-form range.
+    """
+    v0 = 50.0
+    range_30 = _oblique_throw_range(v0, math.radians(30.0))
+    range_60 = _oblique_throw_range(v0, math.radians(60.0))
+    assert range_30 == pytest.approx(range_60, rel=1e-9)
+
+
+def test_oblique_throw_range_quadratic_in_initial_speed() -> None:
+    """Doubling v0 at fixed theta multiplies the range by 4 (v0^2 scaling)."""
+    theta = math.radians(45.0)
+    r_small = _oblique_throw_range(25.0, theta)
+    r_large = _oblique_throw_range(50.0, theta)
+    assert r_large == pytest.approx(4.0 * r_small, rel=1e-9)
+
+
+def test_vacuum_freefall_independent_of_mass() -> None:
+    """Mass drops out of the equation of motion in vacuum
+    (m*a = m*g -> a = g). 1 kg and 100 kg fall identically.
+    """
+    atm = AtmosphereState()
+    dt = 1.0
+    dyn_light = BallisticDynamics(mass_kg=1.0, drag_coef=0.0, reference_area_m2=0.05)
+    dyn_heavy = BallisticDynamics(mass_kg=100.0, drag_coef=0.0, reference_area_m2=0.05)
+    end_light = integrate(
+        _initial_state(), make_ballistic_force_fn(dyn_light, atm), dyn_light.mass_kg, dt
+    )
+    end_heavy = integrate(
+        _initial_state(), make_ballistic_force_fn(dyn_heavy, atm), dyn_heavy.mass_kg, dt
+    )
+    assert end_light.altitude_m == pytest.approx(end_heavy.altitude_m, rel=1e-12)
+
+
+def test_apex_height_quadratic_in_initial_velocity() -> None:
+    """Vacuum apex height = v0^2 / (2g) -> doubling v0 quadruples apex."""
+    dyn = _vacuum_dynamics()
+    atm = AtmosphereState()
+    f = make_ballistic_force_fn(dyn, atm)
+
+    def _apex(v_up0: float) -> float:
+        state = RigidBodyState(
+            east_m=0.0,
+            north_m=0.0,
+            altitude_m=0.0,
+            velocity_east_mps=0.0,
+            velocity_north_mps=0.0,
+            velocity_up_mps=v_up0,
+            roll_rad=0.0,
+            pitch_rad=0.0,
+            yaw_rad=0.0,
+        )
+        end = integrate(state, f, dyn.mass_kg, v_up0 / _G, n_substeps=200)
+        return float(end.altitude_m)
+
+    apex_small = _apex(30.0)
+    apex_large = _apex(60.0)
+    assert apex_large == pytest.approx(4.0 * apex_small, rel=1e-9)
+
+
 def test_analytic_form_is_pythagorean_at_oblique_throw() -> None:
     """Throw at 45 deg: horizontal range = v0^2 sin(2*theta)/g."""
     v0 = 50.0
