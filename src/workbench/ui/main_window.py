@@ -31,9 +31,12 @@ from pathlib import Path
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QToolBar, QWidget
 
-from workbench.app.dlc_runtime import default_dlc_paths
-
 from workbench import __version__
+from workbench.app.dlc_runtime import default_dlc_paths
+from workbench.app.physics_lab import (
+    PHYSICS_MODEL_SLOT,
+    register_discovered_physics_models,
+)
 from workbench.ui.commands import (
     CommandHooks,
     CommandPalette,
@@ -69,6 +72,14 @@ class MainWindow(QMainWindow):
         self.commands = WorkbenchCommandRegistry()
         self.docks = DockManager(host=self)
         self._dlc_runtime = dlc_runtime
+
+        # Phase 9 J1 — pull every ``trsim.physics_model`` plugin from the
+        # DLC runtime (if any) into the global registry *before* we build
+        # PhysicsLabWorkspace, so its None-default :func:`default_physics_
+        # models` picks them up alongside the three built-ins. Returns the
+        # DiscoveryResult so the workspace surface (later cycles) can show
+        # any non-fatal errors.
+        self._physics_discovery = _register_dlc_physics_models(dlc_runtime)
 
         self._stack = QStackedWidget(self)
         sim_panel_registry = dlc_runtime.panel_registry if dlc_runtime is not None else None
@@ -305,3 +316,19 @@ class MainWindow(QMainWindow):
     def dlc_manager_controller(self) -> PackageManagerController:
         """Return the wired :class:`PackageManagerController` (test helper)."""
         return self._dlc_manager_controller
+
+    def physics_discovery_result(self) -> object:
+        """Return the J1 :class:`DiscoveryResult` (or ``None`` when no DLC)."""
+        return self._physics_discovery
+
+
+def _register_dlc_physics_models(dlc_runtime: DLCRuntime | None) -> object:
+    """Push the DLC's ``trsim.physics_model`` plugins into the registry.
+
+    Returns the :class:`DiscoveryResult` for the caller to inspect; or
+    ``None`` if no DLC is mounted (the typical headless-test path).
+    """
+    if dlc_runtime is None:
+        return None
+    plugins = dlc_runtime.app.plugin_loader.plugins_for_slot(PHYSICS_MODEL_SLOT)
+    return register_discovered_physics_models({PHYSICS_MODEL_SLOT: plugins})
