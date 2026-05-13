@@ -157,6 +157,41 @@ $PY = ".\.venv\Scripts\python.exe"
 
 ---
 
+## E. Phase 9 H1-H2 Library Models 동적 채우기 (Phase 9 cycle)
+
+### E.1 Physics Lab Library 의 Models 카테고리 = 3 row
+
+- [ ] Ctrl+Shift+L → Physics Lab workspace 활성.
+- [ ] 좌측 Library tree 의 `Models` 카테고리 펼침.
+- [ ] 3 row 표시:
+  - `Gravity Only (analytic)  (dynamics)`
+  - `Bouncing Ball  (dynamics)`
+  - `Free-Space Path Loss  (rf_propagation)`
+- [ ] 직전 PL-9.1f 의 placeholder 2 row (`Gravity (always on)` /
+  `Air Drag (toggle)`) 가 더 이상 안 보임.
+
+### E.2 Models row 클릭 → signal 발생
+
+- [ ] `Bouncing Ball  (dynamics)` row 클릭. UI 시각 변화 없음
+  (signal-only, 후속 cycle 에서 Parameters / Viz binding).
+- [ ] `Gravity Only (analytic)  (dynamics)` row 클릭. 동일.
+
+### E.3 직전 PL feature 들 회귀
+
+- [ ] Tests > `Bouncing Ball Demo` 클릭 → 기존 y(t) plot + Restitution
+  slider + Play 동작.
+- [ ] Tests > `Sphere  (sphere)` 클릭 → 3D viewer (PyVista) 등장.
+
+### 알려진 한계 / stub
+- Models row 클릭 시 Parameters / Viz 가 자동 swap ✗ — 후속 cycle
+  에서 BouncingBallController 가 PhysicsModelProtocol 일반화 받아
+  처리.
+- 사용자 정의 plug-in (custom PhysicsModelProtocol 구현) 등록 GUI
+  ✗ — `register_physics_model()` Python API 만. PluginLoader 통합
+  은 후속.
+
+---
+
 ## D. 회귀 (기존 기능이 안 깨졌는지)
 
 ### D.1 Workspace 전환 단축키
@@ -195,7 +230,9 @@ $PY = ".\.venv\Scripts\python.exe"
 
 ---
 
-## 진행 상황 (2026-05-13 cycle 6 = G1-G4)
+## 진행 상황
+
+### 2026-05-13 cycle 6 = G1-G4 (Phase 4 domain_settings)
 
 | 영역 | 상태 |
 |---|---|
@@ -203,11 +240,19 @@ $PY = ".\.venv\Scripts\python.exe"
 | G2 DomainSettingsPanel widget | ✓ |
 | G3 Map Editor mounts Domain tab | ✓ |
 | G4 Composer Installation + Domain Override block | ✓ |
-| 누적 test | 2434 PASS |
+
+### 2026-05-13 cycle 7 = H1-H2 (Phase 9 Library Models)
+
+| 영역 | 상태 |
+|---|---|
+| H1 LibraryWidget set_physics_models API | ✓ |
+| H2 model_registry + workspace integration | ✓ |
+| 누적 test | 2468 PASS |
 | import-linter | 5 contracts KEPT |
 
 다음 cycle 후보 — `docs/MVP_STATUS.md § "미구현 우선순위 리스트"`:
 - 1. Phase 4 UI 실 데이터 binding (Editor 5 activity / Simulator 8
      panel placeholder → 실 데이터). 큰 작업, 여러 cycle 분할.
 - 2. Phase 8 HIL 전체. 매우 큰 작업.
-- 3. Phase 9 § 19.7.5+ 확장 polish.
+- 3. Phase 9 § 19.7.5+ remainder (Validation Bench 일반화 /
+     PluginLoader discovery).

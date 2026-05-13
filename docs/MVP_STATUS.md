@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 4 G4 (Composer Installation + Domain Override) 완료 후.
-**누적 test**: 2434 PASS local, 5 contracts KEPT.
-**HEAD**: G4 Scenario Composer 의 Installation block 본격 layout + Domain Override.
+**최종 갱신**: 2026-05-13 — Phase 9 H2 (Physics Lab Library Models 동적) 완료 후.
+**누적 test**: 2468 PASS local, 5 contracts KEPT.
+**HEAD**: H2 Physics Lab Workspace 가 model_registry 의 3 built-in 모델 자동 mount.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -201,7 +201,7 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | 9.1 MVP — 3-pane Workspace + 9 Test Objects + 4 time mode + Code Pane + Parameters | ✓ |
 | 9.2 — Measured Data + Papers Library + Validation Bench + Parameter Studio (scipy fit) | ✓ |
 | 9.3 — Code autocomplete + PhysicsModelProtocol (11번째 SDK) + NN-as-physics + Polynomial fit + Test Object plugin registry | ✓ |
-| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | △ (후속 candidate) |
+| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | △ (H1-H2 Library Models 동적 채우기 ✓ via `app/physics_lab/model_registry.py` + LibraryWidget `set_physics_models` + workspace `physics_models` kwarg; Validation Bench 일반화 + PluginLoader discovery 후속) |
 
 ---
 
@@ -264,3 +264,5 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 G2 — Phase 4 cycle: `DomainSettingsPanel` widget (I/O-free, validates via SimulationDomain.__post_init__) (2384 → 2402 PASS).
 - 2026-05-13 G3 — Phase 4 cycle: Map Editor right-panel → QTabWidget (Layers + Domain), DomainSettingsPanel 통합 ✓ (2402 → 2413 PASS). Map Editor Domain Settings panel ✗ → ✓.
 - 2026-05-13 G4 — Phase 4 cycle: ScenarioComposer Installation block 본격 layout (Position 5 row + DEM preview + Coverage Stats) + Domain Override block (2413 → 2434 PASS). Scenario Composer Installation Panel ✗ → △.
+- 2026-05-13 H1 — Phase 9 cycle: LibraryWidget `set_physics_models` + Models 카테고리 동적 (2434 → 2446 PASS).
+- 2026-05-13 H2 — Phase 9 cycle: `app/physics_lab/model_registry.py` + PhysicsLabWorkspace `physics_models` kwarg (default = 3 built-in) (2446 → 2468 PASS). Phase 9 § 19.7.5+ Library Models 동적 채우기 ✗ → ✓.

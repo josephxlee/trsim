@@ -17,36 +17,59 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **Phase 9 Library Models 동적 채우기 (H1~H2) DONE — 2 sub-step
+> 묶음**. ui/physics_lab/bouncing_ball_demo.py 의 `LibraryWidget` 가
+> `set_physics_models(Iterable[PhysicsModelProtocol])` + `physics_
+> model_for(label)` + `physics_model_selected(model)` signal 신규
+> (H1, plan/19 § 19.7.5+). 빈 iterable 시 legacy 2 placeholder
+> backward-compat. + app/physics_lab/model_registry.py 신규 — `builtin_
+> physics_models()` (Gravity + BouncingBall + FreeSpaceLoss) +
+> `register_physics_model(model)` global plug-in hook (test-object
+> registry pattern) + `default_physics_models()` 어셈블리 (built-ins +
+> plug-ins) + `physics_models_from(*, include_builtins, extra)` custom
+> helper. PhysicsLabWorkspace `__init__` 에 `physics_models` kwarg
+> (default None → default_physics_models() 자동) + `set_physics_models`
+> / `refresh_physics_models` / `physics_models()` (H2). 누적 **2468
+> PASS** (+34 신규 in this cycle), 5 contracts KEPT 매 commit.
+
 > **Phase 4 UI domain_settings + installation_panel (G1~G4) DONE —
-> 4 sub-step 묶음**. domain/simulation_domain.py 가 `SimulationDomain`
-> frozen+slots dataclass + `OutsideEnvironment` StrEnum 추가 (plan/11
-> § 11.11.3 finally 데이터모델, G1) + ui/editor/map_editor/domain_
-> settings.py 가 `DomainSettingsPanel(QWidget)` (I/O free, 6 spin +
-> 4 radio + Coverage Preview placeholder + Status, validation 은
-> SimulationDomain.__post_init__ 위임, G2) + MapEditor 우측 panel 이
-> `QTabWidget(Layers + Domain)` 로 (`domain_changed`/`outside_
-> environment_changed` forward + `set_map_bounds`/`show_domain_tab`,
-> G3) + ScenarioComposer Installation block 본격 layout (East/North +
-> Altitude readout + AZ/EL + DEM preview placeholder + Coverage Stats
-> 3-readout) + Domain Override block (2 checkbox + 5-item combo) +
-> `CoverageStats` frozen dataclass + `set_terrain_altitude` / `set_
-> coverage_stats` API (G4). 누적 **2434 PASS** (+74 신규 in this
-> cycle), 5 contracts KEPT 매 commit. ruff / mypy --strict / import-
-> linter all clean.
+> 4 sub-step 묶음 (직전 cycle)**. domain/simulation_domain.py 가
+> `SimulationDomain` frozen+slots dataclass + `OutsideEnvironment`
+> StrEnum 추가 (plan/11 § 11.11.3 finally 데이터모델, G1) +
+> ui/editor/map_editor/domain_settings.py 가 `DomainSettingsPanel
+> (QWidget)` (I/O free, 6 spin + 4 radio + Coverage Preview
+> placeholder + Status, validation 은 SimulationDomain.__post_init__
+> 위임, G2) + MapEditor 우측 panel 이 `QTabWidget(Layers + Domain)`
+> 로 (G3) + ScenarioComposer Installation block 본격 layout +
+> Domain Override block + `CoverageStats` frozen dataclass (G4).
+> 누적 2360 → 2434 PASS (+74).
 >
-> **이 cycle 인계**: `docs/sessions/phase_4_domain_settings_2026_05_13.md`.
+> **이 cycle 인계**: `docs/sessions/phase_9_library_models_2026_05_13.md`.
 > **사용자 GUI 손 테스트 체크리스트**: `docs/sessions/user_acceptance_
-> test_2026_05_13.md` (직전 cycle 의 DEM Wizard + Plugins menu 도 함께).
+> test_2026_05_13.md` (E1-E4 DEM Wizard + F1-F3 Plugins menu + G1-G4
+> Domain Settings + H1-H2 Library Models 동적 모두 포함).
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
 > Phase 6 NN 보강 ✓ → Phase 5 추가 후속 ✓ → Phase 7 DLC CLI ✓ →
 > Phase 7 remainder C7/C8+F1-F3 ✓ → Phase 3 누락 4 모듈 ✓ → Phase 4
-> dem_import_wizard ✓ → **Phase 4 domain_settings + installation_
-> panel ✓ (이 cycle)** → 다음 cycle 후보: Phase 4 UI 실 데이터 binding
-> (큼, 여러 cycle 분할) / Phase 8 HIL 전체 (매우 큼) / Phase 9 §
-> 19.7.5+ 확장 polish (소-중).
+> dem_import_wizard ✓ → Phase 4 domain_settings + installation_panel ✓
+> → **Phase 9 § 19.7.5+ Library Models 동적 ✓ (이 cycle)** → 다음
+> cycle 후보: Phase 4 UI 실 데이터 binding (큼, 여러 cycle 분할) /
+> Phase 8 HIL 전체 (매우 큼) / Phase 9 § 19.7.5+ remainder (Validation
+> Bench 일반화 / PluginLoader discovery).
 
-- **Phase 4 cycle (G1~G4) 4 sub-step (이 cycle)** — Map Editor 우측
+- **Phase 9 cycle (H1~H2) 2 sub-step (이 cycle)** — Physics Lab
+  Library Models 카테고리가 처음으로 PhysicsModelProtocol 인스턴스
+  를 받게 됨. plan/19 § 19.7.5+ "Library Models 동적 채우기" ✓.
+  PhysicsLabWorkspace 가 default 3 built-in (Gravity / BouncingBall /
+  FreeSpaceLoss) 자동 mount. 누적 +34 tests.
+
+  | sub | commit | new | 내용 |
+  |---|---|---|---|
+  | H1 | `0773c9d` | +12 | LibraryWidget `set_physics_models` / `physics_model_for` / `physics_model_selected` signal — empty fallback to legacy 2 placeholder |
+  | H2 | `03b22e9` | +22 | `app/physics_lab/model_registry.py` (`builtin_*` / `register_*` / `default_*` / `physics_models_from`) + PhysicsLabWorkspace `physics_models` kwarg + `set_/refresh_/physics_models()` |
+
+- **Phase 4 cycle (G1~G4) 4 sub-step (직전 cycle)** — Map Editor 우측
   panel 이 처음으로 Layers 외 두 번째 탭 갖게 됨. Composer 의
   Installation block 이 plan/13 § 13.3.3 의 본격 layout 으로 확장.
   누적 +74 tests.
@@ -1180,4 +1203,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 4 G1~G4 (domain_settings + installation_panel) 4 sub-step DONE, 2434 PASS.
+최근 갱신: 2026-05-13 — Phase 9 H1~H2 (Library Models 동적) 2 sub-step DONE, 2468 PASS.
