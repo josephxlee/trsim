@@ -17,24 +17,86 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 3 MVP 누락 4 모듈 (D1~D4) DONE — 4 sub-step 묶음**.
-> bundle_service (.scnbundle/.runbundle export·import + tar-slip 방어)
-> + physics_gate (5 sanity checks + Run-start gate) + command_evaluator
-> (Lineage Level 3-2 3 rules) + io/dem_import (ESRI ASCII grid →
-> terrain.npz). Phase 3 (Application layer) 의 MVP-defined ✗ 모듈
-> 모두 ✓. 누적 **2280 PASS** (+82 신규 in this cycle), 5 contracts
-> KEPT 매 commit. ruff / mypy --strict / import-linter all clean.
+> **Phase 4 DEM Import Wizard (E1~E3) DONE — 3 sub-step 묶음**.
+> `app/dem_wizard.py` (도메인 모델: 3 StrEnum + 2 frozen dataclass +
+> derive_land_mask / crop_grid / execute) + `ui/editor/map_editor/
+> dem_import_wizard.py` (7-page QWizard, plan/11 § 11.5.2) +
+> `ui/editor/activity_pages.py` MapEditorPage 가 시그널 받아 wizard
+> 띄움 + history 누적. 누적 **2327 PASS** (+47 신규 in this cycle),
+> 5 contracts KEPT 매 commit. ruff / mypy --strict / import-linter
+> all clean.
 >
-> **세션 인계**: `docs/sessions/phase_3_missing_modules_2026_05_13.md`.
+> **세션 인계**: `docs/sessions/phase_4_dem_import_wizard_2026_05_13.md`.
+> UAT 체크리스트: `docs/sessions/user_acceptance_test_2026_05_13.md`
+> § A.
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
 > Phase 6 NN 보강 ✓ → Phase 5 추가 후속 ✓ → Phase 7 DLC CLI ✓ →
-> Phase 7 remainder ✓ → **Phase 3 누락 4 모듈 ✓ (이 cycle)** →
-> 다음 cycle 후보: Phase 8 HIL 전체 / Phase 4 UI dem_import_wizard
-> (D4 backend 완료 후 자연 next) / Phase 4 UI 실 데이터 binding /
-> Phase 7 remainder (Editor "Install Package..." menu wiring).
+> Phase 7 remainder ✓ → Phase 3 누락 4 모듈 ✓ → **Phase 4 dem_import_
+> wizard ✓ (이 cycle)** → 다음 cycle 후보:
+> 1. Phase 4 domain_settings panel (plan/11 § 11.11, dem_wizard 과
+>    유사 사이즈).
+> 2. Phase 4 installation_panel (Scenario Composer 안, plan/13).
+> 3. Phase 4 실 데이터 binding (큰, 여러 cycle).
+> 4. Phase 8 HIL 전체 (가장 큰 미시작).
+> 5. Phase 7 remainder (Editor menu "Install Package..." wiring).
 
-- **Phase 5 후속 DONE (이 세션)** — 12 sub-step, test-only, 누적
+- **Phase 4 E1~E3 DONE (이 cycle)** — 3 sub-step.
+  - **E1** (`f2f7644`): `app/dem_wizard.py` 신규. App-layer
+    orchestrator. `VerticalReference` / `LandSeaMethod` /
+    `InterpolationMode` StrEnum + `CropBounds` /
+    `WizardConfig` frozen+slots dataclass + `derive_land_mask` /
+    `crop_grid` / `execute` pure 함수. plan/11 § 11.5 의 7 step
+    매핑. MVP 는 ESRI ASCII (.asc) → terrain.npz 만 지원,
+    vertical_reference / interpolation 은 향후 GeoTIFF importer
+    용으로 기록만. WizardConfig 의 __post_init__ 가 COASTLINE_FILE
+    + missing path / negative threshold reject. derive_land_mask
+    의 AUTO_THRESHOLD (`finite & > th`) / NODATA (`finite`) /
+    ALL_LAND (`True`) / COASTLINE_FILE (NotImplementedError).
+    crop_grid 가 SW corner snap + non-overlapping bounds reject.
+    22 tests in `tests/unit/app/test_dem_wizard.py`.
+  - **E2** (`77f93bd`): `ui/editor/map_editor/dem_import_wizard.py`
+    신규. `DEMImportWizard(QWizard)` + 7 QWizardPage:
+    `SourcePage` (QFileDialog .asc), `VerticalReferencePage`
+    (4 radio, EGM96 default), `RegionPage` (full vs custom +
+    4 QDoubleSpinBox), `LandSeaPage` (4 radio + threshold spinbox,
+    COASTLINE_FILE radio disabled), `CoordinateConversionPage`
+    (MVP no-op note), `InterpolationPage` (QComboBox 3 modes;
+    parallel tuple lookup 사용 — StrEnum userData QVariant
+    stringify 회피), `SavePage` (QFileDialog.getSaveFileName).
+    `build_config()` 가 every-page state 수집 → WizardConfig.
+    `accept()` 가 execute() 호출 → success 시 import_completed(path)
+    emit + super().accept(). 실패 (Value/FileNotFound/NotImplemented/
+    OSError) → import_failed(msg) emit + early return (wizard
+    살아있게). 19 tests in
+    `tests/unit/ui/editor/test_dem_import_wizard.py`.
+  - **E3** (`b8e9f24`): `ui/editor/activity_pages.py` 의
+    MapEditorPage 가 `import_dem_requested` 시그널 받아 modal
+    DEMImportWizard 띄움. `import_completed(path)` → history
+    push (newest first) + `_last_imported_path` 기록.
+    `import_failed(msg)` → history 에 failure 한 줄 + wizard
+    살려둠. `finished(int)` → `_wizard = None` 정리 (Finish 든
+    Cancel 든). 공개 API: `active_wizard()` /
+    `last_imported_path()`. `docs/MVP_STATUS.md` Phase 4 row
+    `Map Editor DEM Import Wizard` ✗ → ✓ + footer 3 entries
+    (E1/E2/E3). 6 tests in
+    `tests/unit/ui/editor/test_map_editor_page_wizard.py`.
+
+  공통 학습:
+  - StrEnum 을 QComboBox.addItem(label, mode) userData 로 넣으면
+    Qt QVariant 가 stringify → currentData() str 반환. parallel
+    tuple/dict 로 lookup.
+  - `@typing.override` 는 Python 3.13 에 있지만 mypy --strict 가
+    "Untyped decorator" 로 reject (typeshed 한계). `# noqa: N802 -
+    Qt method` 명시가 정답.
+  - QWizard.accept() override 에서 import_failed emit 후 super()
+    호출 X → wizard 살아있음 → 사용자가 입력 고치고 retry 가능.
+  - ESRI flip (row 0 = south) 는 `io.dem_import.read_esri_ascii_grid`
+    에서만 일어남. domain test helper `_grid([[..]])` 는 flip 없이
+    raw 저장이므로 두 convention 혼동 회피.
+
+
+- **Phase 5 후속 DONE (이전 세션)** — 12 sub-step, test-only, 누적
   +79 tests (1986 → 2065). 패턴: 기존 검증 카테고리 각각에 closed-
   form scaling invariant / boundary case / multi-band golden /
   monotonicity / cross-axis decoupling 정량 추가. src 변경 0.
@@ -1105,4 +1167,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — § 3.6 MVP 매트릭스 자동 갱신 규약 추가 + § 9 표에 mvp_status_update 트리거 추가.
+최근 갱신: 2026-05-13 — Phase 4 E1~E3 (DEM Import Wizard) cycle 완료. § 1 의 진행 상황 entry + Phase 4 학습 블록 추가.
