@@ -23,6 +23,13 @@ from workbench.app.physics_lab.learning_models import (
     NumpyNNPhysicsModel,
     PolynomialFitModel,
 )
+from workbench.app.physics_lab.discovery import (
+    PHYSICS_MODEL_SLOT,
+    DiscoveryError,
+    DiscoveryResult,
+    physics_models_from_loaded_plugins,
+    register_discovered_physics_models,
+)
 from workbench.app.physics_lab.model_registry import (
     builtin_physics_models,
     default_physics_models,
@@ -43,10 +50,13 @@ from workbench.app.physics_lab.parameter_fitter import (
 )
 
 __all__ = [
+    "PHYSICS_MODEL_SLOT",
     "BouncingBallModel",
     "BouncingBallSimulator",
     "BouncingBallState",
     "ClockTick",
+    "DiscoveryError",
+    "DiscoveryResult",
     "FitConfig",
     "FitResult",
     "FreeSpaceLossModel",
@@ -59,6 +69,8 @@ __all__ = [
     "default_physics_models",
     "fit_bouncing_ball",
     "physics_models_from",
+    "physics_models_from_loaded_plugins",
+    "register_discovered_physics_models",
     "register_physics_model",
     "registered_physics_models",
     "unregister_all_physics_models",
