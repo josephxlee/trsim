@@ -119,6 +119,29 @@ def test_classifier_loss_is_a_not_yet_wired_stub(tmp_path: Path) -> None:
         classifier_loss(NumpyPairingNN(), path)
 
 
+def test_multi_step_rollout_rmse_is_a_not_yet_wired_stub(tmp_path: Path) -> None:
+    """A1-d — sequence-level rollout RMSE (stub) raises NotImplementedError."""
+    from workbench.app.nn.evaluator import multi_step_rollout_rmse
+
+    path = _build_identity_dataset(tmp_path, n_samples=2)
+    with pytest.raises(NotImplementedError, match=r"multi_step_rollout_rmse"):
+        multi_step_rollout_rmse(NumpyPairingNN(), path, n_steps=4)
+
+
+def test_multi_step_rollout_rmse_rejects_non_positive_n_steps(tmp_path: Path) -> None:
+    """Input validation fires *before* the NotImplementedError so
+    callers get a deterministic error for malformed n_steps even
+    while the metric body is stubbed.
+    """
+    from workbench.app.nn.evaluator import multi_step_rollout_rmse
+
+    path = _build_identity_dataset(tmp_path, n_samples=2)
+    with pytest.raises(ValueError, match=r"n_steps must be > 0"):
+        multi_step_rollout_rmse(NumpyPairingNN(), path, n_steps=0)
+    with pytest.raises(ValueError, match=r"n_steps must be > 0"):
+        multi_step_rollout_rmse(NumpyPairingNN(), path, n_steps=-3)
+
+
 def test_pairing_loss_excludes_unlabelled_positions(tmp_path: Path) -> None:
     """``pair_indices == -1`` are skipped — they do not count as wrong."""
     spec = _pairing_spec(4)

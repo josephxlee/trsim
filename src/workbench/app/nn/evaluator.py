@@ -194,6 +194,47 @@ def classifier_loss(plugin: object, dataset_path: Path | str) -> float:
     raise NotImplementedError(msg)
 
 
+def multi_step_rollout_rmse(
+    plugin: object,
+    dataset_path: Path | str,
+    *,
+    n_steps: int,
+) -> float:
+    """Cumulative position RMSE over an ``n_steps`` rollout (stub).
+
+    The MVP Pairing dataset stores frame-level samples; multi-step
+    rollout RMSE requires the *sequence* dataset spec (consecutive
+    frames sharing a track-id) that plan/07 § 7.6.x will introduce
+    alongside a Predictor / Tracker NN plugin. Until then this
+    function exists so the Step 2 controller (and external CLI
+    consumers) can probe for the metric and surface a clear ``n/a``
+    when the wiring isn't in place yet.
+
+    Args:
+        plugin: Reserved for the future TrackerNNPlugin / PredictorNN
+            Plugin call surface.
+        dataset_path: HDF5 file with sequence-level samples (TBD).
+        n_steps: Number of forward steps to roll out per sequence.
+            Must be > 0; validated before the NotImplementedError so
+            callers get a deterministic error for malformed input
+            even while the stub is in place.
+
+    Raises:
+        ValueError: ``n_steps <= 0``.
+        NotImplementedError: Always (the metric body is a Phase 6
+            follow-up).
+    """
+    del plugin, dataset_path
+    if n_steps <= 0:
+        msg = f"n_steps must be > 0, got {n_steps}"
+        raise ValueError(msg)
+    msg = (
+        "multi_step_rollout_rmse not yet wired — Phase 6 follow-up "
+        "(sequence dataset spec + PredictorNNPlugin)"
+    )
+    raise NotImplementedError(msg)
+
+
 def _make_diagnosis_hint(
     avoidable_bias: float | None,
     variance: float,
