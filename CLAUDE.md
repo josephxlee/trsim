@@ -17,17 +17,28 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **Phase 4 L1 — Simulator Run panel 실 sim_time / frame_id binding
+> DONE**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선순위
+> (사용자 "Simulation 가장 시급" 명시) 의 첫 sub-step.
+> ui/simulator/panels/run_panel.py 에 새 "Simulation Time" GroupBox
+> 추가 (sim_t / frame / state / speed 4 readout). 신규
+> ui/simulator/run_controller.py = `SimulatorRunController(QObject)`
+> — 16ms QTimer + 자체 `SimulationClock` + play/pause/stop/set_speed
+> + tick(wall_dt_s) test 진입점 + tick_completed signal. frame_id
+> 는 advance 시 sim_dt > 0 일 때만 +1 (paused/stopped 무영향).
+> SimulatorWorkspace 가 controller 인스턴스 owned + sim_play /
+> sim_pause / sim_stop / sim_set_speed forward 메서드. MainWindow 의
+> `_build_command_hooks` 가 sim.start / pause / stop / speed 명령
+> hook 을 그쪽으로 routing — Toolbar Play/Pause/Stop 버튼이 처음으로
+> 실 SimulationClock 에 연결. 누적 **2518 PASS** (+28 신규 in this
+> cycle), 5 contracts KEPT. ruff / mypy --strict / import-linter all
+> clean.
+
 > **Phase 9 MainWindow DLC Physics-Model Auto-Register (J1) DONE —
-> 1 sub-step**. ui/main_window.py 가 DLCRuntime 받으면 (즉
-> `dlc_runtime != None`) PhysicsLabWorkspace 생성 *전에* `_register_
-> dlc_physics_models(dlc_runtime)` 모듈-레벨 헬퍼로 plugin_loader 의
-> `trsim.physics_model` 슬롯 결과를 register_discovered_physics_models
-> 로 push. PhysicsLabWorkspace `physics_models=None` default 가
-> default_physics_models() 를 호출해 built-in 3 + 방금 등록된 plug-in
-> 다 picks up. 신규 `physics_discovery_result()` accessor → `DiscoveryResult
-> | None`. 사용자가 DLC install 후 Physics Lab Library 의 Models 카테
-> 고리에서 즉시 plug-in 모델 확인 가능. 누적 **2490 PASS** (+4 신규
-> in this cycle), 5 contracts KEPT.
+> 1 sub-step (직전 cycle)**. ui/main_window.py 가 DLCRuntime 받으면
+> PhysicsLabWorkspace 생성 전 `_register_dlc_physics_models` 호출 →
+> PhysicsLabWorkspace 의 default_physics_models() 가 built-in 3 +
+> 등록 plug-in 다 picks up. 누적 2486 → 2490 PASS (+4).
 
 > **Phase 9 PluginLoader Physics-Model Discovery (I1~I2) DONE —
 > 2 sub-step 묶음 (직전 cycle)**. app/dlc/plugin_loader.py 의
@@ -57,7 +68,7 @@
 > Domain Override block + `CoverageStats` frozen dataclass (G4).
 > 누적 2360 → 2434 PASS (+74).
 >
-> **이 cycle 인계**: `docs/sessions/phase_9_mainwindow_autoregister_2026_05_13.md`.
+> **이 cycle 인계**: `docs/sessions/phase_4_l1_run_panel_2026_05_13.md`.
 > **사용자 GUI 손 테스트 체크리스트**: `docs/sessions/user_acceptance_
 > test_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
@@ -69,7 +80,15 @@
 > cycle 후보: Phase 4 UI 실 데이터 binding (큼) / Phase 8 HIL 전체
 > (매우 큼) / Phase 9 § 19.7.5+ Validation Bench 일반화 (소-중).
 
-- **Phase 9 cycle (J1) 1 sub-step (이 cycle)** — DLC 의 physics-model
+- **Phase 4 cycle (L1) 1 sub-step (이 cycle)** — Simulator Run panel
+  이 처음으로 실 데이터 (SimulationClock state) 받음. 사용자
+  "Simulation 가장 시급" 우선순위 첫 진입. 누적 +28 tests.
+
+  | sub | commit | new | 내용 |
+  |---|---|---|---|
+  | L1 | `25db1ae` | +28 | run_panel "Simulation Time" GroupBox (4 readout) + `SimulatorRunController` (16ms QTimer + SimulationClock + play/pause/stop/set_speed/tick) + workspace forward + MainWindow sim.start/pause/stop/speed hooks |
+
+- **Phase 9 cycle (J1) 1 sub-step (직전 cycle)** — DLC 의 physics-model
   plug-in 이 사용자 GUI 에서 처음으로 visible. plan/19 § 19.7.5+
   전체 ✓. 누적 +4 tests.
 
@@ -1232,4 +1251,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 9 J1 (MainWindow auto-register DLC physics models) DONE, 2490 PASS. plan/19 § 19.7.5+ 전체 ✓.
+최근 갱신: 2026-05-13 — Phase 4 L1 (Simulator Run panel 실 sim_time) DONE, 2518 PASS. Simulator 8 panel 중 첫 실 데이터 binding.

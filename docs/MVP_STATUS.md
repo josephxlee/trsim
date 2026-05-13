@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 9 J1 (MainWindow auto-register DLC physics models) 완료 후.
-**누적 test**: 2490 PASS local, 5 contracts KEPT.
-**HEAD**: J1 MainWindow 가 DLCRuntime 의 trsim.physics_model 자동 register, PhysicsLabWorkspace Library 에 표시.
+**최종 갱신**: 2026-05-13 — Phase 4 L1 (Simulator Run panel 실 sim_time) 완료 후.
+**누적 test**: 2518 PASS local, 5 contracts KEPT.
+**HEAD**: L1 Simulator Run panel 의 첫 실 데이터 binding — sim_t_s / frame_id / state / speed live readout.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -112,7 +112,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
 | Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
 | Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
-| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (placeholder, 실 데이터 binding ✗) |
+| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run panel = sim_t_s/frame_id/state/speed 실 binding ✓ L1; 나머지 5 panel placeholder) |
 | Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | △ (Phase 4.10 lazy create) |
 | Profiler panel (timing breakdown / scale indicator / report) | ✓ |
 | NN mode panels (Step 1 Dataset / Step 2 Eval / Training) | ✓ |
@@ -278,3 +278,4 @@ shell 만 (members 없음).
 - 2026-05-13 I2 — Phase 9 cycle: `app/physics_lab/discovery.py` (LoadedPlugin → PhysicsModelProtocol → registry, bridge) (2472 → 2486 PASS). Phase 9 § 19.7.5+ Plugin discovery via PluginLoader ✗ → ✓.
 - 2026-05-13 J1 — Phase 9 cycle: MainWindow auto-register `trsim.physics_model` plug-ins → PhysicsLabWorkspace Library 표시 (2486 → 2490 PASS). H+I 결과 사용자 GUI visible.
 - 2026-05-13 cross-check retro-update — Phase 7 `SDK: package_validator.py | ✗` 행 (row 159 의 ✓ row 와 duplicate, 모순) 제거. § 한 줄 요약 갱신 (Wave 2 CLI ✗ → ✓). § 미구현 우선순위 리스트 9 → 10 행 재작성 (직전 1/2/3/5/6 다 완료 반영). Phase 9 § 19.7.5+ 행에 J1 추가. Phase 8 row 4 (DUTAdapter Protocol) ✗ → △ (declaration shell 만, members ✗).
+- 2026-05-13 L1 — Phase 4 cycle: Simulator Run panel 실 sim_time/frame_id binding + `SimulatorRunController` (16ms QTimer + SimulationClock) + MainWindow sim.start/pause/stop/speed hooks (2490 → 2518 PASS). Simulator Run panel 실 데이터 binding ✗ → ✓.
