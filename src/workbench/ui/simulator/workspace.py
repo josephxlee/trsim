@@ -222,6 +222,11 @@ class SimulatorWorkspace(QWidget):
         # readouts move in lock-step with the Run panel. Future cycles
         # will push real spectra / heatmaps / stage payloads on top of
         # this same edge.
+        # Phase 4 L4 — also paint the Properties panel with the live
+        # Simulator-context snapshot. The flag below flips True once a
+        # scene-select hooks in (later cycle) so the tick stops
+        # clobbering the user's choice.
+        self._properties_owned_by_selection: bool = False
         self._run_controller.tick_completed.connect(self._on_run_tick_completed)
 
     # ------------------------------------------------------------------
@@ -276,21 +281,58 @@ class SimulatorWorkspace(QWidget):
         return tuple(self._dlc_mount_errors)
 
     # ------------------------------------------------------------------
+    # Phase 4 L4 — Properties panel ownership
+    # ------------------------------------------------------------------
+    def show_selected_in_properties(self, label: str, properties: dict[str, str]) -> None:
+        """Pin the Properties panel to a user-selected object.
+
+        Stops the per-tick Simulator-context refresh from overwriting
+        the form. Calling :meth:`clear_property_selection` (or letting
+        a future Scene3D deselect handler call it) returns the panel to
+        the live tick-driven view.
+        """
+        self._properties_owned_by_selection = True
+        self._properties_panel.show_object(label, properties)
+
+    def clear_property_selection(self) -> None:
+        """Hand the Properties panel back to the tick handler."""
+        self._properties_owned_by_selection = False
+        self._properties_panel.clear()
+
+    def is_properties_owned_by_selection(self) -> bool:
+        """Test surface for the L4 ownership flag."""
+        return self._properties_owned_by_selection
+
+    # ------------------------------------------------------------------
     # Phase 4 L3 — Run-tick fan-out
     # ------------------------------------------------------------------
     def _on_run_tick_completed(self, sim_t_s: float, frame_id: int) -> None:
         """Slot for :attr:`SimulatorRunController.tick_completed`.
 
-        ``sim_t_s`` is unused for now (RunPanel already paints it via
-        L1). The handler mirrors ``frame_id`` into the three downstream
-        panels that carry frame readouts. Spectra / heatmaps / stage
-        payloads come from later sub-steps; the connection itself is
-        the visible step.
+        L3 mirrors ``frame_id`` into the three downstream panels that
+        carry frame readouts (FFT / RD / StageIO). L4 also paints the
+        Properties panel with a live Simulator-context snapshot
+        (``sim_t_s`` / ``frame_id`` / state / speed) whenever no other
+        object owns the panel; once Scene3D wiring lands the
+        ``_properties_owned_by_selection`` flag flips to ``True`` and
+        the tick stops clobbering the user's choice.
+
+        Future cycles use ``sim_t_s`` to drive spectra / heatmaps too.
         """
-        del sim_t_s  # L3 only mirrors frame_id; later cycles use the time.
         self._fft_panel.set_frame(frame_id)
         self._range_doppler_panel.set_frame(frame_id)
         self._stage_io_panel.set_frame(frame_id)
+        if not self._properties_owned_by_selection:
+            clock = self._run_controller.clock
+            self._properties_panel.show_object(
+                "Simulator",
+                {
+                    "sim_t_s": f"{sim_t_s:.3f}",
+                    "frame_id": str(frame_id),
+                    "state": clock.state.name,
+                    "speed": f"{int(clock.speed)}x",
+                },
+            )
 
     # ------------------------------------------------------------------
     # Phase 4 L2 — PluginManager baseline population
