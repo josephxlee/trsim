@@ -79,6 +79,7 @@ def test_register_creates_every_phase_4_2_command() -> None:
         "view.reset_layout",
         "view.toggle_fullscreen",
         "plugins.manage",
+        "plugins.install_package",
         "plugins.reload_all",
         "help.about",
         # Phase 4.3

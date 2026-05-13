@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 4 dem_import_wizard E1~E4 모두 완료 후.
-**누적 test**: 2326 PASS local, 5 contracts KEPT.
-**HEAD**: E4 MainWindow ↔ MapEditor.import_dem_requested → DEMImportController.
+**최종 갱신**: 2026-05-13 — Phase 7 remainder F1~F3 모두 완료 후.
+**누적 test**: 2360 PASS local, 5 contracts KEPT.
+**HEAD**: F3 MainWindow Plugins > Install Package... + Manage Plugins... 메뉴 wiring.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -163,7 +163,7 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | io/package_io.py (.trsim-pkg pack/unpack + zip-slip defence + manifest probe) | ✓ (C1) |
 | `trsim install` CLI (`~/.trsim/packages/<id>/` + --force overwrite) | ✓ (C4) |
 | ui/editor/package_manager_panel.py (Install/Uninstall/Refresh signals, no I/O coupling) | ✓ (C5) |
-| **Editor 메뉴 "Install Package..." + file picker** | **✗** |
+| Editor 메뉴 "Install Package..." + file picker | ✓ (F3, Plugins menu: Manage Plugins... opens PackageManagerDialog + Install Package... runs direct file picker) |
 | ResourceLibrary / PluginLoader / PanelRegistry runtime 통합 | ✓ |
 | Sample DLC 참조 구현 (`examples/dlc/simple_pairing_demo/` — manifest + maps resource + demo UI panel + end-to-end round-trip test) | ✓ (C6) |
 | DLC 만드는 튜토리얼 ([`docs/dev_guide/creating_dlc.md`](dev_guide/creating_dlc.md)) | ✓ (C6) |
@@ -257,3 +257,6 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 E2 — Phase 4 DEMImportRequest + run_dem_import orchestrator (2288 → 2295 PASS).
 - 2026-05-13 E3 — Phase 4 DEMImportWizard QDialog ✗ → ✓ (2295 → 2316 PASS).
 - 2026-05-13 E4 — Phase 4 DEMImportController + MainWindow wiring (2316 → 2326 PASS).
+- 2026-05-13 F1 — Phase 7 app/dlc/installer service extraction (2326 → 2337 PASS).
+- 2026-05-13 F2 — Phase 7 PackageManagerDialog + Controller (2337 → 2354 PASS).
+- 2026-05-13 F3 — Phase 7 MainWindow Plugins menu wiring (Manage + Install Package) ✗ → ✓ (2354 → 2360 PASS).

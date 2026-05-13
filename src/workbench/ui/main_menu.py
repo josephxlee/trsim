@@ -115,6 +115,7 @@ class MainMenuBar(QMenuBar):
     def _build_plugins_menu(self) -> None:
         menu = self._add_top_level("plugins", "&Plugins", "MenuPlugins")
         self._attach(menu, "plugins.manage")
+        self._attach(menu, "plugins.install_package")
         self._attach(menu, "plugins.reload_all")
 
     def _build_tools_menu(self) -> None:

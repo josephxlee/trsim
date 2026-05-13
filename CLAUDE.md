@@ -17,49 +17,56 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 4 UI dem_import_wizard (E1~E4) DONE — 4 sub-step 묶음**.
-> io/dem_import 의 LandSeaMode + compute_land_mask (3 modes:
-> AUTO_THRESHOLD / NODATA / ALL_LAND) + DEMImportRequest +
-> DEMImportSummary + run_dem_import 오케스트레이터 (E1+E2) + 4-page
-> QDialog DEMImportWizard (Source / Land-Sea / Output / Summary,
-> plan/11 § 11.5.2 의 7-step pipeline 을 MVP 로 응축) (E3) +
-> DEMImportController 가 MapEditor.import_dem_requested →
-> 위자드 open + import_requested → run_dem_import →
-> report_import_result / report_import_error wiring + MainWindow
-> 자동 mount (E4). 누적 **2326 PASS** (+46 신규 in this cycle),
-> 5 contracts KEPT 매 commit. ruff / mypy --strict / import-linter
-> all clean.
+> **Phase 7 remainder (F1~F3) DONE — 3 sub-step 묶음**.
+> app/dlc/installer.py 가 install_package + uninstall_package +
+> InstallResult / UninstallResult + 3 typed errors 추출 (CLI + UI
+> 공유, F1) + ui/editor/package_manager_dialog.py 가
+> PackageManagerDialog (QDialog wrapping 기존 PackageManagerPanel) +
+> PackageManagerController (panel signal ↔ installer 서비스 wire +
+> install_completed/install_failed 등 4 outgoing signals, F2) +
+> MainWindow 가 plugins.manage / plugins.install_package 두 메뉴
+> entry 를 PackageManagerController 에 routing + Plugins 메뉴에
+> "Install Package..." 추가 (F3). 누적 **2360 PASS** (+34 신규
+> in this cycle), 5 contracts KEPT 매 commit. ruff / mypy --strict /
+> import-linter all clean.
 >
-> **직전 5-cycle 인계**: `docs/sessions/session_2026_05_13_multi_cycle_handoff.md`.
+> **직전 cycle 인계**: `docs/sessions/phase_4_dem_import_wizard_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Phase 9 ✓ → Phase 5 후속 ✓ →
 > Phase 6 NN 보강 ✓ → Phase 5 추가 후속 ✓ → Phase 7 DLC CLI ✓ →
-> Phase 7 remainder ✓ → Phase 3 누락 4 모듈 ✓ →
-> **Phase 4 dem_import_wizard ✓ (이 cycle)** → 다음 cycle 후보:
-> Phase 7 remainder Editor "Install Package..." menu wiring (작음) /
-> Phase 8 HIL 전체 (매우 큼) / Phase 4 UI 실 데이터 binding (큼,
-> Editor 5 activity + Simulator 8 panel 분할 필요) / Phase 4 UI
-> domain_settings + installation_panel.
+> Phase 7 remainder C7/C8 ✓ → Phase 3 누락 4 모듈 ✓ →
+> Phase 4 dem_import_wizard ✓ → **Phase 7 menu wiring ✓ (이 cycle)** →
+> 다음 cycle 후보: Phase 4 UI domain_settings + installation_panel
+> (중) / Phase 8 HIL 전체 (매우 큼) / Phase 4 UI 실 데이터 binding
+> (큼).
 
-- **Phase 4 dem_import_wizard 4 sub-step (이 cycle)** — Editor "Import
-  DEM..." 버튼이 처음으로 실제 동작. 누적 +46 tests.
+- **Phase 7 remainder menu wiring 3 sub-step (이 cycle)** — Plugins
+  메뉴에서 처음으로 실제 동작. 누적 +34 tests.
 
   | sub | commit | new | 내용 |
   |---|---|---|---|
-  | E1 | `08ad550` | +8 | LandSeaMode StrEnum + compute_land_mask pure function (3 modes, NaN handling) |
-  | E2 | `2bd330f` | +7 | DEMImportRequest/Summary frozen+slots + run_dem_import orchestrator (read+classify+write composed) |
-  | E3 | `13adca6` | +20 | DEMImportWizard QDialog 4-page (Source/Land-Sea/Output/Summary) + isHidden() (headless mode 패턴) |
-  | E4 | (this commit) | +10 | DEMImportController (factory + runner override 가능) + MainWindow 자동 mount + finished → 활성 wizard ref drop |
+  | F1 | `892d209` | +11 | app/dlc/installer.py: install_package + uninstall_package + InstallResult / UninstallResult + 3 typed errors (Error suffix for N818 ruff). CLI 가 thin wrapper 로 refactor. |
+  | F2 | `b94351e` | +17 | ui/editor/package_manager_dialog.py: PackageManagerDialog (QDialog hosting PackageManagerPanel) + PackageManagerController (single-window + 4 outgoing signals + installer/uninstaller/dialog_factory/file_picker 모두 inject 가능). |
+  | F3 | (this commit) | +6 | MainWindow: plugins.install_package 명령 + Plugins 메뉴 entry 추가 + Manage Plugins... 가 dialog open / Install Package... 가 direct file picker. dlc_runtime 의 packages_root override 가능. |
 
   학습:
-  - **headless Qt visibility**: `isVisible()` 는 widget 이 실제 표시될
-    때 True. 비표시 dialog 에서는 `isHidden()` 으로 setVisible-state
-    검사. tests 가 `.show()` 호출 안 할 때 패턴.
-  - **constructor ordering for radios+spin**: QRadioButton `toggled`
-    가 `setChecked(True)` 시 즉시 fire — 핸들러가 같은 widget 의 다른
-    멤버 (spin/btn) 를 읽으면 None-attr 오류. 모든 widget build 후
-    마지막에 wire + default check. dem_import_wizard.py 의 `__init__`
-    finale 패턴.
+  - **ruff N818**: `Exception name should be named with an Error suffix`.
+    `PackageAlreadyInstalled` → `PackageAlreadyInstalledError` 등.
+    Custom exception subclass 작성 시 항상 -Error suffix.
+  - **`replace_all=True` 무한 luxe**: `Edit replace_all` 가 `Foo` →
+    `FooError` 도중 이미 `FooError` 였던 라인을 `FooErrorError` 로
+    만들 수 있음. 대량 rename 시 이미 부분 변경된 토큰 검사.
+  - **MainWindow 메서드 hook 의 late binding**: `register_builtin_
+    commands` 가 hooks 등록할 때 `self._dlc_manager_controller`
+    는 아직 None — 하지만 hook 이 `self._open_dlc_manager` 메서드
+    참조라면 OK. 메서드 안의 attribute access 는 dispatch 시점에
+    resolve. controller 는 __init__ 후반에 만들어지면 충분.
+
+- **Phase 4 dem_import_wizard 4 sub-step (직전 cycle)** — Editor
+  "Import DEM..." 버튼이 처음으로 실제 동작. 4 sub-step (E1
+  LandSeaMode → E2 run_dem_import → E3 wizard QDialog → E4 controller
+  + MainWindow mount). +46 tests. 자세한 내용은
+  `docs/sessions/phase_4_dem_import_wizard_2026_05_13.md`.
 
 - **Phase 5 후속 DONE (이 세션)** — 12 sub-step, test-only, 누적
   +79 tests (1986 → 2065). 패턴: 기존 검증 카테고리 각각에 closed-

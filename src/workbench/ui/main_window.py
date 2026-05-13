@@ -26,8 +26,12 @@ Strict ≤ 200 lines (CLAUDE.md § 3.1 — thin assembler).
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QMainWindow, QStackedWidget, QToolBar, QWidget
+
+from workbench.app.dlc_runtime import default_dlc_paths
 
 from workbench import __version__
 from workbench.ui.commands import (
@@ -44,6 +48,7 @@ from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
 from workbench.ui.editor.activity_pages import MapEditorPage
 from workbench.ui.editor.map_editor import DEMImportController
+from workbench.ui.editor.package_manager_dialog import PackageManagerController
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_menu import MainMenuBar
 from workbench.ui.physics_lab import PhysicsLabWorkspace
@@ -125,6 +130,20 @@ class MainWindow(QMainWindow):
             parent=self,
         )
 
+        # Wire the DLC Package Manager (Phase 7 remainder F3). If a
+        # DLC runtime is mounted, reuse its packages_root so install /
+        # uninstall actions are visible to the rest of the app on
+        # restart. Otherwise default to ``~/.trsim/packages``.
+        packages_root: Path = (
+            self._dlc_runtime.app.paths.packages_root
+            if self._dlc_runtime is not None
+            else default_dlc_paths().packages_root
+        )
+        self._dlc_manager_controller = PackageManagerController(
+            packages_root=packages_root,
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
     # Toolbar / actions
     # ------------------------------------------------------------------
@@ -190,7 +209,19 @@ class MainWindow(QMainWindow):
             on_activity_radar=lambda: self._show_activity(editor, Activity.RADAR),
             on_activity_targets=lambda: self._show_activity(editor, Activity.TARGETS),
             on_activity_browser=lambda: self._show_activity(editor, Activity.BROWSER),
+            on_plugins_manage=self._open_dlc_manager,
+            on_plugins_install_package=self._install_dlc_package,
         )
+
+    def _open_dlc_manager(self) -> None:
+        """Hook for the ``plugins.manage`` command — open the dialog."""
+        self._dlc_manager_controller.open_dialog()
+
+    def _install_dlc_package(self) -> None:
+        """Hook for the ``plugins.install_package`` command — direct
+        file picker without opening the full Package Manager dialog.
+        """
+        self._dlc_manager_controller.install_via_file_picker()
 
     def _editor_page(self) -> EditorWorkspace:
         page = self._pages[Workspace.EDITOR]
@@ -270,3 +301,7 @@ class MainWindow(QMainWindow):
     def dem_import_controller(self) -> DEMImportController:
         """Return the wired :class:`DEMImportController` (test helper)."""
         return self._dem_import_controller
+
+    def dlc_manager_controller(self) -> PackageManagerController:
+        """Return the wired :class:`PackageManagerController` (test helper)."""
+        return self._dlc_manager_controller

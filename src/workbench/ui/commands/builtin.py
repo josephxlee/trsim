@@ -73,6 +73,7 @@ class CommandHooks:
     on_view_reset_layout: Callable[[], None] = field(default=_noop)
     on_view_toggle_fullscreen: Callable[[], None] = field(default=_noop)
     on_plugins_manage: Callable[[], None] = field(default=_noop)
+    on_plugins_install_package: Callable[[], None] = field(default=_noop)
     on_plugins_reload_all: Callable[[], None] = field(default=_noop)
     on_help_about: Callable[[], None] = field(default=_noop)
 
@@ -248,6 +249,12 @@ def register_builtin_commands(
             title="Manage Plugins...",
             category="Plugins",
             execute=hooks.on_plugins_manage,
+        ),
+        WorkbenchCommand(
+            id="plugins.install_package",
+            title="Install Package...",
+            category="Plugins",
+            execute=hooks.on_plugins_install_package,
         ),
         WorkbenchCommand(
             id="plugins.reload_all",
