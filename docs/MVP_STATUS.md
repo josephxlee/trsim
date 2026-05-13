@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 7 C2/C3/C4 (sdk build/test + install) 추가 후.
-**누적 test**: 2163 PASS local, 5 contracts KEPT.
-**HEAD**: C4 trsim install CLI + ~/.trsim/packages extraction.
+**최종 갱신**: 2026-05-13 — Phase 7 C5/C6 (package_manager_panel + sample DLC + tutorial) 추가 후.
+**누적 test**: 2182 PASS local, 5 contracts KEPT.
+**HEAD**: C6 sample DLC + creating_dlc.md tutorial + end-to-end round-trip.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -160,11 +160,11 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | App: resources/library (User > Package > Built-in priority) | ✓ |
 | io/package_io.py (.trsim-pkg pack/unpack + zip-slip defence + manifest probe) | ✓ (C1) |
 | `trsim install` CLI (`~/.trsim/packages/<id>/` + --force overwrite) | ✓ (C4) |
-| **ui/editor/package_manager_panel.py** | **✗** |
+| ui/editor/package_manager_panel.py (Install/Uninstall/Refresh signals, no I/O coupling) | ✓ (C5) |
 | **Editor 메뉴 "Install Package..." + file picker** | **✗** |
 | ResourceLibrary / PluginLoader / PanelRegistry runtime 통합 | ✓ |
-| **Sample DLC 참조 구현** (Stone Soup adapter / IMM tracker 등) | **✗** |
-| **DLC 만드는 튜토리얼** (docs/dev_guide/creating_dlc.md) | **✗** |
+| Sample DLC 참조 구현 (`examples/dlc/simple_pairing_demo/` — manifest + maps resource + demo UI panel + end-to-end round-trip test) | ✓ (C6) |
+| DLC 만드는 튜토리얼 ([`docs/dev_guide/creating_dlc.md`](dev_guide/creating_dlc.md)) | ✓ (C6) |
 
 ---
 
@@ -245,3 +245,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 5.11b + 5.12b — Phase 5 timing (PerformanceClock factory + FrameBoundaryDetector monotonicity) △ (2117 → 2131 PASS).
 - 2026-05-13 C1 — Phase 7 io/package_io ✗ → ✓ (2131 → 2146 PASS).
 - 2026-05-13 C2 + C3 + C4 — Phase 7 sdk build / sdk test / install CLI ✗ → ✓ (2146 → 2163 PASS).
+- 2026-05-13 C5 + C6 — Phase 7 PackageManagerPanel + Sample DLC + tutorial ✗ → ✓ (2163 → 2182 PASS).

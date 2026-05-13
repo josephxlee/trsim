@@ -1,0 +1,19 @@
+[package]
+id = "simple-pairing-demo"
+name = "Simple Pairing Demo"
+version = "0.1.0"
+author = "TRsim Core Team"
+description = "Reference DLC — minimal Pairing NN sample so new authors have a working `trsim sdk build` target."
+license = "Apache-2.0"
+homepage = "https://github.com/josephxlee/trsim"
+
+[compatibility]
+trsim_min_version = "0.40.0"
+trsim_max_version = ""
+
+[python]
+extra_requires = []
+
+[entry_points]
+"trsim.ui.panels" = "ui/demo_panel.py:DemoPanel"
+"trsim.resources.maps" = "resources/maps/"
