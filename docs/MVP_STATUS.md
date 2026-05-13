@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 7 C1 (io/package_io) 추가 후.
-**누적 test**: 2146 PASS local, 5 contracts KEPT.
-**HEAD**: C1 .trsim-pkg pack/unpack + zip-slip defence.
+**최종 갱신**: 2026-05-13 — Phase 7 C2/C3/C4 (sdk build/test + install) 추가 후.
+**누적 test**: 2163 PASS local, 5 contracts KEPT.
+**HEAD**: C4 trsim install CLI + ~/.trsim/packages extraction.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -153,13 +153,13 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | SDK: protocols.py (11 Plugin Protocol) | ✓ |
 | **SDK: manifest.py** | △ (domain/dlc/manifest.py 에 있음, sdk/ 이동 고려) |
 | **SDK: resource_schemas.py** | **✗** |
-| **SDK: package_builder.py + `trsim sdk build` CLI** | **✗** |
+| SDK: package_builder.py + `trsim sdk build` CLI | ✓ (C2) |
 | **SDK: package_validator.py** | **✗** |
-| **SDK: test_harness.py + `trsim sdk test` CLI** | **✗** |
+| SDK: test_harness.py + `trsim sdk test` CLI | ✓ (C3) |
 | App: dlc/package_manager + dlc/plugin_loader + panel_registry + dlc_runtime | ✓ |
 | App: resources/library (User > Package > Built-in priority) | ✓ |
 | io/package_io.py (.trsim-pkg pack/unpack + zip-slip defence + manifest probe) | ✓ (C1) |
-| **`trsim install` CLI** | **✗** |
+| `trsim install` CLI (`~/.trsim/packages/<id>/` + --force overwrite) | ✓ (C4) |
 | **ui/editor/package_manager_panel.py** | **✗** |
 | **Editor 메뉴 "Install Package..." + file picker** | **✗** |
 | ResourceLibrary / PluginLoader / PanelRegistry runtime 통합 | ✓ |
@@ -244,3 +244,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 5.8b — Phase 5 Ballistic drag/mass/v0/theta scaling invariants △ (2112 → 2117 PASS).
 - 2026-05-13 5.11b + 5.12b — Phase 5 timing (PerformanceClock factory + FrameBoundaryDetector monotonicity) △ (2117 → 2131 PASS).
 - 2026-05-13 C1 — Phase 7 io/package_io ✗ → ✓ (2131 → 2146 PASS).
+- 2026-05-13 C2 + C3 + C4 — Phase 7 sdk build / sdk test / install CLI ✗ → ✓ (2146 → 2163 PASS).

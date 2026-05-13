@@ -134,6 +134,52 @@ def build_parser() -> argparse.ArgumentParser:
         help="optional path to write a per-epoch JSON metrics report",
     )
 
+    sdk_p = sub.add_parser("sdk", help="DLC SDK utilities (build / test)")
+    sdk_sub = sdk_p.add_subparsers(dest="sdk_command", metavar="sdk_command")
+
+    sdk_build_p = sdk_sub.add_parser(
+        "build", help="build a .trsim-pkg from a source directory (C2)"
+    )
+    sdk_build_p.add_argument(
+        "--source",
+        required=True,
+        help="path to directory containing manifest.toml + plugin/resource trees",
+    )
+    sdk_build_p.add_argument(
+        "--output",
+        required=True,
+        help="destination .trsim-pkg path (must end with .trsim-pkg)",
+    )
+
+    sdk_test_p = sdk_sub.add_parser(
+        "test", help="sanity-check a .trsim-pkg (manifest validity + soft issues) (C3)"
+    )
+    sdk_test_p.add_argument(
+        "--package",
+        required=True,
+        help="path to the .trsim-pkg archive to inspect",
+    )
+
+    install_p = sub.add_parser(
+        "install",
+        help="install a .trsim-pkg into ~/.trsim/packages/ (C4)",
+    )
+    install_p.add_argument(
+        "--package",
+        required=True,
+        help="path to the .trsim-pkg archive",
+    )
+    install_p.add_argument(
+        "--packages-root",
+        default=None,
+        help="override the install root (default: ~/.trsim/packages/)",
+    )
+    install_p.add_argument(
+        "--force",
+        action="store_true",
+        help="overwrite an existing installation of the same package_id",
+    )
+
     ui_p = sub.add_parser("ui", help="launch the PySide6 MainWindow (Phase 4.1)")
     ui_p.add_argument(
         "--workspace",
@@ -296,6 +342,116 @@ def _cmd_train(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_sdk(args: argparse.Namespace) -> int:
+    """`trsim sdk <action>` — DLC SDK utilities (C2 build, C3 test)."""
+    if args.sdk_command == "build":
+        return _cmd_sdk_build(args)
+    if args.sdk_command == "test":
+        return _cmd_sdk_test(args)
+    print("error: trsim sdk requires a sub-command (build / test)", file=sys.stderr)
+    return 2
+
+
+def _cmd_sdk_build(args: argparse.Namespace) -> int:
+    """`trsim sdk build --source <dir> --output <pkg>` — pack a
+    ``.trsim-pkg`` from a directory.
+
+    Forwards to :func:`workbench.sdk.build_package`; converts the
+    expected exceptions into a non-zero exit code + a clear stderr
+    message so CI consumers can fail the job on a bad input without
+    parsing tracebacks.
+    """
+    from workbench.sdk import build_package
+
+    source = Path(args.source).expanduser()
+    output = Path(args.output).expanduser()
+    try:
+        written = build_package(source, output)
+    except (FileNotFoundError, NotADirectoryError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    print(f"package written to {written}")
+    return 0
+
+
+def _cmd_sdk_test(args: argparse.Namespace) -> int:
+    """`trsim sdk test --package <pkg>` — sanity-check a ``.trsim-pkg``.
+
+    Reads the archive's ``manifest.toml`` and reports the parsed
+    package metadata + non-fatal issues (empty description, empty
+    author). Non-zero exit code only on hard failures (missing file,
+    invalid manifest); soft issues print to stdout but still exit 0.
+    """
+    from workbench.sdk import test_package
+
+    pkg_path = Path(args.package).expanduser()
+    try:
+        result = test_package(pkg_path)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    print(f"package_id      : {result.package_id}")
+    print(f"package_name    : {result.package_name}")
+    print(f"package_version : {result.package_version}")
+    print(f"trsim_min       : {result.trsim_min_version}")
+    if result.issues:
+        print("issues:")
+        for issue in result.issues:
+            print(f"  - {issue}")
+    else:
+        print("issues: none")
+    return 0
+
+
+def _cmd_install(args: argparse.Namespace) -> int:
+    """`trsim install --package <pkg> [--packages-root <dir>] [--force]`.
+
+    Installs a ``.trsim-pkg`` into ``<packages-root>/<package_id>/``
+    (default: ``~/.trsim/packages/<package_id>/``). The directory is
+    created from a fresh extraction; if it already exists and
+    ``--force`` is not set, the install is aborted with exit code 2.
+
+    With ``--force``, the existing directory is removed (recursive)
+    before extraction. This is the same UX as ``pip install --force-
+    reinstall`` for a single package.
+    """
+    import shutil
+
+    from workbench.io.package_io import read_manifest_from_package, unpack_package
+
+    pkg_path = Path(args.package).expanduser()
+    try:
+        manifest = read_manifest_from_package(pkg_path)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    if args.packages_root is not None:
+        packages_root = Path(args.packages_root).expanduser().resolve()
+    else:
+        packages_root = (Path.home() / ".trsim" / "packages").resolve()
+    target = packages_root / manifest.package.package_id
+
+    if target.exists():
+        if not args.force:
+            print(
+                f"error: {target} already exists. Use --force to overwrite.",
+                file=sys.stderr,
+            )
+            return 2
+        shutil.rmtree(target)
+
+    packages_root.mkdir(parents=True, exist_ok=True)
+    try:
+        unpack_package(pkg_path, target)
+    except (FileExistsError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"installed {manifest.package.package_id} {manifest.package.version} -> {target}")
+    return 0
+
+
 def build_ui_window(args: argparse.Namespace) -> object:
     """Construct (but do not show / exec) the :class:`MainWindow`.
 
@@ -392,6 +548,10 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_profile(args)
     if args.command == "train":
         return _cmd_train(args)
+    if args.command == "sdk":
+        return _cmd_sdk(args)
+    if args.command == "install":
+        return _cmd_install(args)
     if args.command == "ui":  # pragma: no cover — GUI loop
         return _cmd_ui(args)
     parser.print_help()
