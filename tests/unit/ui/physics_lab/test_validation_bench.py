@@ -252,3 +252,121 @@ def test_run_validation_matches_generalized_layer(
         direct_run.metrics.pearson_correlation, abs=1e-12
     )
     assert metrics_via_controller.n_samples == direct_run.metrics.n_samples
+
+
+# ---------------------------------------------------------------------
+# M3 — generic dispatch via physics_model_selected
+# ---------------------------------------------------------------------
+
+
+def _write_synthetic_fspl_csv(path: Path, *, freq_hz: float = 9.4e9) -> None:
+    """Closed-form FSPL ``L = 20 log10(4 pi R / lambda)`` over a few ranges."""
+    import math
+
+    wavelength_m = 299_792_458.0 / freq_hz
+    ranges = [100.0, 500.0, 1_000.0, 5_000.0, 10_000.0]
+    losses = [20.0 * math.log10(4.0 * math.pi * r / wavelength_m) for r in ranges]
+    rows = [f"{r:.6f},{loss:.6f}" for r, loss in zip(ranges, losses, strict=True)]
+    path.write_text("range_m,loss_db\n" + "\n".join(rows) + "\n", encoding="utf-8")
+
+
+def test_workspace_initial_current_physics_model_none(
+    qtbot,
+) -> None:  # type: ignore[no-untyped-def]
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    assert ws.current_physics_model() is None
+
+
+def test_workspace_tracks_selected_physics_model(
+    qtbot,
+) -> None:  # type: ignore[no-untyped-def]
+    from workbench.app.physics_lab import FreeSpaceLossModel
+
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    ws.library_panel().select_label("Free-Space Path Loss  (rf_propagation)")
+    model = ws.current_physics_model()
+    assert model is not None
+    assert isinstance(model, FreeSpaceLossModel)
+
+
+def test_workspace_static_model_validation_dispatches_to_generic_layer(
+    qtbot,
+    tmp_path: Path,
+) -> None:  # type: ignore[no-untyped-def]
+    """Selecting Free-Space Path Loss + a matching FSPL CSV runs the
+    generic Phase 9 M1 layer and produces tiny RMSE (closed-form match).
+    """
+    measured_root = tmp_path / "measured"
+    measured_root.mkdir()
+    _write_synthetic_fspl_csv(measured_root / "fspl.csv")
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False, measured_root=measured_root)
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    ws.library_panel().select_label("Free-Space Path Loss  (rf_propagation)")
+    measured_label = ws.library_panel().measured_category().child(0).text(0)
+    ws.library_panel().select_label(measured_label)
+    metrics = ws.last_validation_metrics()
+    assert metrics is not None
+    assert metrics.rmse == pytest.approx(0.0, abs=1e-6)
+    assert metrics.n_samples == 5
+
+
+def test_workspace_unknown_model_clears_metrics(
+    qtbot,
+    tmp_path: Path,
+) -> None:  # type: ignore[no-untyped-def]
+    """A custom plug-in with no default-fields mapping should not crash
+    the workspace; instead the metrics state goes back to None.
+    """
+
+    class CustomModel:
+        name = "Some Custom Plugin"
+        category = "dynamics"
+        time_mode = "dynamic"
+        visualization = "2d"
+
+        @property
+        def parameters(self) -> tuple[()]:
+            return ()
+
+        def compute(self, state, params, dt_s):  # type: ignore[no-untyped-def]
+            return {"y": 0.0}
+
+    measured_root = tmp_path / "measured"
+    measured_root.mkdir()
+    _write_synthetic_drop_csv(measured_root / "drop.csv")
+    ws = PhysicsLabWorkspace(
+        enable_3d_viewer=False,
+        measured_root=measured_root,
+        physics_models=(CustomModel(),),  # type: ignore[arg-type]
+    )
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    ws.library_panel().select_label("Some Custom Plugin  (dynamics)")
+    measured_label = ws.library_panel().measured_category().child(0).text(0)
+    ws.library_panel().select_label(measured_label)
+    assert ws.last_validation_metrics() is None
+
+
+def test_workspace_bouncing_ball_still_routes_to_legacy_path(
+    qtbot,
+    tmp_path: Path,
+) -> None:  # type: ignore[no-untyped-def]
+    """Selecting the BouncingBall row + measurement should keep using
+    BouncingBallController.run_validation_from_dataset (the live
+    simulator-state path), not the generic defaults path.
+    """
+    measured_root = tmp_path / "measured"
+    measured_root.mkdir()
+    _write_synthetic_drop_csv(measured_root / "drop.csv")
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False, measured_root=measured_root)
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    ws.library_panel().select_label("Bouncing Ball  (dynamics)")
+    measured_label = ws.library_panel().measured_category().child(0).text(0)
+    ws.library_panel().select_label(measured_label)
+    metrics = ws.last_validation_metrics()
+    assert metrics is not None
+    # Synthetic CSV uses the controller's default gravity + h0, so the
+    # legacy path produces a near-zero RMSE just as M2's parity test
+    # demonstrated.
+    assert metrics.rmse == pytest.approx(0.0, abs=1e-2)

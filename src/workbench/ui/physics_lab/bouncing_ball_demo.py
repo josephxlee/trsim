@@ -1230,6 +1230,22 @@ class BouncingBallController(QObject):
         self._plot.remove_overlay_curve(self.VALIDATION_MEASURED_CURVE)
         self._plot.remove_overlay_curve(self.VALIDATION_SIM_CURVE)
 
+    def install_validation_overlay(
+        self,
+        measured_x: np.ndarray,
+        measured_y: np.ndarray,
+        sim_x: np.ndarray,
+        sim_y: np.ndarray,
+    ) -> None:
+        """Public hook used by the workspace for generic-model validation.
+
+        The PL-9.2c (BouncingBall) flow installs the same overlays
+        internally; this entry point lets the workspace drive the same
+        plot from the Phase 9 M3 generic dispatch path without
+        reaching into a private method.
+        """
+        self._install_validation_overlays(measured_x, measured_y, sim_x, sim_y)
+
     def fit_to_measurement(
         self,
         dataset: MeasuredDataset,

@@ -17,8 +17,7 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 9 M1+M2 — Validation Bench 일반화 + BouncingBall delegation
-> DONE (이 cycle)**. 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗.
+> **Phase 9 M1+M2+M3 — Validation Bench 일반화 종결 (이 cycle)**. 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗.
 > 우선순위 리스트 재정렬 (HIL 제외, physics_lab > simulator > editor
 > 적용) → 1순위 = Validation Bench 일반화.
 >
@@ -41,14 +40,29 @@
 > BallModel.compute 가 비트 동일 알고리즘 — semi-implicit Euler +
 > 동일 bounce/drag 식 + 동일 floor clamp + 동일 jitter 차단). 1 parity
 > regression test (controller path == 직접 layer 호출 결과 1e-12
-> 일치). Production code 에서 일반화 layer 첫 사용. 임의-model UI
-> selector 통합만 후속 cycle 에 남음.
+> 일치).
+>
+> **M3 임의 PhysicsModelProtocol UI dispatch**: `domain/physics_lab/
+> validation_defaults.py` 신규 (`default_validation_fields` — 3
+> built-in 모델 매핑: BouncingBall+Gravity → (time_s, position_m),
+> FreeSpaceLoss → (range_m, loss_db)). `PhysicsLabWorkspace` 가
+> `LibraryWidget.physics_model_selected` 신호 연결 + `_current_physics
+> _model` track + `_on_measured_dataset_selected` 분기 (Bouncing Ball
+> 이면 기존 controller path = live simulator state, 그 외이면 새
+> `_run_generic_validation` path = `default_validation_fields` 룩업 +
+> model `.parameters[i].default` 로 params dict 생성 + `run_validation
+> _for_model` 호출 + `install_validation_overlay` (public 메서드 신
+> 추가) + status bar 갱신). 9 신규 tests (4 defaults helper + 5
+> workspace dispatch: current_model 초기 None / model 선택 시 track /
+> FSPL static dispatch → RMSE ≈ 0 + n_samples = 5 / unknown model 시
+> last_validation_metrics = None + 충돌 없음 / BouncingBall 시 legacy
+> path 유지). plan/19 § 19.7.5+ 우선순위 #1 **종결**.
 >
 > ruff / py_compile clean; mypy --strict / pytest 는 사용자 PC verify
 > 대기 (sandbox 에 numpy/pytest/PySide6 없음).
 >
-> **이 cycle 인계 예상 누적**: 2518 + 17 (M1) + 1 (M2 parity) = 2536
-> PASS (사용자 PC verify 후 확정).
+> **이 cycle 인계 예상 누적**: 2518 + 17 (M1) + 1 (M2 parity) + 9 (M3)
+> = 2545 PASS (사용자 PC verify 후 확정).
 
 > **Phase 4 L1 — Simulator Run panel 실 sim_time / frame_id binding
 > DONE (직전 cycle)**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선
@@ -1284,4 +1298,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 9 M1+M2 (Validation Bench 일반화 layer + BouncingBall delegation) DONE. HIL 우선순위 제외 결정. 임의-model UI selector 통합은 후속.
+최근 갱신: 2026-05-13 — Phase 9 M1+M2+M3 Validation Bench 일반화 **종결** (layer + BouncingBall delegation + 임의 model UI dispatch). HIL 우선순위 제외 결정. 우선순위 #1 closed; 다음 cycle = Simulator panel 5 잔여 binding (우선순위 #2) 또는 Editor wiring (#5).
