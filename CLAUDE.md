@@ -17,28 +17,38 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 9 M1 — Validation Bench 일반화 layer DONE (이 cycle)**.
-> 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗. 우선순위 리스트
-> 재정렬 (HIL 제외, physics_lab > simulator > editor 적용) → 1순위 =
-> Validation Bench 일반화. 신규
-> `app/physics_lab/validation_runner.py` — `simulate_dynamic_for_
-> validation` (dynamic 모델 step loop, x_field 기본 "time_s" + y_field
-> 매 step 수집) + `sweep_static_for_validation` (static 모델
-> params[x_field] override + compute({}) → y_field 추출) +
-> `run_validation_for_model` (model.time_mode 자동 dispatch + 5
+> **Phase 9 M1+M2 — Validation Bench 일반화 + BouncingBall delegation
+> DONE (이 cycle)**. 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗.
+> 우선순위 리스트 재정렬 (HIL 제외, physics_lab > simulator > editor
+> 적용) → 1순위 = Validation Bench 일반화.
+>
+> **M1 layer**: 신규 `app/physics_lab/validation_runner.py` —
+> `simulate_dynamic_for_validation` (dynamic 모델 step loop, x_field
+> 기본 "time_s" + y_field 매 step 수집) + `sweep_static_for_validation`
+> (static 모델 params[x_field] override + compute({}) → y_field 추출)
+> + `run_validation_for_model` (model.time_mode 자동 dispatch + 5
 > validation: shape / ndim / empty / dt_s for dynamic / x_field for
 > static + dynamic max(measured_x)>0). 신규 `ValidationRun` frozen
 > dataclass (metrics + sim_x + sim_y) in `domain/physics_lab/
-> validation.py` — UI 가 한 번 호출로 metrics + overlay 둘 다 받음.
-> 17 신규 tests (GravityOnlyModel closed-form gravity / BouncingBall
-> Model bounce / FreeSpaceLossModel 20log10(4πR/λ) / dispatch / 7
-> error case / ValidationRun 묶음). BouncingBallController 의 기존
-> PL-9.2c 흐름은 손대지 않음 (regression 회피) — UI 통합은 후속 M2
-> sub-step. ruff clean; mypy --strict / pytest 는 사용자 PC verify
-> 대기 (sandbox 에 numpy/pytest 없음).
+> validation.py`. 17 신규 tests (GravityOnlyModel closed-form gravity /
+> BouncingBallModel bounce / FreeSpaceLossModel 20log10(4πR/λ) /
+> dispatch / 7 error case / ValidationRun 묶음).
 >
-> **이 cycle 인계 예상 누적**: 2518 + 17 = 2535 PASS (사용자 PC verify
-> 후 확정).
+> **M2 BouncingBall delegation**: `BouncingBallController.run_validation
+> _from_dataset` 가 새 `run_validation_for_model(BouncingBallModel(),
+> ...)` 위임으로 단순화. obsolete `_simulate_for_validation` (~25 줄)
+> 제거. PL-9.2c GUI 동작 동일 (BouncingBallSimulator.step 과 Bouncing
+> BallModel.compute 가 비트 동일 알고리즘 — semi-implicit Euler +
+> 동일 bounce/drag 식 + 동일 floor clamp + 동일 jitter 차단). 1 parity
+> regression test (controller path == 직접 layer 호출 결과 1e-12
+> 일치). Production code 에서 일반화 layer 첫 사용. 임의-model UI
+> selector 통합만 후속 cycle 에 남음.
+>
+> ruff / py_compile clean; mypy --strict / pytest 는 사용자 PC verify
+> 대기 (sandbox 에 numpy/pytest/PySide6 없음).
+>
+> **이 cycle 인계 예상 누적**: 2518 + 17 (M1) + 1 (M2 parity) = 2536
+> PASS (사용자 PC verify 후 확정).
 
 > **Phase 4 L1 — Simulator Run panel 실 sim_time / frame_id binding
 > DONE (직전 cycle)**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선
@@ -1274,4 +1284,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 9 M1 (Validation Bench 일반화 layer) DONE. HIL 우선순위 제외 결정. UI 통합 (M2) 후속.
+최근 갱신: 2026-05-13 — Phase 9 M1+M2 (Validation Bench 일반화 layer + BouncingBall delegation) DONE. HIL 우선순위 제외 결정. 임의-model UI selector 통합은 후속.

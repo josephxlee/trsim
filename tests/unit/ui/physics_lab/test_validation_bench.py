@@ -192,3 +192,63 @@ def test_workspace_initializes_validation_state_none(qtbot) -> None:  # type: ig
     ws = PhysicsLabWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)  # type: ignore[attr-defined]
     assert ws.last_validation_metrics() is None
+
+
+# ---------------------------------------------------------------------
+# M2 — generalized-layer parity regression
+# ---------------------------------------------------------------------
+
+
+def test_run_validation_matches_generalized_layer(
+    qtbot,
+    tmp_path: Path,
+) -> None:  # type: ignore[no-untyped-def]
+    """M2 refactor invariant: the controller's metrics match the result
+    of calling :func:`run_validation_for_model` with a
+    :class:`BouncingBallModel` directly.
+
+    Guards against drift between the PL-9.2c GUI path and the
+    Phase 9 M1 generalized validation layer.
+    """
+    from workbench.app.physics_lab import BouncingBallModel, run_validation_for_model
+
+    ws = PhysicsLabWorkspace(enable_3d_viewer=False)
+    qtbot.addWidget(ws)  # type: ignore[attr-defined]
+    csv_path = tmp_path / "drop.csv"
+    _write_synthetic_drop_csv(csv_path)
+    dataset = inspect_csv(csv_path)
+
+    controller = ws.bouncing_ball_controller()
+    metrics_via_controller = controller.run_validation_from_dataset(dataset)
+
+    sim = controller.simulator
+    params = {
+        "gravity_m_s2": sim.gravity_m_s2,
+        "restitution": sim.restitution,
+        "initial_height_m": sim.initial_height_m,
+        "initial_velocity_m_s": sim.initial_velocity_m_s,
+        "drag_coefficient_k": sim.drag_coefficient_k,
+    }
+    initial_state = {
+        "position_m": sim.initial_height_m,
+        "velocity_m_s": sim.initial_velocity_m_s,
+        "bounces": 0,
+    }
+    measured = np.loadtxt(csv_path, delimiter=",", skiprows=1)
+    direct_run = run_validation_for_model(
+        BouncingBallModel(),
+        params=params,
+        measured_x=measured[:, 0],
+        measured_y=measured[:, 1],
+        y_field="position_m",
+        initial_state=initial_state,
+        dt_s=0.005,
+    )
+    assert metrics_via_controller.rmse == pytest.approx(direct_run.metrics.rmse, abs=1e-12)
+    assert metrics_via_controller.max_abs_error == pytest.approx(
+        direct_run.metrics.max_abs_error, abs=1e-12
+    )
+    assert metrics_via_controller.pearson_correlation == pytest.approx(
+        direct_run.metrics.pearson_correlation, abs=1e-12
+    )
+    assert metrics_via_controller.n_samples == direct_run.metrics.n_samples

@@ -205,7 +205,7 @@ shell 만 (members 없음).
 | 9.1 MVP — 3-pane Workspace + 9 Test Objects + 4 time mode + Code Pane + Parameters | ✓ |
 | 9.2 — Measured Data + Papers Library + Validation Bench + Parameter Studio (scipy fit) | ✓ |
 | 9.3 — Code autocomplete + PhysicsModelProtocol (11번째 SDK) + NN-as-physics + Polynomial fit + Test Object plugin registry | ✓ |
-| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | △ (H1-H2 + I1-I2 + J1 + **M1 Validation Bench 일반화 layer** ✓ `app/physics_lab/validation_runner.py` + `ValidationRun` dataclass — dynamic/static dispatch on `model.time_mode`; UI 통합은 후속 M2 sub-step) |
+| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | ✓ (H1-H2 + I1-I2 + J1 + **M1 layer** + **M2 BouncingBallController refactor** — `run_validation_from_dataset` 가 새 `run_validation_for_model(BouncingBallModel(), ...)` 위임으로 단순화. 기존 PL-9.2c GUI 동작 동일 (regression-tested 21 + parity test 1) + 임의 PhysicsModelProtocol 진입 path 가 production code 에서 첫 사용. 임의-model selector UI 통합은 후속 cycle.) |
 
 ---
 
@@ -221,7 +221,7 @@ shell 만 (members 없음).
 
 | 우선 | 작업 | 크기 | 영역 | 비고 |
 |---|---|---|---|---|
-| 1 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | physics_lab | M1 layer ✓ (`run_validation_for_model` + `simulate_dynamic_for_validation` + `sweep_static_for_validation`). 후속 M2 = UI 통합 (PhysicsLabWorkspace 가 선택된 Library Model 에 대해 layer 호출 + overlay install). |
+| 1 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | physics_lab | M1 layer ✓ + M2 BouncingBallController delegation ✓. 후속 = LibraryWidget selected-model 기반 generic dispatch UI 통합 (PhysicsLabWorkspace 가 BouncingBall 외 모델 선택 시 layer 호출 + overlay install). |
 | 2 | **Simulator 8 panel 실 데이터 binding 잔여 5개** (FFT / RD / Properties / PluginMgr / StageIO) | 대 (여러 cycle) | simulator | L1 으로 Run panel 만 ✓. 직전 cycle 사용자 "Simulation 가장 시급" 명시. 여러 sub-step 분할. |
 | 3 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | simulator/NN | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
 | 4 | **Phase 6 multi-step rollout RMSE real** | 중 | simulator/NN | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
@@ -284,4 +284,5 @@ shell 만 (members 없음).
 - 2026-05-13 L1 — Phase 4 cycle: Simulator Run panel 실 sim_time/frame_id binding + `SimulatorRunController` (16ms QTimer + SimulationClock) + MainWindow sim.start/pause/stop/speed hooks (2490 → 2518 PASS). Simulator Run panel 실 데이터 binding ✗ → ✓.
 - 2026-05-13 user decision — Phase 8 HIL "MVP 공간만, 실 작업 하지 않음" 결정 → 우선순위 리스트 재정렬 (HIL 제외, physics_lab > simulator > editor 적용). Validation Bench 일반화 가 1순위.
 - 2026-05-13 M1 — Phase 9 cycle: Validation Bench 일반화 layer (`app/physics_lab/validation_runner.py` + `ValidationRun` dataclass) — dynamic / static dispatch on `model.time_mode`. 17 신규 tests (사용자 PC verify 대기). UI 통합은 후속 M2.
-**최종 갱신**: 2026-05-13 — Phase 9 M1 Validation Bench 일반화 layer ✓.
+- 2026-05-13 M2 — Phase 9 cycle: `BouncingBallController.run_validation_from_dataset` 가 `run_validation_for_model(BouncingBallModel(), ...)` 위임으로 refactor. obsolete `_simulate_for_validation` 제거. 1 parity regression test (controller path == direct layer call). Production code 에서 일반화 layer 첫 사용 — 임의-model UI selector 통합만 후속에 남음. plan/19 § 19.7.5+ ✗ → ✓.
+**최종 갱신**: 2026-05-13 — Phase 9 M1+M2 Validation Bench 일반화 + BouncingBall delegation ✓.
