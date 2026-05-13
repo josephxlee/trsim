@@ -7,6 +7,9 @@ exponential noise.
 
 from __future__ import annotations
 
+import math
+from itertools import pairwise
+
 import numpy as np
 import pytest
 
@@ -124,3 +127,76 @@ def test_os_cfar_2d_shape_unsupported_raises() -> None:
     bad = np.ones((4, 4), dtype=np.float64)
     with pytest.raises(ValueError, match=r"1-D"):
         os_cfar_1d(bad, n_guard=1, n_train=2, k_index=2, alpha=5.0)
+
+
+# ---------- 5.10b — asymptotic alpha + OS-vs-CA distinction ----------
+
+
+def test_alpha_ca_asymptotic_limit_at_large_n() -> None:
+    """For large N the closed-form alpha = N*(Pfa^(-1/N) - 1) collapses
+    to the well-known limit ``-ln(Pfa)`` (Skolnik IRS 3e § 7.4):
+        lim_{N->inf} N*(Pfa^(-1/N) - 1) = -ln(Pfa).
+    At N=10000, Pfa=1e-3, the closed-form must hit -ln(1e-3) ~ 6.908
+    within 0.1% relative.
+    """
+    pfa = 1e-3
+    alpha_large = alpha_ca_for_pfa(pfa, 10_000)
+    assert alpha_large == pytest.approx(-math.log(pfa), rel=1e-3)
+
+
+def test_alpha_ca_monotonic_in_n_at_fixed_pfa() -> None:
+    """alpha is monotonically decreasing in N at fixed Pfa — averaging
+    over more training cells lets the threshold sit closer to the
+    asymptotic ``-ln(Pfa)`` (smaller multiplier needed). Lock the
+    monotonic direction across a 4 .. 1024 sweep.
+    """
+    pfa = 1e-3
+    n_sweep = (4, 8, 16, 32, 128, 1024)
+    alphas = [alpha_ca_for_pfa(pfa, n) for n in n_sweep]
+    for a_hi, a_lo in pairwise(alphas):
+        assert a_hi > a_lo, f"non-monotonic: {alphas}"
+
+
+def test_ca_cfar_fails_near_strong_interferer() -> None:
+    """A weak target ~6x background sits inside the training window of
+    a far stronger neighbour (100x background). CA-CFAR's arithmetic-
+    mean training estimate is dragged up by the interferer and the
+    weak target's threshold balloons past it — it goes undetected.
+
+    This is the canonical "masked weak target" scenario where OS-CFAR
+    has a structural advantage (test below).
+    """
+    power = np.ones(64, dtype=np.float64)
+    power[30] = 6.0  # weak target
+    power[40] = 100.0  # strong interferer inside idx-30's training window
+    mask = ca_cfar_1d(power, n_guard=2, n_train=8, alpha=5.0)
+    assert not bool(mask[30]), "CA-CFAR should be masked by the strong interferer"
+
+
+def test_os_cfar_recovers_weak_target_despite_strong_interferer() -> None:
+    """Same scenario as the CA-CFAR failure: the OS-CFAR k-th sorted
+    training cell sits in the noise plateau (not the interferer), so
+    the weak target at idx 30 passes the threshold.
+    """
+    power = np.ones(64, dtype=np.float64)
+    power[30] = 6.0
+    power[40] = 100.0
+    # n_train=8 left + 8 right = 16 sorted cells; k_index=10 picks the
+    # 10th smallest (well below the strong interferer at sorted[15]).
+    mask = os_cfar_1d(power, n_guard=2, n_train=8, k_index=10, alpha=5.0)
+    assert bool(mask[30]), "OS-CFAR should recover the weak target"
+
+
+def test_ca_cfar_detects_two_adjacent_spikes_inside_guard() -> None:
+    """Adjacent target pair separated by less than 2*n_guard cells.
+    Each spike sits in the other's guard region (not the training
+    window), so the background mean stays clean and both detections
+    fire.
+    """
+    power = np.ones(64, dtype=np.float64)
+    power[30] = 20.0
+    power[31] = 20.0  # adjacent: inside idx-30's n_guard=2 region
+    mask = ca_cfar_1d(power, n_guard=2, n_train=8, alpha=5.0)
+    assert bool(mask[30])
+    assert bool(mask[31])
+    assert int(mask.sum()) == 2
