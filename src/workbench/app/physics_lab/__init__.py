@@ -23,6 +23,14 @@ from workbench.app.physics_lab.learning_models import (
     NumpyNNPhysicsModel,
     PolynomialFitModel,
 )
+from workbench.app.physics_lab.model_registry import (
+    builtin_physics_models,
+    default_physics_models,
+    physics_models_from,
+    register_physics_model,
+    registered_physics_models,
+    unregister_all_physics_models,
+)
 from workbench.app.physics_lab.models import (
     BouncingBallModel,
     FreeSpaceLossModel,
@@ -47,5 +55,11 @@ __all__ = [
     "PhysicsClock",
     "PolynomialFitModel",
     "analytic_peak_height_m",
+    "builtin_physics_models",
+    "default_physics_models",
     "fit_bouncing_ball",
+    "physics_models_from",
+    "register_physics_model",
+    "registered_physics_models",
+    "unregister_all_physics_models",
 ]

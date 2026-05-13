@@ -37,6 +37,7 @@ the Bouncing Ball demo.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -55,7 +56,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from workbench.app.physics_lab import FitResult
+from workbench.app.physics_lab import FitResult, default_physics_models
 from workbench.domain.physics_lab import (
     TIME_MODES_IN_DISPLAY_ORDER,
     MeasuredDataset,
@@ -67,6 +68,7 @@ from workbench.domain.physics_lab import (
     list_saved_experiments,
     write_saved_experiment,
 )
+from workbench.sdk.protocols import PhysicsModelProtocol
 from workbench.ui.physics_lab.bouncing_ball_demo import (
     BouncingBallController,
     BouncingBallPlot,
@@ -215,6 +217,7 @@ class PhysicsLabWorkspace(QWidget):
         experiment_root: Path | None = None,
         measured_root: Path | None = None,
         papers_root: Path | None = None,
+        physics_models: Iterable[PhysicsModelProtocol] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("PhysicsLabWorkspace")
@@ -326,6 +329,17 @@ class PhysicsLabWorkspace(QWidget):
         self._library_panel.fit_requested.connect(self._on_fit_requested)
         self._bouncing_controller.fit_result_ready.connect(self._on_fit_result_ready)
 
+        # Phase 9 H2 — Library Models 카테고리 동적 채우기. ``None``
+        # default = use the module-level builtin registry (Gravity Only
+        # + Bouncing Ball + Free-Space Loss + any
+        # :func:`workbench.app.physics_lab.register_physics_model`
+        # plug-ins). Pass ``()`` or an explicit iterable to override.
+        self._physics_models: tuple[PhysicsModelProtocol, ...] = ()
+        if physics_models is None:
+            self.set_physics_models(default_physics_models())
+        else:
+            self.set_physics_models(physics_models)
+
     # ------------------------------------------------------------------
     # Accessors (PL-D ships the live widgets; PL-9.1+ keeps the same API)
     # ------------------------------------------------------------------
@@ -352,6 +366,31 @@ class PhysicsLabWorkspace(QWidget):
 
     def bouncing_ball_controller(self) -> BouncingBallController:
         return self._bouncing_controller
+
+    # ------------------------------------------------------------------
+    # Phase 9 H2 — Library Models registry
+    # ------------------------------------------------------------------
+    def set_physics_models(self, models: Iterable[PhysicsModelProtocol]) -> None:
+        """Replace the Library Models sub-tree.
+
+        Forwards to :meth:`LibraryWidget.set_physics_models` and caches
+        the materialised tuple so :meth:`physics_models` is cheap.
+        """
+        materialised = tuple(models)
+        self._library_panel.set_physics_models(materialised)
+        self._physics_models = materialised
+
+    def refresh_physics_models(self) -> None:
+        """Reload Models from :func:`default_physics_models`.
+
+        Useful after a DLC install registers new
+        :class:`PhysicsModelProtocol` instances at runtime.
+        """
+        self.set_physics_models(default_physics_models())
+
+    def physics_models(self) -> tuple[PhysicsModelProtocol, ...]:
+        """Current registered models (workspace-local snapshot)."""
+        return self._physics_models
 
     # ------------------------------------------------------------------
     # PL-9.1d — viz stack
