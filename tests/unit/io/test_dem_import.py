@@ -9,6 +9,8 @@ import pytest
 
 from workbench.io.dem_import import (
     DEMGrid,
+    LandSeaMode,
+    compute_land_mask,
     import_dem_to_terrain_npz,
     read_esri_ascii_grid,
     write_terrain_npz,
@@ -224,3 +226,70 @@ def test_import_helper_writes_npz_from_asc(tmp_path: Path) -> None:
     assert npz.is_file()
     loaded = np.load(npz)
     assert loaded["elevation"].shape == (2, 3)
+
+
+# ---------------------------------------------------------------------
+# LandSeaMode + compute_land_mask (Phase 4 dem_import_wizard E1)
+# ---------------------------------------------------------------------
+
+
+def _grid_with_elevations(elevations: list[list[float]]) -> DEMGrid:
+    arr = np.asarray(elevations, dtype=np.float64)
+    return DEMGrid(
+        elevation=arr,
+        x_origin_m=0.0,
+        y_origin_m=0.0,
+        cell_size_m=1.0,
+        nodata_value=-9999.0,
+    )
+
+
+def test_land_sea_mode_string_values() -> None:
+    """StrEnum values are stable — wizard combo + TOML round-trip."""
+    assert LandSeaMode.AUTO_THRESHOLD.value == "auto_threshold"
+    assert LandSeaMode.NODATA.value == "nodata"
+    assert LandSeaMode.ALL_LAND.value == "all_land"
+
+
+def test_compute_land_mask_auto_threshold_classifies_above_threshold() -> None:
+    grid = _grid_with_elevations([[-1.0, 0.0, 0.5, 0.51, 10.0]])
+    mask = compute_land_mask(grid, LandSeaMode.AUTO_THRESHOLD, threshold_m=0.5)
+    assert mask.dtype == np.bool_
+    np.testing.assert_array_equal(mask, np.array([[False, False, False, True, True]]))
+
+
+def test_compute_land_mask_auto_threshold_custom_threshold() -> None:
+    grid = _grid_with_elevations([[0.0, 5.0, 10.0]])
+    mask = compute_land_mask(grid, LandSeaMode.AUTO_THRESHOLD, threshold_m=5.0)
+    np.testing.assert_array_equal(mask, np.array([[False, False, True]]))
+
+
+def test_compute_land_mask_auto_threshold_nan_is_sea() -> None:
+    grid = _grid_with_elevations([[np.nan, 1.0, 100.0]])
+    mask = compute_land_mask(grid, LandSeaMode.AUTO_THRESHOLD, threshold_m=0.5)
+    np.testing.assert_array_equal(mask, np.array([[False, True, True]]))
+
+
+def test_compute_land_mask_nodata_treats_nan_as_sea() -> None:
+    grid = _grid_with_elevations([[np.nan, -100.0, 0.0, 50.0]])
+    mask = compute_land_mask(grid, LandSeaMode.NODATA)
+    np.testing.assert_array_equal(mask, np.array([[False, True, True, True]]))
+
+
+def test_compute_land_mask_all_land_marks_every_cell() -> None:
+    grid = _grid_with_elevations([[np.nan, -100.0, 0.0, 50.0]])
+    mask = compute_land_mask(grid, LandSeaMode.ALL_LAND)
+    np.testing.assert_array_equal(mask, np.ones((1, 4), dtype=np.bool_))
+
+
+def test_compute_land_mask_auto_threshold_rejects_nan_threshold() -> None:
+    grid = _grid_with_elevations([[1.0]])
+    with pytest.raises(ValueError, match=r"threshold_m must be finite"):
+        compute_land_mask(grid, LandSeaMode.AUTO_THRESHOLD, threshold_m=float("nan"))
+
+
+def test_compute_land_mask_shape_matches_elevation() -> None:
+    grid = _grid_with_elevations([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    for mode in LandSeaMode:
+        mask = compute_land_mask(grid, mode)
+        assert mask.shape == grid.elevation.shape, (mode, mask.shape)

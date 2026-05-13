@@ -45,11 +45,77 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Final
 
 import numpy as np
 from numpy.typing import NDArray
+
+
+class LandSeaMode(StrEnum):
+    """Land/Sea classification strategies for the Import Wizard (plan/11
+    § 11.5.5).
+
+    The MVP supports three modes; the wizard's "external coastline
+    file" option is deferred to a later cycle because it requires
+    GeoJSON/Shapefile parsing.
+
+    - :attr:`AUTO_THRESHOLD` — every cell with finite elevation
+      *above* the configured threshold is land. Cells at or below
+      the threshold are sea. NaN (NODATA) cells are sea.
+    - :attr:`NODATA` — every finite-elevation cell is land. NaN
+      (NODATA) cells are sea. This matches SRTM-style DEMs that
+      sentinel out the ocean surface.
+    - :attr:`ALL_LAND` — every cell is land regardless of elevation.
+      Use for inland scenarios with no coastline. Note: NODATA
+      cells stay NaN in the elevation array — downstream sampling
+      will return NaN. The wizard surfaces a warning when a DEM
+      with NODATA cells is imported in ALL_LAND mode.
+    """
+
+    AUTO_THRESHOLD = "auto_threshold"
+    NODATA = "nodata"
+    ALL_LAND = "all_land"
+
+
+def compute_land_mask(
+    grid: DEMGrid,
+    mode: LandSeaMode,
+    *,
+    threshold_m: float = 0.5,
+) -> NDArray[np.bool_]:
+    """Derive a 2D ``land_mask`` from ``grid`` per the wizard's mode.
+
+    Args:
+        grid: Parsed DEM. NODATA cells are NaN.
+        mode: Classification strategy. See :class:`LandSeaMode`.
+        threshold_m: Sea-level threshold for
+            :attr:`LandSeaMode.AUTO_THRESHOLD`. Cells with elevation
+            ``> threshold_m`` become land. Ignored for the other
+            modes. Defaults to ``0.5`` m (plan/11 § 11.5.5 default).
+
+    Returns:
+        ``(nrows, ncols)`` bool array; ``True`` = land, ``False`` = sea.
+
+    Raises:
+        ValueError: ``mode`` is unrecognised or ``threshold_m`` is
+            non-finite when AUTO_THRESHOLD is requested.
+    """
+    finite = np.isfinite(grid.elevation)
+    if mode is LandSeaMode.AUTO_THRESHOLD:
+        if not np.isfinite(threshold_m):
+            msg = f"threshold_m must be finite for AUTO_THRESHOLD, got {threshold_m!r}"
+            raise ValueError(msg)
+        # NaN comparisons return False — sea automatically.
+        return np.asarray((grid.elevation > threshold_m) & finite, dtype=np.bool_)
+    if mode is LandSeaMode.NODATA:
+        return np.asarray(finite, dtype=np.bool_)
+    if mode is LandSeaMode.ALL_LAND:
+        return np.ones(grid.elevation.shape, dtype=np.bool_)
+    msg = f"unknown LandSeaMode {mode!r}"  # defensive — StrEnum exhausted above
+    raise ValueError(msg)
+
 
 _HEADER_RE: Final = re.compile(
     r"^\s*(ncols|nrows|xllcorner|yllcorner|cellsize|NODATA_value)\s+(\S+)\s*$",
