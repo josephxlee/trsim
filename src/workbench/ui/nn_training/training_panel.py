@@ -55,7 +55,8 @@ _FRAMEWORKS: tuple[str, ...] = ("numpy_only", "tensorflow", "pytorch")
 # TrainerService backend identifiers (must match the Literal in
 # :data:`workbench.app.nn.TrainingBackend`).
 _BACKENDS: tuple[tuple[str, str], ...] = (
-    ("numpy_mlp", "numpy_mlp (real gradient descent)"),
+    ("numpy_mlp", "numpy_mlp (real SGD)"),
+    ("numpy_mlp_adam", "numpy_mlp_adam (bias-corrected Adam)"),
     ("fake", "fake (deterministic decay — smoke only)"),
 )
 

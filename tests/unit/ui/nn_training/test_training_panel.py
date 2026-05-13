@@ -35,17 +35,24 @@ def test_default_input_values(qtbot: object) -> None:
     assert panel.current_backend() == "numpy_mlp"
 
 
-def test_backend_combo_has_two_entries(qtbot: object) -> None:
+def test_backend_combo_has_three_entries(qtbot: object) -> None:
+    """A1-a adds `numpy_mlp_adam` next to `numpy_mlp` and `fake`."""
     panel = _panel(qtbot)
     combo = panel.backend_combo()
-    assert combo.count() == 2
-    assert {combo.itemData(i) for i in range(combo.count())} == {"numpy_mlp", "fake"}
+    assert combo.count() == 3
+    assert {combo.itemData(i) for i in range(combo.count())} == {
+        "numpy_mlp",
+        "numpy_mlp_adam",
+        "fake",
+    }
 
 
 def test_set_backend_round_trips(qtbot: object) -> None:
     panel = _panel(qtbot)
     panel.set_backend("fake")
     assert panel.current_backend() == "fake"
+    panel.set_backend("numpy_mlp_adam")
+    assert panel.current_backend() == "numpy_mlp_adam"
     panel.set_backend("numpy_mlp")
     assert panel.current_backend() == "numpy_mlp"
 

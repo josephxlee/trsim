@@ -25,6 +25,9 @@ from workbench.app.nn.numpy_mlp import (
     Activation as NumpyMLPActivation,
 )
 from workbench.app.nn.numpy_mlp import (
+    AdamState as NumpyMLPAdamState,
+)
+from workbench.app.nn.numpy_mlp import (
     NumpyMLPParams,
     flatten_inputs,
     flatten_labels,
@@ -34,10 +37,16 @@ from workbench.app.nn.numpy_mlp import (
     forward as numpy_mlp_forward,
 )
 from workbench.app.nn.numpy_mlp import (
+    init_adam_state as numpy_mlp_init_adam_state,
+)
+from workbench.app.nn.numpy_mlp import (
     init_params as numpy_mlp_init_params,
 )
 from workbench.app.nn.numpy_mlp import (
     train_one_epoch as numpy_mlp_train_one_epoch,
+)
+from workbench.app.nn.numpy_mlp import (
+    train_one_epoch_adam as numpy_mlp_train_one_epoch_adam,
 )
 from workbench.app.nn.pairing_nn import NumpyPairingNN
 from workbench.app.nn.pipeline_runner import (
@@ -65,6 +74,7 @@ __all__ = [
     "EpochCallback",
     "NNEvalResult",
     "NumpyMLPActivation",
+    "NumpyMLPAdamState",
     "NumpyMLPParams",
     "NumpyPairingNN",
     "PairingScenarioSpec",
@@ -84,8 +94,10 @@ __all__ = [
     "flatten_labels",
     "mse_loss",
     "numpy_mlp_forward",
+    "numpy_mlp_init_adam_state",
     "numpy_mlp_init_params",
     "numpy_mlp_train_one_epoch",
+    "numpy_mlp_train_one_epoch_adam",
     "pairing_loss",
     "read_dataset",
     "standard_pairing_build_plans",

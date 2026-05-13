@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-13 — Phase 5 후속 12 sub-step 마감 직후 cross-check.
-**누적 test**: 2065 PASS local, 5 contracts KEPT.
-**HEAD**: `a2e370f` (Phase 5 followup handoff).
+**최종 갱신**: 2026-05-13 — A1-a Adam optimizer 추가 후.
+**누적 test**: 2078 PASS local, 5 contracts KEPT.
+**HEAD**: A1-a numpy_mlp_adam backend.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -139,7 +139,7 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | app/nn/variant_runner (4-tier preset) | ✓ |
 | app/nn/pairing_nn (NumpyPairingNN — Pairing NN 첫 구현) | ✓ |
 | nn_mode panels: Step 1 Dataset Builder + Step 2 Eval + Training | ✓ |
-| **Adam optimizer** (numpy 구현, backend="numpy_mlp_adam") | **✗** |
+| Adam optimizer (numpy 구현, backend="numpy_mlp_adam") | ✓ (A1-a) |
 | **workbench-train CLI** (external subprocess, TrainingJob TOML) | **✗** |
 | **Step 2 Tracker / Predictor / Classifier 행** (4-error 표의 3 카테고리) | **✗** |
 | **Step 2 multi-step rollout RMSE** metric | **✗** |
@@ -236,3 +236,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 ## 변경 이력 footer
 
 - 2026-05-13 초기 작성 (Phase 5 후속 12 sub-step 마감 시점, 2065 PASS).
+- 2026-05-13 A1-a — Phase 6 Adam optimizer ✗ → ✓ (2065 → 2078 PASS).

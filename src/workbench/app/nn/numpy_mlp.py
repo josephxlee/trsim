@@ -15,13 +15,14 @@ Scope:
 - Mean-squared-error loss on flattened input / label arrays. The
   caller is responsible for projecting complex / multi-dim fields
   into a 2-D ``(N, D)`` real matrix.
-- Mini-batch SGD update (no Adam, no momentum). The optimiser
-  family is :class:`TrainingJob.optimizer`; the MVP backend recognises
-  ``"sgd"`` only and ignores the request silently for any other value.
+- Mini-batch SGD update (plain gradient descent) and Adam (bias-
+  corrected first / second moments per the Kingma & Ba 2014 paper).
+  Adam reuses the same forward / backward primitives — the optimiser
+  is the only thing that changes per step.
 
 Out of scope (future sub-step):
 
-- Adam / AdaGrad / RMSProp.
+- AdaGrad / RMSProp / Lookahead.
 - Weight decay / dropout / batch norm.
 - GPU paths (numpy CPU only).
 
@@ -300,3 +301,206 @@ def _activation_grad(a: NDArray[np.float32], kind: Activation) -> NDArray[np.flo
         return (np.float32(1.0) - a * a).astype(np.float32)
     msg = f"unsupported activation {kind!r}"
     raise ValueError(msg)
+
+
+# ---------------------------------------------------------------------
+# Adam optimizer (Kingma & Ba 2014)
+# ---------------------------------------------------------------------
+
+ADAM_DEFAULT_BETA1: float = 0.9
+ADAM_DEFAULT_BETA2: float = 0.999
+ADAM_DEFAULT_EPS: float = 1e-8
+
+
+@dataclass(slots=True)
+class AdamState:
+    """Per-parameter Adam optimiser accumulators.
+
+    Mirrors the layout of :class:`NumpyMLPParams`: one ``(D_in, D_out)``
+    first-moment and second-moment array per weight matrix, and one
+    ``(D_out,)`` accumulator per bias vector. ``t`` is the step counter
+    used for the bias-correction term ``1 - beta^t``.
+
+    Attributes:
+        m_weights: First moments for each weight matrix (mean of grads).
+        m_biases: First moments for each bias vector.
+        v_weights: Second moments for each weight matrix (uncentred
+            variance of grads).
+        v_biases: Second moments for each bias vector.
+        t: Step counter (starts at 0; incremented to 1 before the
+            first parameter update).
+    """
+
+    m_weights: list[NDArray[np.float32]]
+    m_biases: list[NDArray[np.float32]]
+    v_weights: list[NDArray[np.float32]]
+    v_biases: list[NDArray[np.float32]]
+    t: int = 0
+
+
+def init_adam_state(params: NumpyMLPParams) -> AdamState:
+    """Build a zero-initialised :class:`AdamState` matching ``params``.
+
+    Same shapes / dtypes as the underlying weights and biases so the
+    update step is a pure element-wise operation.
+    """
+    return AdamState(
+        m_weights=[np.zeros_like(w) for w in params.weights],
+        m_biases=[np.zeros_like(b) for b in params.biases],
+        v_weights=[np.zeros_like(w) for w in params.weights],
+        v_biases=[np.zeros_like(b) for b in params.biases],
+        t=0,
+    )
+
+
+def train_one_epoch_adam(
+    params: NumpyMLPParams,
+    state: AdamState,
+    x_train: NDArray[np.float32],
+    y_train: NDArray[np.float32],
+    *,
+    learning_rate: float,
+    batch_size: int,
+    rng: np.random.Generator,
+    beta1: float = ADAM_DEFAULT_BETA1,
+    beta2: float = ADAM_DEFAULT_BETA2,
+    eps: float = ADAM_DEFAULT_EPS,
+) -> float:
+    """Run one full pass of mini-batch Adam over ``(x_train, y_train)``.
+
+    Updates ``params`` and ``state`` in place. Returns the *post-update*
+    full-batch training loss so the caller can plot a clean monotone
+    curve (subject to the usual Adam noise).
+
+    Args:
+        params: :class:`NumpyMLPParams` to update.
+        state: :class:`AdamState` accumulators — must match ``params``.
+            Reuse the same state across epochs to preserve momentum.
+        x_train: ``(N, D_in)`` float32 input matrix.
+        y_train: ``(N, D_out)`` float32 target matrix.
+        learning_rate: Adam step size (alpha). Must be > 0.
+        batch_size: Mini-batch size. Must be > 0.
+        rng: Numpy generator driving the per-epoch shuffle.
+        beta1: First-moment decay (default 0.9, Kingma & Ba 2014).
+        beta2: Second-moment decay (default 0.999).
+        eps: Numerical floor on the denominator (default 1e-8).
+
+    Returns:
+        Mean-squared training loss after the parameter updates.
+    """
+    if x_train.shape[0] != y_train.shape[0]:
+        msg = (
+            f"x_train and y_train must share the leading axis; "
+            f"got {x_train.shape[0]} vs {y_train.shape[0]}"
+        )
+        raise ValueError(msg)
+    if learning_rate <= 0.0:
+        msg = f"learning_rate must be > 0, got {learning_rate}"
+        raise ValueError(msg)
+    if batch_size <= 0:
+        msg = f"batch_size must be > 0, got {batch_size}"
+        raise ValueError(msg)
+    if not 0.0 < beta1 < 1.0:
+        msg = f"beta1 must lie in (0, 1), got {beta1}"
+        raise ValueError(msg)
+    if not 0.0 < beta2 < 1.0:
+        msg = f"beta2 must lie in (0, 1), got {beta2}"
+        raise ValueError(msg)
+    if eps <= 0.0:
+        msg = f"eps must be > 0, got {eps}"
+        raise ValueError(msg)
+
+    n = x_train.shape[0]
+    perm = rng.permutation(n)
+    for start in range(0, n, batch_size):
+        batch_idx = perm[start : start + batch_size]
+        xb = x_train[batch_idx]
+        yb = y_train[batch_idx]
+        _adam_step(
+            params,
+            state,
+            xb,
+            yb,
+            learning_rate=learning_rate,
+            beta1=beta1,
+            beta2=beta2,
+            eps=eps,
+        )
+
+    return mse_loss(forward(params, x_train), y_train)
+
+
+def _adam_step(
+    params: NumpyMLPParams,
+    state: AdamState,
+    xb: NDArray[np.float32],
+    yb: NDArray[np.float32],
+    *,
+    learning_rate: float,
+    beta1: float,
+    beta2: float,
+    eps: float,
+) -> None:
+    """One Adam parameter update on a single mini-batch.
+
+    Implements:
+
+        t        <- t + 1
+        g_t      <- d_loss / d_param   (per layer)
+        m_t      <- beta1 * m_(t-1) + (1 - beta1) * g_t
+        v_t      <- beta2 * v_(t-1) + (1 - beta2) * g_t * g_t
+        m_hat    <- m_t / (1 - beta1**t)
+        v_hat    <- v_t / (1 - beta2**t)
+        param_t  <- param_(t-1) - lr * m_hat / (sqrt(v_hat) + eps)
+
+    State is mutated in place so the caller need only provide the
+    same ``AdamState`` instance to preserve momentum across batches /
+    epochs.
+    """
+    activations = _forward_with_cache(params, xb)
+    pred = activations[-1]
+
+    batch_n = xb.shape[0]
+    d_out = pred.shape[1] if pred.ndim > 1 else 1
+    grad = (2.0 / (batch_n * d_out)) * (pred - yb)
+
+    state.t += 1
+    bc1 = 1.0 - (beta1**state.t)
+    bc2 = 1.0 - (beta2**state.t)
+
+    for layer_idx in range(len(params.weights) - 1, -1, -1):
+        a_prev = activations[layer_idx]
+        if layer_idx < len(params.weights) - 1:
+            grad = grad * _activation_grad(activations[layer_idx + 1], params.activation)
+        grad_w = (a_prev.T @ grad).astype(np.float32)
+        grad_b = grad.sum(axis=0).astype(np.float32)
+        if layer_idx > 0:
+            grad = grad @ params.weights[layer_idx].T
+
+        # First-moment update (per-element).
+        state.m_weights[layer_idx] = (
+            np.float32(beta1) * state.m_weights[layer_idx] + np.float32(1.0 - beta1) * grad_w
+        )
+        state.m_biases[layer_idx] = (
+            np.float32(beta1) * state.m_biases[layer_idx] + np.float32(1.0 - beta1) * grad_b
+        )
+
+        # Second-moment update (uncentred variance of grads).
+        state.v_weights[layer_idx] = np.float32(beta2) * state.v_weights[layer_idx] + np.float32(
+            1.0 - beta2
+        ) * (grad_w * grad_w)
+        state.v_biases[layer_idx] = np.float32(beta2) * state.v_biases[layer_idx] + np.float32(
+            1.0 - beta2
+        ) * (grad_b * grad_b)
+
+        # Bias-corrected estimates.
+        m_hat_w = state.m_weights[layer_idx] / np.float32(bc1)
+        m_hat_b = state.m_biases[layer_idx] / np.float32(bc1)
+        v_hat_w = state.v_weights[layer_idx] / np.float32(bc2)
+        v_hat_b = state.v_biases[layer_idx] / np.float32(bc2)
+
+        update_w = np.float32(learning_rate) * m_hat_w / (np.sqrt(v_hat_w) + np.float32(eps))
+        update_b = np.float32(learning_rate) * m_hat_b / (np.sqrt(v_hat_b) + np.float32(eps))
+
+        params.weights[layer_idx] = params.weights[layer_idx] - update_w.astype(np.float32)
+        params.biases[layer_idx] = params.biases[layer_idx] - update_b.astype(np.float32)

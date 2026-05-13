@@ -14,6 +14,11 @@ constructor argument:
   mini-batch SGD, and writes ``layer_i_W`` / ``layer_i_b`` arrays
   to the weights ``.npz``. ``best_val_loss`` and ``early_stopped``
   reflect the actual training curve.
+- ``"numpy_mlp_adam"`` (Phase 6 NN augmentation A1-a) — identical
+  data path to ``"numpy_mlp"`` but uses bias-corrected Adam
+  (Kingma & Ba 2014, default beta1=0.9 / beta2=0.999 / eps=1e-8)
+  instead of plain SGD. Adam state persists across epochs to keep
+  the momentum accumulators warm.
 
 References:
 
@@ -34,22 +39,27 @@ from numpy.typing import NDArray
 
 from workbench.app.nn.data_exporter import read_dataset
 from workbench.app.nn.numpy_mlp import (
+    AdamState,
     NumpyMLPParams,
     flatten_inputs,
     flatten_labels,
     forward,
+    init_adam_state,
     init_params,
     mse_loss,
     train_one_epoch,
+    train_one_epoch_adam,
 )
 
 TrainingFramework = Literal["tensorflow", "pytorch", "numpy_only"]
 """Allowed values for ``TrainingJob.framework`` (plan/07 § 7.5.2)."""
 
-TrainingBackend = Literal["fake", "numpy_mlp"]
+TrainingBackend = Literal["fake", "numpy_mlp", "numpy_mlp_adam"]
 """TrainerService backends. ``"fake"`` keeps the Phase 6.7 behaviour
 (no dataset I/O); ``"numpy_mlp"`` runs the real gradient-descent
-loop introduced in task C."""
+loop introduced in task C; ``"numpy_mlp_adam"`` reuses the same data
+path but swaps SGD for bias-corrected Adam (Phase 6 NN augmentation
+A1-a)."""
 
 EpochCallback = Callable[[int, float, float], None]
 """``callback(epoch, train_loss, val_loss)`` fired after every epoch."""
@@ -208,7 +218,9 @@ class TrainerService:
             the weights file was written to.
         """
         if self._backend == "numpy_mlp":
-            return self._run_numpy_mlp(job)
+            return self._run_numpy_mlp(job, optimizer="sgd")
+        if self._backend == "numpy_mlp_adam":
+            return self._run_numpy_mlp(job, optimizer="adam")
         return self._run_fake(job)
 
     # ------------------------------------------------------------------
@@ -261,11 +273,14 @@ class TrainerService:
     # numpy_mlp backend (task C)
     # ------------------------------------------------------------------
 
-    def _run_numpy_mlp(self, job: TrainingJob) -> TrainingResult:
+    def _run_numpy_mlp(
+        self, job: TrainingJob, *, optimizer: Literal["sgd", "adam"] = "sgd"
+    ) -> TrainingResult:
         meta, inputs, labels = read_dataset(job.dataset_path)
         n_samples = meta.total_samples
         if n_samples <= 0:
-            msg = f"numpy_mlp backend requires >= 1 sample; dataset has {n_samples}"
+            backend_name = "numpy_mlp_adam" if optimizer == "adam" else "numpy_mlp"
+            msg = f"{backend_name} backend requires >= 1 sample; dataset has {n_samples}"
             raise ValueError(msg)
 
         x = flatten_inputs(meta.spec, inputs, n_samples)
@@ -278,6 +293,7 @@ class TrainerService:
         layer_dims = _resolve_layer_dims(job, x.shape[1], y.shape[1])
         activation: Literal["relu", "tanh"] = "tanh" if job.activation == "tanh" else "relu"
         params = init_params(layer_dims, activation=activation, rng_seed=self._rng_seed)
+        adam_state: AdamState | None = init_adam_state(params) if optimizer == "adam" else None
 
         rng = np.random.default_rng(self._rng_seed + 1)
         train_losses: list[float] = []
@@ -288,14 +304,25 @@ class TrainerService:
         epochs_run = 0
 
         for epoch in range(1, job.epochs + 1):
-            train_loss = train_one_epoch(
-                params,
-                x_train,
-                y_train,
-                learning_rate=job.learning_rate,
-                batch_size=job.batch_size,
-                rng=rng,
-            )
+            if adam_state is not None:
+                train_loss = train_one_epoch_adam(
+                    params,
+                    adam_state,
+                    x_train,
+                    y_train,
+                    learning_rate=job.learning_rate,
+                    batch_size=job.batch_size,
+                    rng=rng,
+                )
+            else:
+                train_loss = train_one_epoch(
+                    params,
+                    x_train,
+                    y_train,
+                    learning_rate=job.learning_rate,
+                    batch_size=job.batch_size,
+                    rng=rng,
+                )
             val_loss = mse_loss(forward(params, x_val), y_val) if x_val.shape[0] > 0 else train_loss
             train_losses.append(train_loss)
             val_losses.append(val_loss)

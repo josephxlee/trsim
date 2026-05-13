@@ -190,3 +190,208 @@ def test_flatten_inputs_rejects_wrong_leading_axis() -> None:
             },
             n=4,
         )
+
+
+# ---------------------------------------------------------------------
+# Adam optimizer (A1-a)
+# ---------------------------------------------------------------------
+
+
+def test_init_adam_state_zeros_match_param_shapes() -> None:
+    """`AdamState` arrays mirror weights/biases shape and start at 0."""
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+    )
+
+    params = numpy_mlp_init_params((3, 8, 2), activation="relu", rng_seed=0)
+    state = numpy_mlp_init_adam_state(params)
+    assert len(state.m_weights) == len(params.weights) == 2
+    assert len(state.v_biases) == len(params.biases) == 2
+    for m_w, w in zip(state.m_weights, params.weights, strict=True):
+        assert m_w.shape == w.shape
+        assert float(m_w.max()) == 0.0 and float(m_w.min()) == 0.0
+    for v_b, b in zip(state.v_biases, params.biases, strict=True):
+        assert v_b.shape == b.shape
+        assert float(v_b.max()) == 0.0 and float(v_b.min()) == 0.0
+    assert state.t == 0
+
+
+def test_adam_step_counter_increments_with_each_minibatch() -> None:
+    """`state.t` must equal the number of mini-batch updates run."""
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    x, y = _linear_dataset(n=64, d_in=4, d_out=2, seed=0)
+    params = numpy_mlp_init_params((4, 8, 2), activation="relu", rng_seed=0)
+    state = numpy_mlp_init_adam_state(params)
+    rng = np.random.default_rng(1)
+    # batch_size=16 -> 4 mini-batches per epoch.
+    numpy_mlp_train_one_epoch_adam(params, state, x, y, learning_rate=1e-2, batch_size=16, rng=rng)
+    assert state.t == 4
+    numpy_mlp_train_one_epoch_adam(params, state, x, y, learning_rate=1e-2, batch_size=16, rng=rng)
+    assert state.t == 8
+
+
+def test_adam_train_one_epoch_decreases_loss() -> None:
+    """Single Adam epoch must drop loss vs random-init on linear data."""
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    x, y = _linear_dataset(n=64, d_in=4, d_out=2, seed=0)
+    params = numpy_mlp_init_params((4, 16, 2), activation="relu", rng_seed=0)
+    state = numpy_mlp_init_adam_state(params)
+    loss_before = mse_loss(numpy_mlp_forward(params, x), y)
+    loss_after = numpy_mlp_train_one_epoch_adam(
+        params, state, x, y, learning_rate=1e-2, batch_size=16, rng=np.random.default_rng(1)
+    )
+    assert loss_after < loss_before
+
+
+def test_adam_converges_on_linear_task_within_50_epochs() -> None:
+    """50 epochs of Adam over a small linear task drive loss far below
+    the random-init starting loss.
+    """
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    x, y = _linear_dataset(n=128, d_in=3, d_out=1, seed=0)
+    params = numpy_mlp_init_params((3, 32, 1), activation="relu", rng_seed=0)
+    state = numpy_mlp_init_adam_state(params)
+    rng = np.random.default_rng(1)
+    loss = mse_loss(numpy_mlp_forward(params, x), y)
+    for _ in range(50):
+        loss = numpy_mlp_train_one_epoch_adam(
+            params, state, x, y, learning_rate=1e-2, batch_size=16, rng=rng
+        )
+    assert loss < 0.1
+
+
+def test_adam_train_one_epoch_is_reproducible_under_fixed_seed() -> None:
+    """Same seed + same Adam hyper-params -> bit-for-bit weights."""
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    x, y = _linear_dataset(n=64, d_in=4, d_out=2, seed=0)
+
+    def run() -> NumpyMLPParams:
+        params = numpy_mlp_init_params((4, 8, 2), activation="relu", rng_seed=0)
+        state = numpy_mlp_init_adam_state(params)
+        rng = np.random.default_rng(7)
+        for _ in range(5):
+            numpy_mlp_train_one_epoch_adam(
+                params, state, x, y, learning_rate=5e-3, batch_size=16, rng=rng
+            )
+        return params
+
+    params_a = run()
+    params_b = run()
+    for w_a, w_b in zip(params_a.weights, params_b.weights, strict=True):
+        np.testing.assert_array_equal(w_a, w_b)
+
+
+def test_adam_rejects_invalid_beta1() -> None:
+    """beta1 must lie strictly in (0, 1)."""
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    params = numpy_mlp_init_params((2, 1))
+    state = numpy_mlp_init_adam_state(params)
+    with pytest.raises(ValueError, match=r"beta1 must lie in"):
+        numpy_mlp_train_one_epoch_adam(
+            params,
+            state,
+            np.zeros((4, 2), dtype=np.float32),
+            np.zeros((4, 1), dtype=np.float32),
+            learning_rate=1e-2,
+            batch_size=1,
+            rng=np.random.default_rng(0),
+            beta1=1.0,
+        )
+
+
+def test_adam_rejects_invalid_beta2() -> None:
+    """beta2 must lie strictly in (0, 1)."""
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    params = numpy_mlp_init_params((2, 1))
+    state = numpy_mlp_init_adam_state(params)
+    with pytest.raises(ValueError, match=r"beta2 must lie in"):
+        numpy_mlp_train_one_epoch_adam(
+            params,
+            state,
+            np.zeros((4, 2), dtype=np.float32),
+            np.zeros((4, 1), dtype=np.float32),
+            learning_rate=1e-2,
+            batch_size=1,
+            rng=np.random.default_rng(0),
+            beta2=0.0,
+        )
+
+
+def test_adam_rejects_non_positive_eps() -> None:
+    """eps must be > 0 (denominator floor)."""
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    params = numpy_mlp_init_params((2, 1))
+    state = numpy_mlp_init_adam_state(params)
+    with pytest.raises(ValueError, match=r"eps must be > 0"):
+        numpy_mlp_train_one_epoch_adam(
+            params,
+            state,
+            np.zeros((4, 2), dtype=np.float32),
+            np.zeros((4, 1), dtype=np.float32),
+            learning_rate=1e-2,
+            batch_size=1,
+            rng=np.random.default_rng(0),
+            eps=0.0,
+        )
+
+
+def test_adam_first_step_bias_corrects_to_unit_signal() -> None:
+    """After the very first step (t=1), the bias-corrected first moment
+    must equal the raw gradient (1 - beta1^1 = 1 - beta1, so m_hat
+    = m_1 / (1-beta1) = grad). Locks the Kingma & Ba bias-correction
+    formula at the t=1 boundary.
+    """
+    from workbench.app.nn import (
+        numpy_mlp_init_adam_state,
+        numpy_mlp_train_one_epoch_adam,
+    )
+
+    # Single-sample dataset + single-batch -> exactly one step.
+    x = np.array([[1.0]], dtype=np.float32)
+    y = np.array([[2.0]], dtype=np.float32)
+    params = NumpyMLPParams(
+        weights=[np.zeros((1, 1), dtype=np.float32)],
+        biases=[np.zeros((1,), dtype=np.float32)],
+        activation="relu",
+    )
+    state = numpy_mlp_init_adam_state(params)
+    numpy_mlp_train_one_epoch_adam(
+        params, state, x, y, learning_rate=1e-3, batch_size=1, rng=np.random.default_rng(0)
+    )
+    assert state.t == 1
+    # m_1 = (1-beta1) * grad -> m_hat_1 = m_1 / (1-beta1) = grad.
+    # Locked structurally: state.m_weights[0] / (1 - 0.9) ~ raw grad.
+    m_hat = state.m_weights[0] / np.float32(1.0 - 0.9)
+    # For this trivial setup the raw grad on the single weight equals
+    # 2 * (pred - y) / (1 * 1) * x = 2 * (0 - 2) * 1 = -4. The forward
+    # path uses ReLU which is linear at the all-zero pre-act, so the
+    # gradient flows unaltered. Lock the value.
+    assert float(m_hat[0, 0]) == pytest.approx(-4.0, rel=1e-6)
