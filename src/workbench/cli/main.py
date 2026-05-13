@@ -1,4 +1,4 @@
-"""TRsim CLI dispatch (Phase 3.7 + 4.1 + MVP wrap-up).
+"""TRsim CLI dispatch (Phase 3.7 + 4.1 + MVP wrap-up + A1-b).
 
 Subcommands:
 
@@ -8,6 +8,10 @@ Subcommands:
 - ``trsim profile --scenario <toml> [--frames N] [--output JSON]``:
   exercise the FrameProfiler over ``N`` synthetic frames, emit a
   per-stage avg / p50 / p95 / p99 report.
+- ``trsim train --job <training_job.toml> [--backend ...] [--seed N]``:
+  run a :class:`TrainerService` job from a plan/07 § 7.5.2 TOML so
+  training can happen outside the GUI (A1-b — Phase 6 NN
+  augmentation).
 - ``trsim ui [--workspace ...] [--no-dlc]``: launch the PySide6
   MainWindow with ``~/.trsim/`` packages + resources auto-loaded
   through :class:`workbench.ui.dlc_bootstrap.DLCRuntime`. Pass
@@ -98,6 +102,36 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         default=None,
         help="path to write a JSON profile report (default: stdout)",
+    )
+
+    train_p = sub.add_parser(
+        "train",
+        help="run a TrainerService job from a training_job.toml (A1-b)",
+    )
+    train_p.add_argument(
+        "--job",
+        required=True,
+        help="path to training_job.toml (plan/07 § 7.5.2 schema)",
+    )
+    train_p.add_argument(
+        "--backend",
+        choices=("auto", "fake", "numpy_mlp", "numpy_mlp_adam"),
+        default="auto",
+        help=(
+            "trainer backend; 'auto' derives from job.optimizer "
+            "(adam -> numpy_mlp_adam, else numpy_mlp). default: auto"
+        ),
+    )
+    train_p.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="rng seed for init + shuffle (default 0)",
+    )
+    train_p.add_argument(
+        "--output",
+        default=None,
+        help="optional path to write a per-epoch JSON metrics report",
     )
 
     ui_p = sub.add_parser("ui", help="launch the PySide6 MainWindow (Phase 4.1)")
@@ -201,6 +235,67 @@ def _cmd_profile(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_train(args: argparse.Namespace) -> int:
+    """`trsim train` — run a TrainerService job from a training_job.toml.
+
+    Loads the job via :func:`workbench.app.nn.trainer.load_training_job_from_toml`,
+    selects a backend (CLI --backend overrides; ``auto`` reads
+    ``job.optimizer``), and runs the trainer synchronously. Each epoch
+    is echoed to stdout; a final JSON summary is printed (and optionally
+    written to ``--output``).
+    """
+    from workbench.app.nn.trainer import (
+        TrainerService,
+        load_training_job_from_toml,
+        resolve_backend_from_optimizer,
+    )
+
+    job_path = Path(args.job).expanduser()
+    try:
+        job = load_training_job_from_toml(job_path)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    backend = (
+        resolve_backend_from_optimizer(job.optimizer) if args.backend == "auto" else args.backend
+    )
+
+    epoch_log: list[dict[str, float | int]] = []
+
+    def _on_epoch(epoch: int, train_loss: float, val_loss: float) -> None:
+        record = {"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss}
+        epoch_log.append(record)
+        print(json.dumps(record))
+
+    trainer = TrainerService(epoch_callback=_on_epoch, backend=backend, rng_seed=args.seed)
+    try:
+        result = trainer.run(job)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    summary = {
+        "job_id": result.job_id,
+        "backend": backend,
+        "completed_epochs": result.completed_epochs,
+        "final_train_loss": result.final_train_loss,
+        "final_val_loss": result.final_val_loss,
+        "best_val_loss": result.best_val_loss,
+        "best_epoch": result.best_epoch,
+        "early_stopped": result.early_stopped,
+        "weights_path": str(result.weights_path),
+        "epochs": epoch_log,
+    }
+    text = json.dumps(summary, indent=2)
+    if args.output:
+        Path(args.output).expanduser().write_text(text + "\n", encoding="utf-8")
+        print(f"training report written to {args.output}")
+    else:
+        print(text)
+    return 0
+
+
 def build_ui_window(args: argparse.Namespace) -> object:
     """Construct (but do not show / exec) the :class:`MainWindow`.
 
@@ -295,6 +390,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_run(args)
     if args.command == "profile":
         return _cmd_profile(args)
+    if args.command == "train":
+        return _cmd_train(args)
     if args.command == "ui":  # pragma: no cover — GUI loop
         return _cmd_ui(args)
     parser.print_help()

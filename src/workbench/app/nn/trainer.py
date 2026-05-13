@@ -29,10 +29,11 @@ References:
 
 from __future__ import annotations
 
+import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from numpy.typing import NDArray
@@ -427,3 +428,111 @@ def _resolve_layer_dims(job: TrainingJob, d_in: int, d_out: int) -> tuple[int, .
         return (d_in, d_out)
     hidden = job.layer_sizes[1:-1]
     return (d_in, *hidden, d_out)
+
+
+# ---------------------------------------------------------------------
+# TOML loader (A1-b — workbench-train CLI entry path)
+# ---------------------------------------------------------------------
+
+
+_TOML_REQUIRED_KEYS: frozenset[str] = frozenset({"job_id", "task", "dataset_path", "weights_path"})
+
+
+def load_training_job_from_toml(path: Path | str) -> TrainingJob:
+    """Read a ``training_job.toml`` (plan/07 § 7.5.2) into a
+    :class:`TrainingJob`. Validation defers to ``TrainingJob.__post_init__``.
+
+    Required keys: ``job_id``, ``task``, ``dataset_path``, ``weights_path``.
+    All other fields fall back to the dataclass defaults (Adam, layer
+    sizes (4, 64, 64, 2), etc.).
+
+    Path fields (``dataset_path``, ``weights_path``, ``metrics_path``) are
+    resolved relative to the TOML file's parent directory so a TOML
+    written next to a dataset still finds its companion file when invoked
+    from a different cwd.
+
+    Strips a UTF-8 BOM if present (PowerShell 5.1 ``Out-File -Encoding utf8``
+    artifact; same defence as ``domain/dlc/manifest.py``).
+
+    Args:
+        path: TOML file path.
+
+    Returns:
+        Validated :class:`TrainingJob`.
+
+    Raises:
+        FileNotFoundError: TOML file does not exist.
+        ValueError: TOML is not valid UTF-8, missing a required key, or
+            fails ``TrainingJob`` validation.
+    """
+    p = Path(path)
+    raw = p.read_bytes()
+    if raw.startswith(b"\xef\xbb\xbf"):
+        raw = raw[3:]
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        msg = f"training_job TOML at {p} is not valid UTF-8: {exc}"
+        raise ValueError(msg) from exc
+    try:
+        data: dict[str, Any] = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        msg = f"training_job TOML at {p} is not valid TOML: {exc}"
+        raise ValueError(msg) from exc
+
+    missing = _TOML_REQUIRED_KEYS - data.keys()
+    if missing:
+        msg = f"training_job TOML at {p} missing required keys: {sorted(missing)}"
+        raise ValueError(msg)
+
+    base_dir = p.parent
+
+    def _resolve_path(value: str) -> Path:
+        candidate = Path(value)
+        return candidate if candidate.is_absolute() else (base_dir / candidate).resolve()
+
+    kwargs: dict[str, Any] = {
+        "job_id": str(data["job_id"]),
+        "task": str(data["task"]),
+        "dataset_path": _resolve_path(str(data["dataset_path"])),
+        "weights_path": _resolve_path(str(data["weights_path"])),
+    }
+    if "train_fraction" in data:
+        kwargs["train_fraction"] = float(data["train_fraction"])
+    if "val_fraction" in data:
+        kwargs["val_fraction"] = float(data["val_fraction"])
+    if "architecture" in data:
+        kwargs["architecture"] = str(data["architecture"])
+    if "layer_sizes" in data:
+        kwargs["layer_sizes"] = tuple(int(v) for v in data["layer_sizes"])
+    if "activation" in data:
+        kwargs["activation"] = str(data["activation"])
+    if "framework" in data:
+        framework_value = str(data["framework"])
+        kwargs["framework"] = framework_value
+    if "optimizer" in data:
+        kwargs["optimizer"] = str(data["optimizer"])
+    if "learning_rate" in data:
+        kwargs["learning_rate"] = float(data["learning_rate"])
+    if "batch_size" in data:
+        kwargs["batch_size"] = int(data["batch_size"])
+    if "epochs" in data:
+        kwargs["epochs"] = int(data["epochs"])
+    if "early_stopping_patience" in data:
+        kwargs["early_stopping_patience"] = int(data["early_stopping_patience"])
+    if "metrics_path" in data:
+        kwargs["metrics_path"] = _resolve_path(str(data["metrics_path"]))
+
+    return TrainingJob(**kwargs)
+
+
+def resolve_backend_from_optimizer(optimizer: str) -> TrainingBackend:
+    """Map :attr:`TrainingJob.optimizer` to a TrainerService backend.
+
+    ``"adam"`` -> ``"numpy_mlp_adam"``; ``"sgd"`` -> ``"numpy_mlp"``.
+    Any other value falls back to ``"numpy_mlp"`` (plain SGD) so the
+    CLI still produces a real run instead of silently failing.
+    """
+    if optimizer == "adam":
+        return "numpy_mlp_adam"
+    return "numpy_mlp"
