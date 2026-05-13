@@ -19,16 +19,16 @@ from workbench.app.physics_lab.bouncing_ball import (
     analytic_peak_height_m,
 )
 from workbench.app.physics_lab.clock import ClockTick, PhysicsClock
-from workbench.app.physics_lab.learning_models import (
-    NumpyNNPhysicsModel,
-    PolynomialFitModel,
-)
 from workbench.app.physics_lab.discovery import (
     PHYSICS_MODEL_SLOT,
     DiscoveryError,
     DiscoveryResult,
     physics_models_from_loaded_plugins,
     register_discovered_physics_models,
+)
+from workbench.app.physics_lab.learning_models import (
+    NumpyNNPhysicsModel,
+    PolynomialFitModel,
 )
 from workbench.app.physics_lab.model_registry import (
     builtin_physics_models,
@@ -47,6 +47,11 @@ from workbench.app.physics_lab.parameter_fitter import (
     FitConfig,
     FitResult,
     fit_bouncing_ball,
+)
+from workbench.app.physics_lab.validation_runner import (
+    run_validation_for_model,
+    simulate_dynamic_for_validation,
+    sweep_static_for_validation,
 )
 
 __all__ = [
@@ -73,5 +78,8 @@ __all__ = [
     "register_discovered_physics_models",
     "register_physics_model",
     "registered_physics_models",
+    "run_validation_for_model",
+    "simulate_dynamic_for_validation",
+    "sweep_static_for_validation",
     "unregister_all_physics_models",
 ]

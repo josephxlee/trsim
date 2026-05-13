@@ -17,9 +17,32 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **Phase 9 M1 — Validation Bench 일반화 layer DONE (이 cycle)**.
+> 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗. 우선순위 리스트
+> 재정렬 (HIL 제외, physics_lab > simulator > editor 적용) → 1순위 =
+> Validation Bench 일반화. 신규
+> `app/physics_lab/validation_runner.py` — `simulate_dynamic_for_
+> validation` (dynamic 모델 step loop, x_field 기본 "time_s" + y_field
+> 매 step 수집) + `sweep_static_for_validation` (static 모델
+> params[x_field] override + compute({}) → y_field 추출) +
+> `run_validation_for_model` (model.time_mode 자동 dispatch + 5
+> validation: shape / ndim / empty / dt_s for dynamic / x_field for
+> static + dynamic max(measured_x)>0). 신규 `ValidationRun` frozen
+> dataclass (metrics + sim_x + sim_y) in `domain/physics_lab/
+> validation.py` — UI 가 한 번 호출로 metrics + overlay 둘 다 받음.
+> 17 신규 tests (GravityOnlyModel closed-form gravity / BouncingBall
+> Model bounce / FreeSpaceLossModel 20log10(4πR/λ) / dispatch / 7
+> error case / ValidationRun 묶음). BouncingBallController 의 기존
+> PL-9.2c 흐름은 손대지 않음 (regression 회피) — UI 통합은 후속 M2
+> sub-step. ruff clean; mypy --strict / pytest 는 사용자 PC verify
+> 대기 (sandbox 에 numpy/pytest 없음).
+>
+> **이 cycle 인계 예상 누적**: 2518 + 17 = 2535 PASS (사용자 PC verify
+> 후 확정).
+
 > **Phase 4 L1 — Simulator Run panel 실 sim_time / frame_id binding
-> DONE**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선순위
-> (사용자 "Simulation 가장 시급" 명시) 의 첫 sub-step.
+> DONE (직전 cycle)**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선
+> 순위 (사용자 "Simulation 가장 시급" 명시) 의 첫 sub-step.
 > ui/simulator/panels/run_panel.py 에 새 "Simulation Time" GroupBox
 > 추가 (sim_t / frame / state / speed 4 readout). 신규
 > ui/simulator/run_controller.py = `SimulatorRunController(QObject)`
@@ -1251,4 +1274,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 4 L1 (Simulator Run panel 실 sim_time) DONE, 2518 PASS. Simulator 8 panel 중 첫 실 데이터 binding.
+최근 갱신: 2026-05-13 — Phase 9 M1 (Validation Bench 일반화 layer) DONE. HIL 우선순위 제외 결정. UI 통합 (M2) 후속.

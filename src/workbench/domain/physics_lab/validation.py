@@ -47,6 +47,26 @@ class ValidationMetrics:
     pearson_correlation: float
 
 
+@dataclass(frozen=True, slots=True)
+class ValidationRun:
+    """Bundle of metrics + simulated curve from a Validation Bench run.
+
+    Wraps :class:`ValidationMetrics` together with the simulated
+    ``(sim_x, sim_y)`` arrays the runner produced, so UI callers can
+    score *and* render the overlay from a single object without doing a
+    second simulation pass.
+
+    Attributes:
+        metrics: Scalar comparison metrics.
+        sim_x: Simulation x-axis samples (e.g. ``time_s``, ``range_m``).
+        sim_y: Simulation y-axis samples (output state key per spec).
+    """
+
+    metrics: ValidationMetrics
+    sim_x: NDArray[np.float64]
+    sim_y: NDArray[np.float64]
+
+
 def compute_validation_metrics(
     measured_x: NDArray[np.float64],
     measured_y: NDArray[np.float64],
