@@ -217,6 +217,13 @@ class SimulatorWorkspace(QWidget):
             parent=self,
         )
 
+        # Phase 4 L3 — Fan the controller's per-tick (sim_t_s, frame_id)
+        # signal out to the FFT / RD / StageIO panels so their frame
+        # readouts move in lock-step with the Run panel. Future cycles
+        # will push real spectra / heatmaps / stage payloads on top of
+        # this same edge.
+        self._run_controller.tick_completed.connect(self._on_run_tick_completed)
+
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
     # ------------------------------------------------------------------
@@ -267,6 +274,23 @@ class SimulatorWorkspace(QWidget):
     def dlc_mount_errors(self) -> tuple[DLCMountError, ...]:
         """Tuple of DLC panels that failed to mount."""
         return tuple(self._dlc_mount_errors)
+
+    # ------------------------------------------------------------------
+    # Phase 4 L3 — Run-tick fan-out
+    # ------------------------------------------------------------------
+    def _on_run_tick_completed(self, sim_t_s: float, frame_id: int) -> None:
+        """Slot for :attr:`SimulatorRunController.tick_completed`.
+
+        ``sim_t_s`` is unused for now (RunPanel already paints it via
+        L1). The handler mirrors ``frame_id`` into the three downstream
+        panels that carry frame readouts. Spectra / heatmaps / stage
+        payloads come from later sub-steps; the connection itself is
+        the visible step.
+        """
+        del sim_t_s  # L3 only mirrors frame_id; later cycles use the time.
+        self._fft_panel.set_frame(frame_id)
+        self._range_doppler_panel.set_frame(frame_id)
+        self._stage_io_panel.set_frame(frame_id)
 
     # ------------------------------------------------------------------
     # Phase 4 L2 — PluginManager baseline population

@@ -112,7 +112,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
 | Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
 | Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
-| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run panel ✓ L1; PluginManager ✓ L2 built-in baseline registry; FFT / RD / Properties / StageIO placeholder) |
+| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run ✓ L1; PluginManager ✓ L2 baseline; FFT/RD/StageIO frame_label ✓ L3 controller tick fan-out; Properties placeholder) |
 | Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | △ (Phase 4.10 lazy create) |
 | Profiler panel (timing breakdown / scale indicator / report) | ✓ |
 | NN mode panels (Step 1 Dataset / Step 2 Eval / Training) | ✓ |
@@ -287,4 +287,5 @@ shell 만 (members 없음).
 - 2026-05-13 M2 — Phase 9 cycle: `BouncingBallController.run_validation_from_dataset` 가 `run_validation_for_model(BouncingBallModel(), ...)` 위임으로 refactor. obsolete `_simulate_for_validation` 제거. 1 parity regression test (controller path == direct layer call). Production code 에서 일반화 layer 첫 사용 — 임의-model UI selector 통합만 후속에 남음. plan/19 § 19.7.5+ ✗ → ✓.
 - 2026-05-13 M3 — Phase 9 cycle: `domain/physics_lab/validation_defaults.py` 신규 (`default_validation_fields` — 3 built-in 모델 매핑). PhysicsLabWorkspace 가 `LibraryWidget.physics_model_selected` 연결 + `_current_physics_model` track + `_on_measured_dataset_selected` 분기 (BouncingBall vs generic) + `_run_generic_validation` (defaults 룩업 + `run_validation_for_model` + `install_validation_overlay` + status bar 갱신). `BouncingBallController` 에 public `install_validation_overlay` 추가. 9 신규 tests (4 defaults helper + 5 workspace dispatch). 우선순위 #1 종결.
 - 2026-05-13 L2 — Phase 4 cycle: `ui/simulator/builtin_pipeline_plugins.py` 신규 (`BUILTIN_SIMULATOR_PLUGINS` 매핑, 5 stage curated baseline) + SimulatorWorkspace `_populate_builtin_pipeline_plugins` (init 후 PluginManager 채움). 5 신규 tests (전체 stage 매핑 / 중복 없음 / CFAR variant / Predictor·Classifier 빈 상태).
-**최종 갱신**: 2026-05-13 — Phase 4 L2 (PluginManager baseline) ✓.
+- 2026-05-13 L3 — Phase 4 cycle: SimulatorWorkspace `_on_run_tick_completed` 슬롯 (controller.tick_completed → FFT/RD/StageIO 의 `set_frame(frame_id)` fan-out). 5 신규 tests (defaults dash / 단일 tick / pause invariant / stop replay 1 부터 / 5 lock-step). Run panel + downstream panel frame_id 항상 일치 invariant.
+**최종 갱신**: 2026-05-13 — Phase 4 L3 (FFT/RD/StageIO frame_label sync) ✓.
