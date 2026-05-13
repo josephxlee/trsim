@@ -22,9 +22,12 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 
 ## 한 줄 요약
 
-**MVP frame (Phase 0~5) ✓** — 단 Phase 3/4 의 일부 secondary 모듈 미완.
-**MVP+α 4 wave**: Wave 1 (NN) frame ✓, Wave 2 (DLC) runtime ✓ CLI ✗,
-**Wave 3 (HIL) 전체 ✗**, Wave 4 (Physics Lab) ✓.
+**MVP frame (Phase 0~5) ✓** — Phase 3 의 Profile 모드 toggle (△) +
+Phase 4 의 실 데이터 binding (△ 골격만) 만 secondary 미완.
+**MVP+α 4 wave**: Wave 1 (NN) frame ✓ + Adam/CLI ✓ (Step 2 일부 △),
+Wave 2 (DLC) runtime ✓ + CLI ✓ + Plugins menu wiring ✓,
+**Wave 3 (HIL) 전체 ✗**, Wave 4 (Physics Lab) ✓ + 후속 polish (Library
+Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 
 ---
 
@@ -154,7 +157,6 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | **SDK: manifest.py** | △ (domain/dlc/manifest.py 에 있음, sdk/ 이동 고려) |
 | SDK: resource_schemas.py (`validate_resource_toml_blob`, 4 categories) | ✓ (C8) |
 | SDK: package_builder.py + `trsim sdk build` CLI | ✓ (C2) |
-| **SDK: package_validator.py** | **✗** |
 | SDK: test_harness.py + `trsim sdk test` CLI | ✓ (C3) |
 | SDK: package_validator.py (`validate_entry_point_slots` + curated KNOWN_ENTRY_POINT_SLOTS) | ✓ (C8) |
 | `trsim uninstall` CLI (`--package-id` + path-escape defence) | ✓ (C7) |
@@ -170,16 +172,18 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 
 ---
 
-## Phase 8 — HIL (Wave 3, v0.38) **전체 ✗**
+## Phase 8 — HIL (Wave 3, v0.38) **전체 ✗** (단 SDK Protocol stub 만 △)
 
-`app/hil/` 디렉토리만 빈 상태 (`__init__.py` 만).
+`app/hil/` + `domain/hil/` + `ui/simulator/hil_panel/` 모두 `__init__.py`
+만 (빈 디렉토리). `sdk/protocols.py` 에 `DUTAdapterProtocol` declaration
+shell 만 (members 없음).
 
 | 8.1 MVP HIL (TCP/JSON + L5 Track) | 상태 |
 |---|---|
 | domain/hil/dut_messages.py (DUTTrack L5 dataclass) | ✗ |
 | domain/hil/tx_signal.py (TXSignalDigital) | ✗ |
 | domain/hil/comparison.py (HILComparisonResult 3-way) | ✗ |
-| sdk/protocols.py 에 DUTAdapter Protocol (10번째, v0.39 lock-step) | ✗ |
+| sdk/protocols.py 에 DUTAdapter Protocol (10번째, v0.39 lock-step) | △ (class declaration + docstring 만 — `@runtime_checkable Protocol` shell, plan/18 § 18.7 의 메소드 시그니처 미선언) |
 | plugins_builtin/tcp_json_dut_adapter.py | ✗ |
 | app/hil/hil_evaluator.py (L5 비교) | ✗ |
 | app/hil/time_synchronizer.py (sim_time 모드) | ✗ |
@@ -201,7 +205,7 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | 9.1 MVP — 3-pane Workspace + 9 Test Objects + 4 time mode + Code Pane + Parameters | ✓ |
 | 9.2 — Measured Data + Papers Library + Validation Bench + Parameter Studio (scipy fit) | ✓ |
 | 9.3 — Code autocomplete + PhysicsModelProtocol (11번째 SDK) + NN-as-physics + Polynomial fit + Test Object plugin registry | ✓ |
-| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | △ (H1-H2 Library Models 동적 + I1-I2 PluginLoader `trsim.physics_model` 슬롯 + `app/physics_lab/discovery.py` ✓; Validation Bench 일반화 후속) |
+| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | △ (H1-H2 Library Models 동적 + I1-I2 PluginLoader `trsim.physics_model` 슬롯 + `app/physics_lab/discovery.py` + J1 MainWindow auto-register ✓; Validation Bench 일반화만 후속) |
 
 ---
 
@@ -210,17 +214,21 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 다음 작업 결정 시 이 매트릭스 참조. 사용자 우선순위 (변동 없음):
 **physics_lab > simulator > editor**.
 
+직전 2-day 자동 모드 끝 시점 — 9 cycle (E1-J1) 으로 우선순위
+1~3/5/6 모두 완료. 새 잔여 항목 리스트:
+
 | 우선 | 작업 | 크기 | 비고 |
 |---|---|---|---|
-| 1 | **Phase 6 NN 보강** (Adam / workbench-train CLI / Step 2 행) | 중 | 사용자 가시 UX, 작은 단위 분할 가능 |
-| 2 | **Phase 5 추가 후속** (5.7b / 5.8b / 5.11b / 5.12b / #18 / #19 재현성) | 소 | test-only, 안전, src 변경 0 |
-| 3 | **Phase 7 DLC CLI 완성** (sdk build / install / sdk test / io/package_io / package_manager_panel + sample DLC + tutorial) | 대 | DLC ecosystem 시작점 |
-| 4 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock |
-| 5 | **Phase 3 MVP 누락 4 모듈** (bundle_service / evaluator / physics_gate / io/dem_import) | 중 | "MVP" 정의에 포함된 항목 |
-| 6 | **Phase 4 UI domain_settings + installation_panel** (dem_import_wizard ✓) | 중 | Editor activity 완성에 필요 |
-| 7 | **Phase 4 UI 실 데이터 binding** (Editor 5 activity / Simulator 8 panel) | 대 | 골격 ✓, 후속 큰 작업 |
-| 8 | **Phase 9 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적) | 소-중 | 후속 polish |
-| 9 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능 |
+| 1 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock. `sdk/DUTAdapterProtocol` 만 ✓; `app/hil/` 비어있고 `domain/hil/` 도 비어있음. |
+| 2 | **Phase 4 UI 실 데이터 binding** (Editor 5 activity / Simulator 8 panel / Map Editor `set_map_bounds` wire) | 대 | 골격 ✓, 후속 큰 작업. 여러 cycle 분할 필요. G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비됨 — wiring 만 남음. |
+| 3 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연. |
+| 4 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
+| 5 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
+| 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | △ — domain dataclass 없음. CLI flag + runtime gating. |
+| 7 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
+| 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
+| 9 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
+| 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
 
 ---
 
@@ -269,3 +277,4 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 - 2026-05-13 I1 — Phase 9 cycle: PluginLoader `_PYTHON_IMPORT_EXACT_SLOTS` 신설, `trsim.physics_model` 등 9 singleton 슬롯 지원 (2468 → 2472 PASS).
 - 2026-05-13 I2 — Phase 9 cycle: `app/physics_lab/discovery.py` (LoadedPlugin → PhysicsModelProtocol → registry, bridge) (2472 → 2486 PASS). Phase 9 § 19.7.5+ Plugin discovery via PluginLoader ✗ → ✓.
 - 2026-05-13 J1 — Phase 9 cycle: MainWindow auto-register `trsim.physics_model` plug-ins → PhysicsLabWorkspace Library 표시 (2486 → 2490 PASS). H+I 결과 사용자 GUI visible.
+- 2026-05-13 cross-check retro-update — Phase 7 `SDK: package_validator.py | ✗` 행 (row 159 의 ✓ row 와 duplicate, 모순) 제거. § 한 줄 요약 갱신 (Wave 2 CLI ✗ → ✓). § 미구현 우선순위 리스트 9 → 10 행 재작성 (직전 1/2/3/5/6 다 완료 반영). Phase 9 § 19.7.5+ 행에 J1 추가. Phase 8 row 4 (DUTAdapter Protocol) ✗ → △ (declaration shell 만, members ✗).
