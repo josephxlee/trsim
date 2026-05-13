@@ -51,6 +51,7 @@ from workbench.ui.dlc_bootstrap import (
 from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
 from workbench.ui.editor.activity_pages import MapEditorPage, ScenarioComposerPage
+from workbench.ui.editor.composer import ScenarioComposerController
 from workbench.ui.editor.map_editor import DEMImportController
 from workbench.ui.editor.package_manager_dialog import PackageManagerController
 from workbench.ui.editor.workspace import EditorWorkspace
@@ -142,6 +143,17 @@ class MainWindow(QMainWindow):
                 composer_page.composer(),
                 self._dlc_runtime.app.resource_library,
             )
+
+        # Phase 9 cycle — Composer Validate button now produces real
+        # status feedback via the new controller (combo shape check).
+        # Wired unconditionally so tests / users without a dlc_runtime
+        # still see validation status when clicking Validate.
+        composer_page = self._editor_page().page(Activity.COMPOSER)
+        assert isinstance(composer_page, ScenarioComposerPage)
+        self._composer_controller = ScenarioComposerController(
+            composer=composer_page.composer(),
+            parent=self,
+        )
 
         # Wire the DEM Import wizard so the MapEditor's "Import DEM..."
         # button opens it (Phase 4 dem_import_wizard E4).
