@@ -322,6 +322,41 @@ class SimulatorWorkspace(QWidget):
         self._fft_panel.set_frame(frame_id)
         self._range_doppler_panel.set_frame(frame_id)
         self._stage_io_panel.set_frame(frame_id)
+        # Phase 4 L5 — paint a deterministic placeholder summary into
+        # each of the 6 Stage I/O boxes. The text encodes ``frame_id``
+        # so users can confirm the boxes refresh in lock-step with the
+        # other panels. Real per-stage payload strings come from a
+        # later cycle once an actual pipeline runs.
+        self._stage_io_panel.set_stage_io(
+            "Transmitter",
+            in_text=f"scenario @ frame={frame_id}",
+            out_text=f"FMCW chirp #{frame_id}",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Environment",
+            in_text="tx signal",
+            out_text=f"rx signal @ t={sim_t_s:.3f}s",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Receiver",
+            in_text="rx signal",
+            out_text=f"beats #{frame_id}",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Detector",
+            in_text=f"beats #{frame_id}",
+            out_text="(pipeline pending)",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Pairing",
+            in_text="(pipeline pending)",
+            out_text="(pipeline pending)",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Tracker",
+            in_text="(pipeline pending)",
+            out_text="(pipeline pending)",
+        )
         if not self._properties_owned_by_selection:
             clock = self._run_controller.clock
             self._properties_panel.show_object(
