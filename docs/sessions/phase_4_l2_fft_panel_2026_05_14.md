@@ -6,7 +6,7 @@
 
 ## 0. 한 줄 요약
 
-- HEAD = (이 cycle commit).
+- HEAD = `0d6b8db` (L2).
 - 누적 **2559 PASS** local (2518 → 2559, **+41 신규**).
 - 5 contracts KEPT. ruff / mypy --strict / import-linter all clean.
 - 1 sub-step direct push origin/main.
@@ -59,5 +59,5 @@ L3 가 가장 자연 — L2 의 mock generator + controller 패턴 그대로 재
 ## 6. 이 cycle commit (origin/main)
 
 ```
-(이 commit hash) feat(ui): Phase 4 L2 - Simulator FFT panel pyqtgraph live spectrum
+0d6b8db feat(ui): Phase 4 L2 - Simulator FFT panel pyqtgraph live spectrum
 ```
