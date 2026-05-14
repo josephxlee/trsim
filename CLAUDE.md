@@ -17,26 +17,35 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 4 L2 — Simulator FFT panel pyqtgraph live spectrum DONE**.
-> plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선순위 (사용자
-> "Simulation 가장 시급" 명시) 의 두 번째 sub-step. Simulator 8 panel
-> 중 두 번째 panel 이 실 데이터 받음. 신규 app/simulator/mock_spectrum.
-> py — `MockSpectrumGenerator` (deterministic sim_t_s → up/down sweep
-> beat spectrum, sinusoidal peak motion, Gaussian noise quantised by
-> sim_t_s ^ rng_seed) + `MockSpectrumFrame` frozen dataclass. 갱신
-> ui/simulator/panels/fft_panel.py — placeholder QFrame 제거 후 `pg.
-> PlotWidget` 임베드 + 2 PlotDataItem (up=red, down=blue) + 2
-> InfiniteLine peak markers (DashLine, hidden by default) +
-> `set_spectrum / set_peak_freqs / clear_peak_freqs`. Phase 4.9 헤더
-> API (set_frame / set_peak_counts) 보존. 신규 ui/simulator/
-> fft_controller.py = `SimulatorFFTController(QObject)` —
-> run_controller.tick_completed → generator.spectrum_for → panel push
-> + enabled toggle + `paint_for(sim_t_s, frame_id)` headless 진입점.
-> SimulatorWorkspace 가 RunController 직후 FFTController 자동
-> 인스턴스화 + `fft_controller()` accessor. 누적 **2559 PASS** (+41
-> 신규 in this cycle: 21 mock_spectrum + 10 fft_panel + 10
-> fft_controller/workspace), 5 contracts KEPT. ruff / mypy --strict /
+> **Phase 4 L3 — Simulator RD panel pyqtgraph live heatmap DONE**.
+> L2 (FFT) 직후 Simulator 8 panel 중 세 번째 panel 이 실 데이터 받음.
+> 신규 app/simulator/mock_range_doppler.py — `MockRangeDopplerGenerator`
+> (deterministic sim_t_s → 2-D Gaussian heatmap, range/doppler 두
+> 독립 sinusoid → Lissajous-like trajectory, Gaussian noise quantised
+> by sim_t_s ^ rng_seed) + `MockRangeDopplerFrame` frozen dataclass.
+> 갱신 ui/simulator/panels/range_doppler_panel.py — placeholder QFrame
+> 제거 후 `pg.PlotWidget` + `pg.ImageItem` row-major + viridis LUT +
+> ``setRect`` axis calibration ([m] vs [m/s]) + 2 InfiniteLine
+> cross-hair (vertical doppler + horizontal range, DashLine) +
+> `set_heatmap(heatmap_db, range_axis_m, doppler_axis_mps, *,
+> levels_db)` + `set_peak / clear_peak`. Phase 4.9 header API
+> (set_frame) 보존. 신규 ui/simulator/rd_controller.py =
+> `SimulatorRDController(QObject)` — L2 의 FFTController 패턴 그대로
+> 재활용 (tick_completed → generator.heatmap_for → panel push +
+> enabled toggle + paint_for headless 진입점). SimulatorWorkspace 가
+> FFTController 직후 RDController 자동 인스턴스화 + `rd_controller()`
+> accessor. 누적 **2607 PASS** (+48 신규 in this cycle: 26
+> mock_range_doppler + 12 range_doppler_panel + 10
+> rd_controller/workspace), 5 contracts KEPT. ruff / mypy --strict /
 > import-linter all clean.
+
+> **Phase 4 L2 — Simulator FFT panel pyqtgraph live spectrum DONE —
+> 1 sub-step (직전 cycle)**. app/simulator/mock_spectrum.py 신규
+> (`MockSpectrumGenerator` deterministic sim_t_s → up/down sweep) +
+> fft_panel.py 가 pg.PlotWidget + 2 PlotDataItem + 2 InfiniteLine
+> peak marker + set_spectrum/set_peak_freqs API + fft_controller.py
+> 신규 (`SimulatorFFTController` tick_completed wiring) + workspace
+> 자동 wiring. 누적 2518 → 2559 PASS (+41).
 
 > **Phase 4 L1 — Simulator Run panel 실 sim_time / frame_id binding
 > DONE — 1 sub-step (직전 cycle)**. ui/simulator/panels/run_panel.py
@@ -85,28 +94,43 @@
 > Domain Override block + `CoverageStats` frozen dataclass (G4).
 > 누적 2360 → 2434 PASS (+74).
 >
-> **이 cycle 인계**: `docs/sessions/phase_4_l2_fft_panel_2026_05_14.md`.
-> 직전 cycle 인계: `docs/sessions/phase_4_l1_run_panel_2026_05_13.md`.
+> **이 cycle 인계**: `docs/sessions/phase_4_l3_rd_panel_2026_05_14.md`.
+> 직전 cycle 인계: `docs/sessions/phase_4_l2_fft_panel_2026_05_14.md`,
+> `docs/sessions/phase_4_l1_run_panel_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
 > **physics_lab > simulator > editor** — Simulator 8 panel 중 Run + FFT
-> ✓; 다음 cycle 후보: L3 RD panel range-doppler heatmap (중) / L4 Scene
-> 3D PyVista lazy create (큼) / L5+L6 (Properties / ScopePOV / PluginMgr
-> stage / StageIO record).
+> + RD ✓; 다음 cycle 후보: L4 Scene 3D PyVista lazy create (큼) /
+> L5+L6 (Properties / ScopePOV / PluginMgr stage / StageIO record, 중).
 
-- **Phase 4 cycle (L2) 1 sub-step (이 cycle)** — Simulator 8 panel 중
-  두 번째 panel (FFT) 가 처음으로 실 데이터 받음. RunController.
-  tick_completed → mock generator → panel push 연결. 누적 +41 tests.
+- **Phase 4 cycle (L3) 1 sub-step (이 cycle)** — Simulator 8 panel 중
+  세 번째 panel (RD) 가 처음으로 실 데이터 받음. L2 의 FFTController
+  패턴 그대로 재활용 (mock generator + tick_completed wiring). 누적
+  +48 tests.
 
   | sub | commit | new | 내용 |
   |---|---|---|---|
-  | L2 | (이 cycle) | +41 | `app/simulator/mock_spectrum.py` 신규 (`MockSpectrumGenerator` deterministic + `MockSpectrumFrame`) + `panels/fft_panel.py` pyqtgraph PlotWidget + 2 PlotDataItem + 2 InfiniteLine peak marker + `set_spectrum / set_peak_freqs / clear_peak_freqs` + `ui/simulator/fft_controller.py` 신규 (`SimulatorFFTController` tick_completed wire + enabled toggle + paint_for) + SimulatorWorkspace 자동 wiring + `fft_controller()` accessor |
+  | L3 | (이 cycle) | +48 | `app/simulator/mock_range_doppler.py` 신규 (`MockRangeDopplerGenerator` deterministic 2-D Gaussian + Lissajous trajectory + `MockRangeDopplerFrame`) + `panels/range_doppler_panel.py` pyqtgraph PlotWidget + ImageItem (row-major + viridis LUT + setRect axis calibration) + 2 InfiniteLine cross-hair + `set_heatmap / set_peak / clear_peak` + `ui/simulator/rd_controller.py` 신규 (`SimulatorRDController` tick_completed wire + paint_for) + SimulatorWorkspace 자동 wiring + `rd_controller()` accessor |
 
-  학습 (2개):
+  학습 (1개):
+  - **pyqtgraph ImageItem.boundingRect() 가 local pixel rect 반환** —
+    `setRect(x, y, w, h)` 는 QTransform 으로 pixel → data 좌표 매핑.
+    boundingRect() 만 보면 (0,0,n_cols,n_rows). 데이터 좌표 검증은
+    `item.mapRectToParent(item.boundingRect())` 또는
+    `mapRectToView()` 로 변환 후 확인 필요.
+
+- **Phase 4 cycle (L2) 1 sub-step (직전 cycle)** — Simulator 8 panel 중
+  두 번째 panel (FFT) 가 처음으로 실 데이터 받음. 누적 +41 tests.
+
+  | sub | commit | new | 내용 |
+  |---|---|---|---|
+  | L2 | `0d6b8db` | +41 | `app/simulator/mock_spectrum.py` 신규 (`MockSpectrumGenerator` deterministic + `MockSpectrumFrame`) + `panels/fft_panel.py` pyqtgraph PlotWidget + 2 PlotDataItem + 2 InfiniteLine peak marker + `set_spectrum / set_peak_freqs / clear_peak_freqs` + `ui/simulator/fft_controller.py` 신규 (`SimulatorFFTController` tick_completed wire + enabled toggle + paint_for) + SimulatorWorkspace 자동 wiring + `fft_controller()` accessor |
+
+  학습 (2개, 직전 cycle):
   - **PySide6 ``QPen.setStyle`` raw int 거부** — `pyqtgraph.mkPen(...,
     style=2)` 가 PySide6 6.11 strict-typed signature 에 의해 `TypeError`.
-    `Qt.PenStyle.DashLine` (또는 `SolidLine`/`DotLine` 등) enum 사용 필수.
-  - **ruff RUF046** — Python 3 `round()` 는 이미 int 반환. `int(round(x))`
-    는 redundant cast — `round(x * 1.0e6)` 로 충분.
+    `Qt.PenStyle.DashLine` 등 enum 필수.
+  - **ruff RUF046** — Python 3 `round()` 는 이미 int 반환.
+    `int(round(x))` 는 redundant cast.
 
 - **Phase 4 cycle (L1) 1 sub-step (직전 cycle)** — Simulator Run panel
   이 처음으로 실 데이터 (SimulationClock state) 받음. 사용자
@@ -1279,4 +1303,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-14 — Phase 4 L2 (Simulator FFT panel pyqtgraph live spectrum) DONE, 2559 PASS. Simulator 8 panel 중 두 번째 실 데이터 binding.
+최근 갱신: 2026-05-14 — Phase 4 L3 (Simulator RD panel pyqtgraph live heatmap) DONE, 2607 PASS. Simulator 8 panel 중 세 번째 실 데이터 binding.

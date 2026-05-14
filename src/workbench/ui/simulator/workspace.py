@@ -56,6 +56,7 @@ from workbench.ui.simulator.panels import (
     StageIOPanel,
 )
 from workbench.ui.simulator.profiler_panel import ProfilerPanel
+from workbench.ui.simulator.rd_controller import SimulatorRDController
 from workbench.ui.simulator.run_controller import SimulatorRunController
 from workbench.ui.widgets import DetachableTabWidget
 
@@ -222,6 +223,16 @@ class SimulatorWorkspace(QWidget):
             parent=self,
         )
 
+        # Phase 4 L3 — Range-Doppler panel live heatmap binding. Same
+        # tick_completed wiring as L2; the deterministic
+        # ``MockRangeDopplerGenerator`` paints a 2-D Gaussian blob that
+        # moves along range + doppler axes over sim time.
+        self._rd_controller = SimulatorRDController(
+            rd_panel=self._range_doppler_panel,
+            run_controller=self._run_controller,
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
     # ------------------------------------------------------------------
@@ -314,6 +325,9 @@ class SimulatorWorkspace(QWidget):
 
     def fft_controller(self) -> SimulatorFFTController:
         return self._fft_controller
+
+    def rd_controller(self) -> SimulatorRDController:
+        return self._rd_controller
 
     def sim_play(self) -> None:
         """Toolbar / hook entry — start simulation clock."""

@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-14 — Phase 4 L2 (Simulator FFT panel pyqtgraph live spectrum) 완료 후.
-**누적 test**: 2559 PASS local, 5 contracts KEPT.
-**HEAD**: L2 Simulator FFT panel 의 pyqtgraph 통합 + MockSpectrumGenerator + SimulatorFFTController — RunController.tick_completed 마다 up/down sweep 곡선 + peak marker live repaint.
+**최종 갱신**: 2026-05-14 — Phase 4 L3 (Simulator RD panel pyqtgraph live heatmap) 완료 후.
+**누적 test**: 2607 PASS local, 5 contracts KEPT.
+**HEAD**: L3 Simulator Range-Doppler panel 의 pyqtgraph ImageItem 통합 + MockRangeDopplerGenerator + SimulatorRDController — RunController.tick_completed 마다 2-D 색맵 + peak cross-hair live repaint.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -112,7 +112,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
 | Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
 | Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
-| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run panel ✓ L1; FFT panel = pyqtgraph 2-curve + peak markers + MockSpectrumGenerator live binding ✓ L2; 나머지 4 panel placeholder) |
+| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run ✓ L1; FFT ✓ L2; RD panel = pyqtgraph ImageItem + viridis LUT + peak cross-hair + MockRangeDopplerGenerator live binding ✓ L3; 나머지 3 panel placeholder) |
 | Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | △ (Phase 4.10 lazy create) |
 | Profiler panel (timing breakdown / scale indicator / report) | ✓ |
 | NN mode panels (Step 1 Dataset / Step 2 Eval / Training) | ✓ |
@@ -280,3 +280,4 @@ shell 만 (members 없음).
 - 2026-05-13 cross-check retro-update — Phase 7 `SDK: package_validator.py | ✗` 행 (row 159 의 ✓ row 와 duplicate, 모순) 제거. § 한 줄 요약 갱신 (Wave 2 CLI ✗ → ✓). § 미구현 우선순위 리스트 9 → 10 행 재작성 (직전 1/2/3/5/6 다 완료 반영). Phase 9 § 19.7.5+ 행에 J1 추가. Phase 8 row 4 (DUTAdapter Protocol) ✗ → △ (declaration shell 만, members ✗).
 - 2026-05-13 L1 — Phase 4 cycle: Simulator Run panel 실 sim_time/frame_id binding + `SimulatorRunController` (16ms QTimer + SimulationClock) + MainWindow sim.start/pause/stop/speed hooks (2490 → 2518 PASS). Simulator Run panel 실 데이터 binding ✗ → ✓.
 - 2026-05-14 L2 — Phase 4 cycle: Simulator FFT panel pyqtgraph 통합 (2 curve up/down sweep + InfiniteLine peak markers) + `app/simulator/mock_spectrum.py` (`MockSpectrumGenerator` deterministic sim_t_s → 곡선) + `SimulatorFFTController` (RunController.tick_completed → mock generator → panel) + SimulatorWorkspace 자동 wiring (2518 → 2559 PASS). Simulator FFT panel 실 데이터 binding ✗ → ✓.
+- 2026-05-14 L3 — Phase 4 cycle: Simulator Range-Doppler panel pyqtgraph 통합 (`pg.ImageItem` row-major + viridis LUT + InfiniteLine cross-hair + axis 캘리브레이션 via `setRect`) + `app/simulator/mock_range_doppler.py` (`MockRangeDopplerGenerator` deterministic + 2-D Gaussian peak, Lissajous trajectory) + `SimulatorRDController` (tick_completed → heatmap_for → panel) + SimulatorWorkspace 자동 wiring (2559 → 2607 PASS). Simulator RD panel 실 데이터 binding ✗ → ✓.
