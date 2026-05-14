@@ -17,20 +17,25 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 4 UI 실 데이터 binding sweep DONE — 8 sub-step 묶음**.
-> L1 (Run panel sim_t/frame_id, `25db1ae`) → L2 (FFT pyqtgraph,
-> `0d6b8db`) → L3 (RD pyqtgraph ImageItem, `24d1894`) → L4 (Scene 3D
-> PyVista lazy + `enable_3d_viewer` headless toggle + `trsim ui
-> --no-3d-viewer`, `49cc19f`) → L5 (PluginMgr default seed + StageIO
-> mock + Record log, `2c316bc`) → L6 (Scope POV cross-hair + Properties
-> primary-target form, `e3ec01f`) → M1 (DEMImportController →
-> set_map_bounds auto-wire) → M2 (`ComposerInstallationController` —
-> position_changed → mock probe → set_terrain_altitude +
-> set_coverage_stats). Simulator 8 panel 전체 live binding + Editor
-> Map Editor / Composer 실 readout live. 모든 controller 가 동일
-> `tick_completed → generator.X_for → panel.set_X` 패턴. 누적
-> **2707 PASS** (+189 신규 across 8 sub-step), 5 contracts KEPT.
-> ruff / mypy --strict / import-linter all clean.
+> **TRsim MVP 본격 완성 — P1~P8 8 sub-step**. 사용자 결정 "HIL은
+> post-MVP, MVP 완성 우선" 후, P1 (HIL placeholder lock, `cfd7fe8`)
+> → P2 (Validation Bench generalization, `1632246`) → P3 (Phase 3
+> Profile mode toggle Q4, `31ea90b`) → P4 (Phase 5 #18/#19
+> reproducibility, `7c6d6db`) → P5 (arrow-key manual pointing,
+> `e8849c8`) → P6 (A1-c + A1-d stub lock, `9437320`) → P7 (Editor
+> preview 3종 — Radar/Targets/Atmosphere, `bdd01ea`) → P8 (SDK
+> manifest 이동 domain/dlc → sdk, `d25f27e`). 누적 **2790 PASS**
+> (+83 신규 across 8 sub-step), 5 contracts KEPT. ruff / mypy
+> --strict / import-linter all clean. 잔여 active 항목: Polish
+> (deferrable). Post-MVP punch list: Phase 8 HIL / Pipeline real
+> binding / NN per-category real loss. 인계 = `docs/sessions/
+> mvp_completion_2026_05_14.md`.
+
+> **Phase 4 UI 실 데이터 binding sweep DONE — 8 sub-step 묶음 (직전
+> cycle)**. L1 (Run, `25db1ae`) → L2 (FFT, `0d6b8db`) → L3 (RD,
+> `24d1894`) → L4 (Scene 3D lazy + headless, `49cc19f`) → L5
+> (PluginMgr + StageIO, `2c316bc`) → L6 (Scope + Properties,
+> `e3ec01f`) → M1+M2 (Editor binding, `d951e23`). 누적 +189 tests.
 
 > **Phase 4 L3 — Simulator RD panel pyqtgraph live heatmap DONE —
 > 1 sub-step (직전 cycle 묶음)**. mock_range_doppler.py + range_
@@ -1302,4 +1307,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-14 — Phase 4 UI 실 데이터 binding sweep (L1~L6 + M1+M2) **마감**. 2707 PASS. Simulator 8 panel 전체 + Editor Map/Composer live readout.
+최근 갱신: 2026-05-14 — **TRsim MVP 본격 완성** (P1~P8 8 sub-step). 2790 PASS. HIL post-MVP placeholder 로 분리, 모든 active 잔여 ✓. 다음: Polish (deferrable) 또는 사용자 신호 후 post-MVP lane (HIL / Pipeline real / NN per-category real).
