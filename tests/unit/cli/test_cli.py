@@ -152,3 +152,96 @@ def test_profile_command_zero_frames_rejected(
     assert rc == 2
     err = capsys.readouterr().err
     assert "frames" in err
+
+
+# ---------------------------------------------------------------------
+# Phase 3 Q4 — Profile mode toggle
+# ---------------------------------------------------------------------
+
+
+def test_profile_command_default_mode_is_live(tmp_path: Path) -> None:
+    """When --mode is omitted the payload records 'live' + every frame."""
+    out = tmp_path / "p.json"
+    rc = main(["profile", "--scenario", "S", "--frames", "5", "--output", str(out)])
+    assert rc == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["mode"] == "live"
+    assert payload["recorded_frames"] == 5
+
+
+def test_profile_command_mode_off_records_zero_frames(tmp_path: Path) -> None:
+    out = tmp_path / "p.json"
+    rc = main(
+        [
+            "profile",
+            "--scenario",
+            "S",
+            "--frames",
+            "10",
+            "--mode",
+            "off",
+            "--output",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["mode"] == "off"
+    assert payload["recorded_frames"] == 0
+    # No probe ever ran -> no stage reports.
+    assert payload["reports"] == []
+
+
+def test_profile_command_mode_explicit_records_every_nth_frame(
+    tmp_path: Path,
+) -> None:
+    out = tmp_path / "p.json"
+    rc = main(
+        [
+            "profile",
+            "--scenario",
+            "S",
+            "--frames",
+            "20",
+            "--mode",
+            "explicit",
+            "--explicit-every",
+            "5",
+            "--output",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["mode"] == "explicit"
+    # Frames 0, 5, 10, 15 -> 4 recorded.
+    assert payload["recorded_frames"] == 4
+
+
+def test_profile_command_explicit_every_zero_rejected(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    rc = main(
+        [
+            "profile",
+            "--scenario",
+            "S",
+            "--frames",
+            "5",
+            "--mode",
+            "explicit",
+            "--explicit-every",
+            "0",
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "explicit-every" in err
+
+
+def test_profile_command_rejects_unknown_mode(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """argparse choices= raises SystemExit on a bad value."""
+    with pytest.raises(SystemExit):
+        main(["profile", "--scenario", "S", "--frames", "1", "--mode", "verbose"])

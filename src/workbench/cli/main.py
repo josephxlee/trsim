@@ -39,6 +39,7 @@ from workbench import __version__
 from workbench.app.resource_library import ResourceLibrary
 from workbench.app.timing.frame_profiler import FrameProfiler
 from workbench.app.timing.stage_timing_probe import StageTimingProbe
+from workbench.domain.timing import ProfileGate, ProfileMode
 from workbench.domain.types import RunTerminationReason
 from workbench.io.run_storage import (
     ResourceRefs,
@@ -102,6 +103,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         default=None,
         help="path to write a JSON profile report (default: stdout)",
+    )
+    profile_p.add_argument(
+        "--mode",
+        choices=("off", "explicit", "live"),
+        default="live",
+        help=(
+            "Phase 3 Profile mode (plan/03 § 3.5.0c). 'live' (default) "
+            "records every frame; 'explicit' records every Nth frame "
+            "via the gate's one-shot latch (use --explicit-every); "
+            "'off' disables the profiler entirely."
+        ),
+    )
+    profile_p.add_argument(
+        "--explicit-every",
+        type=int,
+        default=10,
+        help=(
+            "When --mode=explicit, arm the gate every Nth frame "
+            "(default 10). Ignored for the other modes."
+        ),
     )
 
     train_p = sub.add_parser(
@@ -277,23 +298,47 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_profile(args: argparse.Namespace) -> int:
-    """`trsim profile` — exercise FrameProfiler synthetically."""
+    """`trsim profile` — exercise FrameProfiler synthetically.
+
+    The Phase 3 Q4 ``--mode`` flag (plan/03 § 3.5.0c) gates which
+    frames are recorded. ``live`` (default) records every frame;
+    ``explicit`` arms the gate every Nth frame; ``off`` disables
+    recording entirely. The synthetic workload still runs in every
+    mode so the runtime cost of the gate itself is observable.
+    """
     if args.frames < 1:
         print("error: --frames must be >= 1", file=sys.stderr)
         return 2
+    if args.explicit_every < 1:
+        print("error: --explicit-every must be >= 1", file=sys.stderr)
+        return 2
+    mode = ProfileMode(args.mode)
+    gate = ProfileGate(mode=mode)
     profiler = FrameProfiler()
-    for _ in range(args.frames):
-        with StageTimingProbe(profiler, stage_name="detector"):
-            # Synthetic 0.5 ms work — Python loop short-circuit so it's
-            # cheap on CI but produces non-zero samples.
+    n_recorded = 0
+    for frame_idx in range(args.frames):
+        if mode is ProfileMode.EXPLICIT and frame_idx % args.explicit_every == 0:
+            gate.allow_next_frame()
+        if gate.should_record():
+            with StageTimingProbe(profiler, stage_name="detector"):
+                # Synthetic 0.5 ms work — Python loop short-circuit so
+                # it's cheap on CI but produces non-zero samples.
+                sum(range(50))
+            with StageTimingProbe(profiler, stage_name="tracker"):
+                sum(range(20))
+            n_recorded += 1
+        else:
+            # Run the same workload without timing probes so the wall
+            # cost stays comparable across modes.
             sum(range(50))
-        with StageTimingProbe(profiler, stage_name="tracker"):
             sum(range(20))
 
     reports = [asdict(r) for r in profiler.report_all()]
     payload = {
         "scenario": args.scenario,
         "frames": args.frames,
+        "mode": mode.value,
+        "recorded_frames": n_recorded,
         "reports": reports,
     }
     text = json.dumps(payload, indent=2)
