@@ -109,7 +109,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ |
 | **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4, MVP 4-page distillation: Source/Land-Sea/Output/Summary) |
 | **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | ✓ (G1-G3, dataclass + `DomainSettingsPanel` widget + Map Editor QTabWidget mount as "Domain" tab; live data binding via `set_map_bounds` is later cycle) |
-| Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
+| Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ (widget ✓ + `RadarEditorController` (parabolic/planar live computed-values: Az BW / El BW / Peak gain via `physics.antenna` helpers, 매 field edit 갱신) ✓; Save/Validate + 실 ScenarioService 연동 미) |
 | Targets Editor widget skeleton (메타 + Trajectory Preview) | △ (widget + Validate button → `TargetsEditorController` (name/motion/RCS/scatterers shape check, OK/WARN/ERROR status) ✓; trajectory CSV / preview / save 미) |
 | Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
 | Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run ✓ L1; PluginManager ✓ L2 baseline; FFT/RD/StageIO frame_label ✓ L3 fan-out; Properties ✓ L4 snapshot + selection pin; StageIO 6 box IN/OUT ✓ L5 deterministic placeholder text. FFT spectrum / RD heatmap data binding은 실 pipeline 후 후속.) |
@@ -299,4 +299,5 @@ shell 만 (members 없음).
 - 2026-05-13 Editor Composer dropdown wiring — `populate_composer_options_from_library` 신규 헬퍼 + MainWindow 가 dlc_runtime 있을 때 `populate_resource_browser_from_library` 옆에서 같이 호출. Composer 의 Map / Radar / Targets 콤보가 처음으로 실 ResourceLibrary 항목으로 채워짐. 3 신규 tests (빈 library / 3 카테고리 round-trip / scenarios 무시).
 - 2026-05-13 Editor Composer validation controller — `ui/editor/composer/controller.py` 신규 (`ScenarioComposerController`). MainWindow 가 dlc_runtime 무관 wire. `validate_requested` 신호 받아 combo shape check + OK/WARN/ERROR 분류 + `set_validation(status, messages)` 호출. 5 신규 tests (OK / Map 누락 ERROR / Radar 누락 ERROR / targets 만 누락 WARN / signal end-to-end).
 - 2026-05-14 Editor TargetsEditor validation controller — `ui/editor/targets_editor/controller.py` 신규 (`TargetsEditorController`). TargetsEditor 에 `rcs_edit()` / `scatterers_edit()` accessor 추가. MainWindow 에서 wire. shape check (name/motion/RCS/scatterers) + OK/WARN/ERROR + `set_validation_status` 호출. 8 신규 tests.
-**최종 갱신**: 2026-05-14 — Composer + Targets validation controllers ✓.
+- 2026-05-14 Editor RadarEditor live computed-values controller — `ui/editor/radar_editor/controller.py` 신규 (`RadarEditorController`). RadarEditor 에 carrier/bandwidth/sweep/power/beamwidth/peak_gain 7 accessor 추가. carrier / antenna form 필드 editingFinished 마다 refresh — parabolic 은 `parabolic_beamwidth_3db_deg` / `parabolic_peak_gain_dbi` 사용, planar array 는 0.886λ/aperture + N_az×N_el + cos element 3 dB bonus. MainWindow 에서 wire. 9 신규 tests.
+**최종 갱신**: 2026-05-14 — Composer + Targets + Radar editor controllers ✓.

@@ -13,10 +13,11 @@ preset library.
 
 from __future__ import annotations
 
+from workbench.ui.editor.radar_editor.controller import RadarEditorController
 from workbench.ui.editor.radar_editor.widget import (
     AntennaType,
     RadarEditor,
     RXChannelMode,
 )
 
-__all__ = ["AntennaType", "RXChannelMode", "RadarEditor"]
+__all__ = ["AntennaType", "RXChannelMode", "RadarEditor", "RadarEditorController"]

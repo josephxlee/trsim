@@ -52,13 +52,15 @@ from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
 from workbench.ui.editor.activity_pages import (
     MapEditorPage,
+    RadarEditorPage,
     ScenarioComposerPage,
     TargetsEditorPage,
 )
 from workbench.ui.editor.composer import ScenarioComposerController
-from workbench.ui.editor.targets_editor import TargetsEditorController
 from workbench.ui.editor.map_editor import DEMImportController
 from workbench.ui.editor.package_manager_dialog import PackageManagerController
+from workbench.ui.editor.radar_editor import RadarEditorController
+from workbench.ui.editor.targets_editor import TargetsEditorController
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_menu import MainMenuBar
 from workbench.ui.physics_lab import PhysicsLabWorkspace
@@ -164,6 +166,14 @@ class MainWindow(QMainWindow):
         assert isinstance(targets_page, TargetsEditorPage)
         self._targets_controller = TargetsEditorController(
             editor=targets_page.targets_editor(),
+            parent=self,
+        )
+        # Radar Activity live computed-values strip (beamwidth + peak
+        # gain). Refreshes on every relevant field edit.
+        radar_page = self._editor_page().page(Activity.RADAR)
+        assert isinstance(radar_page, RadarEditorPage)
+        self._radar_controller = RadarEditorController(
+            editor=radar_page.radar_editor(),
             parent=self,
         )
 

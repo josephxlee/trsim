@@ -316,6 +316,30 @@ class RadarEditor(QWidget):
     def antenna_form(self, atype: AntennaType) -> QWidget:
         return self._antenna_forms[atype]
 
+    def name_edit(self) -> QLineEdit:
+        return self._name_edit
+
+    def carrier_edit(self) -> QLineEdit:
+        return self._carrier
+
+    def bandwidth_edit(self) -> QLineEdit:
+        return self._bandwidth
+
+    def sweep_edit(self) -> QLineEdit:
+        return self._sweep
+
+    def power_edit(self) -> QLineEdit:
+        return self._power
+
+    def beamwidth_az_label(self) -> QLabel:
+        return self._beamwidth_az
+
+    def beamwidth_el_label(self) -> QLabel:
+        return self._beamwidth_el
+
+    def peak_gain_label(self) -> QLabel:
+        return self._peak_gain
+
     def antenna_stack(self) -> QStackedWidget:
         return self._antenna_stack
 

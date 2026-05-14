@@ -77,8 +77,7 @@ class TargetsEditorController(QObject):
         if not messages:
             status = "OK"
             summary = (
-                f"name={name}, motion={motion}, "
-                f"RCS={rcs_value} m^2, scatterers={scatterer_value}"
+                f"name={name}, motion={motion}, RCS={rcs_value} m^2, scatterers={scatterer_value}"
             )
             messages.append(summary)
         else:
