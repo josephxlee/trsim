@@ -12,9 +12,10 @@ real preview canvas mounts under Phase 4.8.x once pyqtgraph is wired.
 
 from __future__ import annotations
 
+from workbench.ui.editor.targets_editor.controller import TargetsEditorController
 from workbench.ui.editor.targets_editor.widget import (
     MOTION_KINDS,
     TargetsEditor,
 )
 
-__all__ = ["MOTION_KINDS", "TargetsEditor"]
+__all__ = ["MOTION_KINDS", "TargetsEditor", "TargetsEditorController"]

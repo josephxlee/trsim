@@ -50,8 +50,13 @@ from workbench.ui.dlc_bootstrap import (
 )
 from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
-from workbench.ui.editor.activity_pages import MapEditorPage, ScenarioComposerPage
+from workbench.ui.editor.activity_pages import (
+    MapEditorPage,
+    ScenarioComposerPage,
+    TargetsEditorPage,
+)
 from workbench.ui.editor.composer import ScenarioComposerController
+from workbench.ui.editor.targets_editor import TargetsEditorController
 from workbench.ui.editor.map_editor import DEMImportController
 from workbench.ui.editor.package_manager_dialog import PackageManagerController
 from workbench.ui.editor.workspace import EditorWorkspace
@@ -152,6 +157,13 @@ class MainWindow(QMainWindow):
         assert isinstance(composer_page, ScenarioComposerPage)
         self._composer_controller = ScenarioComposerController(
             composer=composer_page.composer(),
+            parent=self,
+        )
+        # Same pattern for the Targets Activity Validate button.
+        targets_page = self._editor_page().page(Activity.TARGETS)
+        assert isinstance(targets_page, TargetsEditorPage)
+        self._targets_controller = TargetsEditorController(
+            editor=targets_page.targets_editor(),
             parent=self,
         )
 
