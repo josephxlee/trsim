@@ -1,10 +1,10 @@
 # TRsim — 세션 요약 (v0.40 기준)
 
-**마지막 갱신**: 2026-05-13 — Phase 9 M1-M3 (Validation Bench 일반화) + Phase 4 L1-L5 (Simulator panel binding) + 사이드 quest #7/#9/#6
+**마지막 갱신**: 2026-05-14 — Phase 3 100% (Profile gate) + Phase 4 ~80% (Editor 5 controllers + Atmosphere Activity + Simulator L1-L6) + Phase 9 100% (Validation Bench 일반화)
 **직전 완료 버전**: v0.40 (v0.39 + Physics Lab — 5번째 차별점)
-**현재 main**: `3b0f30a` Editor Composer dropdown wiring (Composer ResourceLibrary 본격 연결)
-**누적 test**: 2592 PASS 예상 (사용자 PC verify 대기), 5 contracts KEPT
-**인계 doc**: `docs/sessions/phase_9_validation_simulator_polish_2026_05_13.md`
+**현재 PR head**: `b3012b9` Atmosphere Activity 마운트 (26 commit on PR #1)
+**누적 test**: 2648 PASS 로컬, 5 contracts KEPT
+**인계 doc**: `docs/sessions/phase_4_editor_simulator_2026_05_14_handoff.md`
 
 ---
 

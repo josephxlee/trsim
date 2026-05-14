@@ -17,7 +17,18 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 9 M1+M2+M3 — Validation Bench 일반화 종결 (이 cycle)**. 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗.
+> **2026-05-14 wrap — PR #1 26 commit, MVP 96% (HIL 제외)**. 직전
+> 핸드오프 `docs/sessions/phase_4_editor_simulator_2026_05_14_
+> handoff.md` (이 cycle 세션 옮김). Phase 3 → 100% (Profile gate),
+> Phase 4 → ~80% (Editor 5 controller + Atmosphere Activity +
+> Simulator L1-L6), Phase 9 → 100% (Validation Bench 일반화 종결).
+> 누적 2648 PASS, 5 contracts KEPT, CI 8/8 green. 다음 cycle 후보 =
+> FFT 실 spectrum array binding (#1, 사용자 우선순위 simulator).
+>
+> PR `claude/check-progress-status-KpNpy` HEAD = `b3012b9`. main 은
+> 아직 `fafd03c` 구버전; PR merge 결정 사용자 대기.
+
+> **Phase 9 M1+M2+M3 — Validation Bench 일반화 종결 (직전 cycle)**. 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗.
 > 우선순위 리스트 재정렬 (HIL 제외, physics_lab > simulator > editor
 > 적용) → 1순위 = Validation Bench 일반화.
 >
@@ -1298,4 +1309,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 9 M1+M2+M3 Validation Bench 일반화 **종결** (layer + BouncingBall delegation + 임의 model UI dispatch). HIL 우선순위 제외 결정. 우선순위 #1 closed; 다음 cycle = Simulator panel 5 잔여 binding (우선순위 #2) 또는 Editor wiring (#5).
+최근 갱신: 2026-05-14 — 세션 옮김 wrap. PR #1 26 commit, MVP 96%. 핸드오프 = `docs/sessions/phase_4_editor_simulator_2026_05_14_handoff.md`. 다음 cycle 후보 = FFT 실 spectrum array binding 또는 PR merge.
