@@ -92,7 +92,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | io/dem_import (ESRI ASCII grid → terrain.npz, NODATA→NaN, north-up flip, land_mask default) | ✓ (D4) |
 | CLI: `trsim run` / `trsim profile` / `trsim ui` | ✓ |
 | Reference Timing v0.39 (performance_clock / frame_boundary / stage_probe / frame_profiler) | ✓ |
-| Profile 모드 toggle (off / explicit / live, Q4) | △ |
+| Profile 모드 toggle (off / explicit / live, Q4) | ✓ (sidequest #6 — `domain/timing/profile_mode.py` ProfileMode StrEnum + CLI flag + manifest metadata; **2026-05-14 cycle** — `app/timing/profile_gate.py` `gated_stage_probe` 런타임 게이트 추가: OFF → nullcontext (probe 0), EXPLICIT/LIVE → 실 StageTimingProbe. `trsim profile` 가 게이트 통과로 wire) |
 | Warmup discard | ✓ |
 
 ---
@@ -104,15 +104,15 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | pyqtgraph + pyvista + pyvistaqt 의존성 | ✓ |
 | Main Window / Workspace selector / Dock manager / Command palette / Toolbar / Menu | ✓ |
 | Editor Activity Selector (5 Activity 좌측 아이콘) + Resource Browser sidebar | ✓ |
-| Scenario Composer widget skeleton | △ (widget.py 만, 실 데이터 binding ✗) |
+| Scenario Composer widget skeleton | △ (widget.py + ResourceLibrary-driven 드롭다운 ✓ + Validate button → `ScenarioComposerController` (combo shape check 진짜 동작, OK/WARN/ERROR status 갱신) ✓; 도메인 coherence_validator 통합 + save/load round-trip ✗ — 후속 cycle) |
 | **Scenario Composer Installation Panel** (DEM + 차폐 Preview + Coverage Stats) | △ (G4, Position 5 row + DEM preview placeholder + Coverage Stats 3-readout + Domain Override block + `CoverageStats` dataclass + `set_terrain_altitude` / `set_coverage_stats` API; 실 Map/Radar/Validator binding ✗) |
-| Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ |
+| Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ (widget ✓ + `MapEditorController` (Validate button: origin + SimulationDomain shape check, OK/WARN/ERROR status, domain edit 시 auto-stale) ✓; canvas pyqtgraph + brush painting 미) |
 | **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4, MVP 4-page distillation: Source/Land-Sea/Output/Summary) |
 | **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | ✓ (G1-G3, dataclass + `DomainSettingsPanel` widget + Map Editor QTabWidget mount as "Domain" tab; live data binding via `set_map_bounds` is later cycle) |
-| Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
-| Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
-| Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
-| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run panel = sim_t_s/frame_id/state/speed 실 binding ✓ L1; 나머지 5 panel placeholder) |
+| Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ (widget ✓ + `RadarEditorController` (parabolic/planar live computed-values: Az BW / El BW / Peak gain via `physics.antenna` helpers, 매 field edit 갱신) ✓; Save/Validate + 실 ScenarioService 연동 미) |
+| Targets Editor widget skeleton (메타 + Trajectory Preview) | △ (widget + Validate button → `TargetsEditorController` (name/motion/RCS/scatterers shape check, OK/WARN/ERROR status) ✓; trajectory CSV / preview / save 미) |
+| Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | ✓ (widget + Editor Activity 마운트 + Ctrl+5 단축키 + `AtmospherePropagator` (state_changed → Composer hint) + MainWindow wire. ScenarioService 저장 round-trip 만 후속) |
+| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run ✓ L1; PluginManager ✓ L2; FFT/RD/StageIO frame ✓ L3; Properties ✓ L4; StageIO 6 box IN/OUT ✓ L5; FFT peak counts ✓ L6 deterministic placeholder. FFT spectrum array / RD heatmap matrix binding은 실 pipeline 후 후속.) |
 | Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | △ (Phase 4.10 lazy create) |
 | Profiler panel (timing breakdown / scale indicator / report) | ✓ |
 | NN mode panels (Step 1 Dataset / Step 2 Eval / Training) | ✓ |
@@ -122,10 +122,13 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 
 ## Phase 5 — 물리 검증 ✓
 
-17 카테고리 + 이 세션 12 sub-step 후속 보강 끝 (2065 PASS).
+17 카테고리 + 이 세션 12 sub-step 후속 보강 끝.
 plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
-#19 (Frame Profiler 결과 재현성) 의 본격 재현성 시험은 △
-(정량 invariant 만 추가, 같은 seed/load → 같은 결과 검증 ✗).
+#19 (Frame Profiler 결과 재현성): ✓ 정량 reproducibility tests
+(`tests/unit/app/timing/test_reference_timing_reproducibility.py` —
+PerformanceClock factory 결정성 / FrameProfiler 동일 sample sequence
+→ 동일 StageReport / 순서 독립성 / reset replay invariant / 손계산
+percentile golden).
 
 ---
 
@@ -154,7 +157,7 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 | 영역 | 상태 |
 |---|---|
 | SDK: protocols.py (11 Plugin Protocol) | ✓ |
-| **SDK: manifest.py** | △ (domain/dlc/manifest.py 에 있음, sdk/ 이동 고려) |
+| **SDK: manifest.py** | ✓ (sdk/manifest.py 로 이동 — Phase 9 sidequest #9, plan/02 § 2.6b: SDK 가 DLC author 의 단일 surface) |
 | SDK: resource_schemas.py (`validate_resource_toml_blob`, 4 categories) | ✓ (C8) |
 | SDK: package_builder.py + `trsim sdk build` CLI | ✓ (C2) |
 | SDK: test_harness.py + `trsim sdk test` CLI | ✓ (C3) |
@@ -205,7 +208,7 @@ shell 만 (members 없음).
 | 9.1 MVP — 3-pane Workspace + 9 Test Objects + 4 time mode + Code Pane + Parameters | ✓ |
 | 9.2 — Measured Data + Papers Library + Validation Bench + Parameter Studio (scipy fit) | ✓ |
 | 9.3 — Code autocomplete + PhysicsModelProtocol (11번째 SDK) + NN-as-physics + Polynomial fit + Test Object plugin registry | ✓ |
-| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | △ (H1-H2 Library Models 동적 + I1-I2 PluginLoader `trsim.physics_model` 슬롯 + `app/physics_lab/discovery.py` + J1 MainWindow auto-register ✓; Validation Bench 일반화만 후속) |
+| **plan/19 § 19.7.5+ 확장** (Validation Bench 일반화 / Library Models 동적 채우기 / Plugin discovery via PluginLoader) | ✓ (H1-H2 + I1-I2 + J1 + M1 layer + M2 BouncingBallController refactor + **M3 임의 PhysicsModelProtocol UI dispatch** — LibraryWidget `physics_model_selected` signal 을 PhysicsLabWorkspace 가 받아 measured-row 클릭 시 모델 종류별 분기: BouncingBall = 기존 controller path, 그 외 = `run_validation_for_model` + `default_validation_fields` 룩업 + `install_validation_overlay`. 9 신규 tests.) |
 
 ---
 
@@ -214,21 +217,24 @@ shell 만 (members 없음).
 다음 작업 결정 시 이 매트릭스 참조. 사용자 우선순위 (변동 없음):
 **physics_lab > simulator > editor**.
 
-직전 2-day 자동 모드 끝 시점 — 9 cycle (E1-J1) 으로 우선순위
-1~3/5/6 모두 완료. 새 잔여 항목 리스트:
+**사용자 결정 (2026-05-13, L1 직후)**: Phase 8 HIL 은 **MVP 공간만 두고
+실 작업 하지 않음**. `domain/hil/` + `app/hil/` + `ui/simulator/hil_panel/`
+빈 디렉토리 + `sdk/DUTAdapterProtocol` declaration shell (△) 유지.
+아래 우선순위에서 제외.
 
-| 우선 | 작업 | 크기 | 비고 |
-|---|---|---|---|
-| 1 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock. `sdk/DUTAdapterProtocol` 만 ✓; `app/hil/` 비어있고 `domain/hil/` 도 비어있음. |
-| 2 | **Phase 4 UI 실 데이터 binding** (Editor 5 activity / Simulator 8 panel / Map Editor `set_map_bounds` wire) | 대 | 골격 ✓, 후속 큰 작업. 여러 cycle 분할 필요. G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비됨 — wiring 만 남음. |
-| 3 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연. |
-| 4 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
-| 5 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
-| 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | △ — domain dataclass 없음. CLI flag + runtime gating. |
-| 7 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
-| 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
-| 9 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 우선 | 작업 | 크기 | 영역 | 비고 |
+|---|---|---|---|---|
+| ~~1~~ | ~~Phase 9 § 19.7.5+ Validation Bench 일반화~~ | — | physics_lab | **이 cycle M1+M2+M3 으로 종결**. (M3 = 임의 PhysicsModelProtocol UI dispatch.) 후속 polish (auto-parameters 슬라이더가 선택된 model 의 PhysicsParam 으로 swap / plot axis labels per-model / column selector UI) 만 남음 — 향후 cycle 자율. |
+| 2 | **Simulator 8 panel 실 데이터 binding 잔여 5개** (FFT / RD / Properties / PluginMgr / StageIO) | 대 (여러 cycle) | simulator | L1 으로 Run panel 만 ✓. 직전 cycle 사용자 "Simulation 가장 시급" 명시. 여러 sub-step 분할. |
+| 3 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | simulator/NN | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
+| 4 | **Phase 6 multi-step rollout RMSE real** | 중 | simulator/NN | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
+| 5 | **Editor 5 activity 실 데이터 binding** (Composer / Map / Radar / Targets / Atmosphere wiring) | 대 (여러 cycle) | editor | 골격 ✓, G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비 — wiring 만 남음. |
+| ~~6~~ | ~~Phase 3 Profile 모드 toggle~~ | — | app | **이 세션 처리됨** — ProfileMode enum + CLI flag + manifest metadata. Runtime gating 은 후속. |
+| ~~7~~ | ~~Phase 5 #18/#19 재현성 정량 검증~~ | — | physics | **이 세션 처리됨** — `tests/unit/app/timing/test_reference_timing_reproducibility.py` (9 tests). |
+| 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | UI | △ — workspace 안 키 routing 정리. |
+| ~~9~~ | ~~SDK manifest.py 이동~~ | — | refactor | **이 세션 처리됨** — sdk/manifest.py + sdk/__init__.py re-export + 6 callers + 2 tests + 1 integration test 갱신. domain/dlc/ 디렉토리 삭제. |
+| 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | optional | 미루기 가능. |
+| — | ~~Phase 8 HIL 전체~~ | — | — | **사용자 결정 (2026-05-13): MVP 공간만, 실 작업 ✗**. Phase 8 행 (전체 ✗) 유지. |
 
 ---
 
@@ -279,3 +285,24 @@ shell 만 (members 없음).
 - 2026-05-13 J1 — Phase 9 cycle: MainWindow auto-register `trsim.physics_model` plug-ins → PhysicsLabWorkspace Library 표시 (2486 → 2490 PASS). H+I 결과 사용자 GUI visible.
 - 2026-05-13 cross-check retro-update — Phase 7 `SDK: package_validator.py | ✗` 행 (row 159 의 ✓ row 와 duplicate, 모순) 제거. § 한 줄 요약 갱신 (Wave 2 CLI ✗ → ✓). § 미구현 우선순위 리스트 9 → 10 행 재작성 (직전 1/2/3/5/6 다 완료 반영). Phase 9 § 19.7.5+ 행에 J1 추가. Phase 8 row 4 (DUTAdapter Protocol) ✗ → △ (declaration shell 만, members ✗).
 - 2026-05-13 L1 — Phase 4 cycle: Simulator Run panel 실 sim_time/frame_id binding + `SimulatorRunController` (16ms QTimer + SimulationClock) + MainWindow sim.start/pause/stop/speed hooks (2490 → 2518 PASS). Simulator Run panel 실 데이터 binding ✗ → ✓.
+- 2026-05-13 user decision — Phase 8 HIL "MVP 공간만, 실 작업 하지 않음" 결정 → 우선순위 리스트 재정렬 (HIL 제외, physics_lab > simulator > editor 적용). Validation Bench 일반화 가 1순위.
+- 2026-05-13 M1 — Phase 9 cycle: Validation Bench 일반화 layer (`app/physics_lab/validation_runner.py` + `ValidationRun` dataclass) — dynamic / static dispatch on `model.time_mode`. 17 신규 tests (사용자 PC verify 대기). UI 통합은 후속 M2.
+- 2026-05-13 M2 — Phase 9 cycle: `BouncingBallController.run_validation_from_dataset` 가 `run_validation_for_model(BouncingBallModel(), ...)` 위임으로 refactor. obsolete `_simulate_for_validation` 제거. 1 parity regression test (controller path == direct layer call). Production code 에서 일반화 layer 첫 사용 — 임의-model UI selector 통합만 후속에 남음. plan/19 § 19.7.5+ ✗ → ✓.
+- 2026-05-13 M3 — Phase 9 cycle: `domain/physics_lab/validation_defaults.py` 신규 (`default_validation_fields` — 3 built-in 모델 매핑). PhysicsLabWorkspace 가 `LibraryWidget.physics_model_selected` 연결 + `_current_physics_model` track + `_on_measured_dataset_selected` 분기 (BouncingBall vs generic) + `_run_generic_validation` (defaults 룩업 + `run_validation_for_model` + `install_validation_overlay` + status bar 갱신). `BouncingBallController` 에 public `install_validation_overlay` 추가. 9 신규 tests (4 defaults helper + 5 workspace dispatch). 우선순위 #1 종결.
+- 2026-05-13 L2 — Phase 4 cycle: `ui/simulator/builtin_pipeline_plugins.py` 신규 (`BUILTIN_SIMULATOR_PLUGINS` 매핑, 5 stage curated baseline) + SimulatorWorkspace `_populate_builtin_pipeline_plugins` (init 후 PluginManager 채움). 5 신규 tests (전체 stage 매핑 / 중복 없음 / CFAR variant / Predictor·Classifier 빈 상태).
+- 2026-05-13 L3 — Phase 4 cycle: SimulatorWorkspace `_on_run_tick_completed` 슬롯 (controller.tick_completed → FFT/RD/StageIO 의 `set_frame(frame_id)` fan-out). 5 신규 tests (defaults dash / 단일 tick / pause invariant / stop replay 1 부터 / 5 lock-step). Run panel + downstream panel frame_id 항상 일치 invariant.
+- 2026-05-13 L4 — Phase 4 cycle: SimulatorWorkspace Properties panel 도 tick handler 가 paint (sim_t_s/frame_id/state/speed 4-row form 자동 갱신) + `show_selected_in_properties(label, properties)` / `clear_property_selection()` public API (user selection pin 시 tick handler 가 안 덮어씀). `_properties_owned_by_selection` 플래그. 5 신규 tests (initial nothing-selected / tick paints simulator context / selection pin invariant / clear returns to live / sim_t_s 매 tick 갱신).
+- 2026-05-13 L5 — Phase 4 cycle: SimulatorWorkspace tick handler 가 StageIO 6 box (Transmitter / Environment / Receiver / Detector / Pairing / Tracker) IN/OUT 자리에 deterministic placeholder text 채움 (frame_id + sim_t_s 인코딩). Detector·Pairing·Tracker 는 "pipeline pending" 으로 명시 — 실 pipeline 후 swap. 4 신규 tests (default dash / 첫 tick / 3 tick 진행 / pause freeze).
+- 2026-05-13 Sidequest #7 — Phase 5 #18/#19 reproducibility tests ✗ → ✓. `tests/unit/app/timing/test_reference_timing_reproducibility.py` 신규 (9 tests: PerformanceClock factory bit-identical state / round-trip ms↔Hz / FrameProfiler 동일 sequence → 동일 report / 순서 independent / reset replay invariant / 손계산 percentile golden).
+- 2026-05-13 Sidequest #9 — SDK manifest.py 이동 △ → ✓. `src/workbench/sdk/manifest.py` 신규 + sdk/__init__.py re-export. domain/dlc/ 패키지 전체 삭제 (manifest.py + __init__.py). 6 callers 갱신 (app/dlc/installer.py, app/dlc/package_manager.py, io/package_io.py, sdk/package_validator.py, app/nn/trainer.py docstring, app/dlc/__init__.py docstring). tests/unit/domain/test_dlc_manifest.py → tests/unit/sdk/test_manifest.py 이동 (git mv) + import 갱신. integration test 갱신. plan/02 § 2.6b — SDK 가 DLC author 단일 surface 원칙 정렬.
+- 2026-05-13 Sidequest #6 — Phase 3 Profile mode toggle △ → ✓. `src/workbench/domain/timing/profile_mode.py` 신규 (ProfileMode StrEnum + DEFAULT_PROFILE_MODE=OFF + PROFILE_MODES_IN_DISPLAY_ORDER tuple + parse_profile_mode helper). CLI `trsim run --profile-mode {off,explicit,live}` flag 추가 (default off) + manifest metadata 에 profile_mode 기록. `trsim profile` 도 explicit/live 선택 (default explicit). 9 신규 enum tests + 7 신규 CLI tests. Runtime probe gating 은 Pipeline.step 본격 wire 후 후속.
+- 2026-05-13 Editor Composer dropdown wiring — `populate_composer_options_from_library` 신규 헬퍼 + MainWindow 가 dlc_runtime 있을 때 `populate_resource_browser_from_library` 옆에서 같이 호출. Composer 의 Map / Radar / Targets 콤보가 처음으로 실 ResourceLibrary 항목으로 채워짐. 3 신규 tests (빈 library / 3 카테고리 round-trip / scenarios 무시).
+- 2026-05-13 Editor Composer validation controller — `ui/editor/composer/controller.py` 신규 (`ScenarioComposerController`). MainWindow 가 dlc_runtime 무관 wire. `validate_requested` 신호 받아 combo shape check + OK/WARN/ERROR 분류 + `set_validation(status, messages)` 호출. 5 신규 tests (OK / Map 누락 ERROR / Radar 누락 ERROR / targets 만 누락 WARN / signal end-to-end).
+- 2026-05-14 Editor TargetsEditor validation controller — `ui/editor/targets_editor/controller.py` 신규 (`TargetsEditorController`). TargetsEditor 에 `rcs_edit()` / `scatterers_edit()` accessor 추가. MainWindow 에서 wire. shape check (name/motion/RCS/scatterers) + OK/WARN/ERROR + `set_validation_status` 호출. 8 신규 tests.
+- 2026-05-14 Editor RadarEditor live computed-values controller — `ui/editor/radar_editor/controller.py` 신규 (`RadarEditorController`). RadarEditor 에 carrier/bandwidth/sweep/power/beamwidth/peak_gain 7 accessor 추가. carrier / antenna form 필드 editingFinished 마다 refresh — parabolic 은 `parabolic_beamwidth_3db_deg` / `parabolic_peak_gain_dbi` 사용, planar array 는 0.886λ/aperture + N_az×N_el + cos element 3 dB bonus. MainWindow 에서 wire. 9 신규 tests.
+- 2026-05-14 Editor AtmospherePropagator — `ui/editor/atmosphere_panel/controller.py` 신규. ScenarioComposer 의 Composition block 에 `set_atmosphere_hint(text)` / `atmosphere_hint_label()` + Composer widget 의 hint QLabel. Propagator 는 `AtmospherePanel.state_changed` 받아 `format_atmosphere_hint(state)` 로 짧은 sky/vis/rain 요약 → composer 갱신. 7 신규 tests. MainWindow 통합은 AtmospherePanel 이 Editor Activity 로 mount 되는 후속 cycle.
+- 2026-05-14 Editor MapEditorController — `ui/editor/map_editor/controller.py` 신규. MapEditor 에 `_validation_status` QLabel + `set_validation_status(text)` / `validation_status_label()` + `origin_label()` accessor. Validate button: origin 미설정 → WARN, SimulationDomain `__post_init__` 실패 → ERROR, 모두 valid → OK + 요약. `domain_changed` / `outside_environment_changed` 발생 시 status "not yet validated" 로 auto-stale. MainWindow 에서 wire. 6 신규 tests.
+- 2026-05-14 L6 Simulator — `synthetic_peak_counts(frame_id)` 헬퍼 + SimulatorWorkspace tick handler 가 매 frame 마다 `FFTPanel.set_peak_counts(up, down)` 호출 (deterministic 6-frame 패턴). FFT panel "peaks: N up / N down" 라벨 처음으로 sim 클럭에 반응. 실 FFT spectrum array 는 Pipeline.step wire 후. 8 신규 tests.
+- 2026-05-14 Profile mode runtime gating — `app/timing/profile_gate.py` `gated_stage_probe(mode, profiler, stage_name)` helper. OFF → `nullcontext()` (per-stage overhead 0), EXPLICIT/LIVE → 실 `StageTimingProbe`. `trsim profile` 가 게이트 통과로 wire. 8 신규 tests. **Phase 3 → 100%**.
+- 2026-05-14 Atmosphere Activity — `Activity.ATMOSPHERE` 6번째 Activity 추가 (`Ctrl+5`, Browser 가 Ctrl+6 으로 밀림). `AtmospherePanelPage` 신규 + EditorWorkspace 등록 + builtin command `editor.activity.atmosphere` + MainWindow hook + `AtmospherePropagator` 자동 wire (atmosphere panel ↔ composer hint). 5 existing tests 갱신 (활동 수 5→6, 단축키 표).
+**최종 갱신**: 2026-05-14 — Phase 3 마감 + Atmosphere Activity 마운트 ✓.

@@ -17,6 +17,7 @@ from workbench.app.resources import ResourceLibrary
 from workbench.ui.dlc_bootstrap import (
     DLCRuntime,
     build_dlc_runtime,
+    populate_composer_options_from_library,
     populate_resource_browser_from_library,
 )
 from workbench.ui.editor.resource_browser import (
@@ -201,3 +202,78 @@ def test_populate_sidebar_clears_previous_entries(
     node = sidebar.category_node(UICategory.RADAR)
     assert node.childCount() == 1
     assert "second" in node.child(0).text(0)
+
+
+# ---------------------------------------------------------------------
+# populate_composer_options_from_library
+# ---------------------------------------------------------------------
+
+
+class _ComposerStub:
+    """Minimal duck-typed ScenarioComposer surface used by the helper."""
+
+    def __init__(self) -> None:
+        self.maps: list[str] = []
+        self.radars: list[str] = []
+        self.targets: list[str] = []
+
+    def set_map_options(self, names: list[str]) -> None:
+        self.maps = list(names)
+
+    def set_radar_options(self, names: list[str]) -> None:
+        self.radars = list(names)
+
+    def set_targets_options(self, names: list[str]) -> None:
+        self.targets = list(names)
+
+
+def test_populate_composer_empty_library(tmp_path: Path) -> None:
+    library = ResourceLibrary(user_root=None, packages=(), builtin_root=None)
+    stub = _ComposerStub()
+    n_maps, n_radars, n_targets = populate_composer_options_from_library(stub, library)
+    assert (n_maps, n_radars, n_targets) == (0, 0, 0)
+    assert stub.maps == []
+    assert stub.radars == []
+    assert stub.targets == []
+
+
+def test_populate_composer_three_categories_round_trip(tmp_path: Path) -> None:
+    user_root = tmp_path / "user"
+    res_root = user_root / "resources"
+    for cat_name, leaves in (
+        ("maps", ["east_coast", "north_sea"]),
+        ("radars", ["kuband"]),
+        ("targets", ["fighter_a", "drone_x", "missile_q"]),
+    ):
+        cat_dir = res_root / cat_name
+        cat_dir.mkdir(parents=True)
+        for leaf in leaves:
+            (cat_dir / f"{leaf}.toml").write_text("# stub", encoding="utf-8")
+
+    paths = DLCPaths(packages_root=tmp_path / "ghost", user_root=user_root, builtin_root=None)
+    runtime = build_dlc_runtime(paths=paths)
+
+    stub = _ComposerStub()
+    counts = populate_composer_options_from_library(stub, runtime.app.resource_library)
+    assert counts == (2, 1, 3)
+    assert sorted(stub.maps) == ["east_coast", "north_sea"]
+    assert stub.radars == ["kuband"]
+    assert sorted(stub.targets) == ["drone_x", "fighter_a", "missile_q"]
+
+
+def test_populate_composer_skips_scenarios_category(tmp_path: Path) -> None:
+    """The Composer's three dropdowns are Map / Radar / Targets only —
+    scenarios are addressed by the Composer's own save mechanism."""
+    user_root = tmp_path / "user"
+    res_root = user_root / "resources"
+    cat_dir = res_root / "scenarios"
+    cat_dir.mkdir(parents=True)
+    (cat_dir / "intercept_01.toml").write_text("# stub", encoding="utf-8")
+
+    paths = DLCPaths(packages_root=tmp_path / "ghost", user_root=user_root, builtin_root=None)
+    runtime = build_dlc_runtime(paths=paths)
+    stub = _ComposerStub()
+    counts = populate_composer_options_from_library(stub, runtime.app.resource_library)
+    # Scenarios live in the library but the Composer dropdowns do not
+    # consume them — the three counts are all zero.
+    assert counts == (0, 0, 0)

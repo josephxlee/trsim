@@ -47,6 +47,7 @@ from workbench.ui.editor.activities import (
     ActivitySelector,
 )
 from workbench.ui.editor.activity_pages import (
+    AtmospherePanelPage,
     MapEditorPage,
     RadarEditorPage,
     ResourceBrowserPage,
@@ -66,6 +67,7 @@ _ACTIVITY_LABEL: dict[Activity, str] = {
     Activity.MAP: "Map",
     Activity.RADAR: "Radar",
     Activity.TARGETS: "Targets",
+    Activity.ATMOSPHERE: "Atmosphere",
     Activity.BROWSER: "Browser",
 }
 
@@ -74,7 +76,8 @@ _ACTIVITY_SHORTCUT: dict[Activity, str] = {
     Activity.MAP: "Ctrl+2",
     Activity.RADAR: "Ctrl+3",
     Activity.TARGETS: "Ctrl+4",
-    Activity.BROWSER: "Ctrl+5",
+    Activity.ATMOSPHERE: "Ctrl+5",
+    Activity.BROWSER: "Ctrl+6",
 }
 
 
@@ -120,6 +123,7 @@ class EditorWorkspace(QWidget):
             Activity.MAP: MapEditorPage(self),
             Activity.RADAR: RadarEditorPage(self),
             Activity.TARGETS: TargetsEditorPage(self),
+            Activity.ATMOSPHERE: AtmospherePanelPage(self),
             Activity.BROWSER: ResourceBrowserPage(self),
         }
 

@@ -38,7 +38,13 @@ from pathlib import Path
 from workbench import __version__
 from workbench.app.resource_library import ResourceLibrary
 from workbench.app.timing.frame_profiler import FrameProfiler
-from workbench.app.timing.stage_timing_probe import StageTimingProbe
+from workbench.app.timing.profile_gate import gated_stage_probe
+from workbench.domain.timing import (
+    DEFAULT_PROFILE_MODE,
+    PROFILE_MODES_IN_DISPLAY_ORDER,
+    ProfileMode,
+    parse_profile_mode,
+)
 from workbench.domain.types import RunTerminationReason
 from workbench.io.run_storage import (
     ResourceRefs,
@@ -94,6 +100,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="target resource id; repeatable",
     )
+    run_p.add_argument(
+        "--profile-mode",
+        choices=[mode.value for mode in PROFILE_MODES_IN_DISPLAY_ORDER],
+        default=DEFAULT_PROFILE_MODE.value,
+        help=(
+            "profiling toggle (plan/18 § 18.17.5): off = probes silent "
+            "(default, zero overhead); explicit = wired but dormant; "
+            "live = record every frame into the FrameProfiler"
+        ),
+    )
 
     profile_p = sub.add_parser("profile", help="run the frame profiler")
     profile_p.add_argument("--scenario", required=True, help="scenario id (informational)")
@@ -102,6 +118,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         default=None,
         help="path to write a JSON profile report (default: stdout)",
+    )
+    # `trsim profile` always runs in EXPLICIT mode by definition (the
+    # user asked for a profile). Exposed for symmetry with `trsim run`.
+    profile_p.add_argument(
+        "--profile-mode",
+        choices=[ProfileMode.EXPLICIT.value, ProfileMode.LIVE.value],
+        default=ProfileMode.EXPLICIT.value,
+        help="profiling intensity for this run (default: explicit)",
     )
 
     train_p = sub.add_parser(
@@ -224,6 +248,12 @@ def _resolve_run_dir(args: argparse.Namespace, run_id: str) -> Path:
 
 def _cmd_run(args: argparse.Namespace) -> int:
     """`trsim run` — minimal manifest + empty trace archive."""
+    # Phase 3 Q4 — profile-mode toggle. Argparse already validates the
+    # value against the choices list; ``parse_profile_mode`` doubles as
+    # documentation. The mode is currently recorded in the manifest
+    # metadata only — pipeline / probe gating wires in a follow-up
+    # cycle (depends on the actual Pipeline.step wire-up).
+    profile_mode = parse_profile_mode(args.profile_mode)
     library = ResourceLibrary.scan(args.resources)
     map_entry = library.get("maps", args.map)
     radar_entry = library.get("radars", args.radar)
@@ -254,7 +284,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         wall_t_start_iso=started,
         wall_t_end_iso=ended,
         n_lineage_commands=0,
-        metadata={"phase": "3.7-mvp"},
+        metadata={"phase": "3.7-mvp", "profile_mode": profile_mode.value},
     )
     save_manifest(manifest, run_dir / "manifest.json")
     write_traces(run_dir / "traces.npz", [])
@@ -268,17 +298,25 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_profile(args: argparse.Namespace) -> int:
-    """`trsim profile` — exercise FrameProfiler synthetically."""
+    """`trsim profile` — exercise FrameProfiler synthetically.
+
+    Phase 3 Q4: ``--profile-mode`` (``explicit`` default, ``live``
+    available) gates the per-stage probe overhead via
+    :func:`gated_stage_probe`. The CLI never accepts ``off`` here so
+    every frame produces real samples; the gate exists for symmetry
+    with ``trsim run --profile-mode``.
+    """
     if args.frames < 1:
         print("error: --frames must be >= 1", file=sys.stderr)
         return 2
+    profile_mode = parse_profile_mode(args.profile_mode)
     profiler = FrameProfiler()
     for _ in range(args.frames):
-        with StageTimingProbe(profiler, stage_name="detector"):
+        with gated_stage_probe(profile_mode, profiler, stage_name="detector"):
             # Synthetic 0.5 ms work — Python loop short-circuit so it's
             # cheap on CI but produces non-zero samples.
             sum(range(50))
-        with StageTimingProbe(profiler, stage_name="tracker"):
+        with gated_stage_probe(profile_mode, profiler, stage_name="tracker"):
             sum(range(20))
 
     reports = [asdict(r) for r in profiler.report_all()]

@@ -15,6 +15,7 @@ real Coherence Validator is connected.
 
 from __future__ import annotations
 
+from workbench.ui.editor.composer.controller import ScenarioComposerController
 from workbench.ui.editor.composer.widget import ScenarioComposer
 
-__all__ = ["ScenarioComposer"]
+__all__ = ["ScenarioComposer", "ScenarioComposerController"]

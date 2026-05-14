@@ -37,7 +37,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from workbench.domain.dlc import PackageManifest, load_manifest_from_toml
+from workbench.sdk.manifest import PackageManifest, load_manifest_from_toml
 
 
 @dataclass(frozen=True, slots=True)

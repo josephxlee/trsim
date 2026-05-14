@@ -32,8 +32,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from workbench.domain.dlc import PackageManifest
 from workbench.io.package_io import read_manifest_from_package, unpack_package
+from workbench.sdk.manifest import PackageManifest
 
 
 @dataclass(frozen=True, slots=True)

@@ -29,6 +29,11 @@ from workbench.domain.physics_lab import (
     BOUNCING_BALL_PARAM_SPECS,
     PhysicsParam,
 )
+from workbench.sdk.protocols import (
+    PhysicsModelCategory,
+    PhysicsModelTimeMode,
+    PhysicsModelVisualization,
+)
 
 
 class GravityOnlyModel:
@@ -45,10 +50,10 @@ class GravityOnlyModel:
         ``velocity_m_s`` — vertical velocity (positive upward).
     """
 
-    name = "Gravity Only (analytic)"
-    category = "dynamics"
-    time_mode = "dynamic"
-    visualization = "2d"
+    name: str = "Gravity Only (analytic)"
+    category: PhysicsModelCategory = "dynamics"
+    time_mode: PhysicsModelTimeMode = "dynamic"
+    visualization: PhysicsModelVisualization = "2d"
 
     _PARAMS: tuple[PhysicsParam, ...] = (
         PhysicsParam(
@@ -113,10 +118,10 @@ class BouncingBallModel:
     handling, returning the new state dict.
     """
 
-    name = "Bouncing Ball"
-    category = "dynamics"
-    time_mode = "dynamic"
-    visualization = "2d"
+    name: str = "Bouncing Ball"
+    category: PhysicsModelCategory = "dynamics"
+    time_mode: PhysicsModelTimeMode = "dynamic"
+    visualization: PhysicsModelVisualization = "2d"
 
     @property
     def parameters(self) -> Sequence[PhysicsParam]:
@@ -165,10 +170,10 @@ class FreeSpaceLossModel:
     state carried forward; the output is a one-shot computation.
     """
 
-    name = "Free-Space Path Loss"
-    category = "rf_propagation"
-    time_mode = "static"
-    visualization = "2d"
+    name: str = "Free-Space Path Loss"
+    category: PhysicsModelCategory = "rf_propagation"
+    time_mode: PhysicsModelTimeMode = "static"
+    visualization: PhysicsModelVisualization = "2d"
 
     _PARAMS: tuple[PhysicsParam, ...] = (
         PhysicsParam(

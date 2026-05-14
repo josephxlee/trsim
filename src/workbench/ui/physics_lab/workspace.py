@@ -40,6 +40,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
+import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
@@ -56,7 +57,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from workbench.app.physics_lab import FitResult, default_physics_models
+from workbench.app.physics_lab import (
+    FitResult,
+    default_physics_models,
+    default_validation_fields,
+    run_validation_for_model,
+)
 from workbench.domain.physics_lab import (
     TIME_MODES_IN_DISPLAY_ORDER,
     MeasuredDataset,
@@ -66,6 +72,8 @@ from workbench.domain.physics_lab import (
     list_measured_datasets,
     list_papers,
     list_saved_experiments,
+    load_measured_csv,
+    load_measured_hdf5,
     write_saved_experiment,
 )
 from workbench.sdk.protocols import PhysicsModelProtocol
@@ -319,6 +327,11 @@ class PhysicsLabWorkspace(QWidget):
         # Library runs the live simulator against it and overlays
         # measurement + simulation curves on the y(t) plot.
         self._last_validation_metrics: ValidationMetrics | None = None
+        # Phase 9 M3 — Library Model selection routes validation either
+        # to the legacy BouncingBall path (live simulator state) or
+        # to the generic Phase 9 M1 layer for arbitrary plug-ins.
+        self._current_physics_model: PhysicsModelProtocol | None = None
+        self._library_panel.physics_model_selected.connect(self._on_physics_model_selected)
         self._library_panel.measured_dataset_selected.connect(self._on_measured_dataset_selected)
         self._bouncing_controller.validation_metrics_ready.connect(
             self._on_validation_metrics_ready
@@ -465,15 +478,103 @@ class PhysicsLabWorkspace(QWidget):
     def last_validation_metrics(self) -> ValidationMetrics | None:
         return self._last_validation_metrics
 
+    def _on_physics_model_selected(self, model: PhysicsModelProtocol) -> None:
+        """Track which Library Model row is currently selected so the
+        next measurement-row click can route validation through the
+        Phase 9 M1 generic layer (M3).
+        """
+        self._current_physics_model = model
+
+    def current_physics_model(self) -> PhysicsModelProtocol | None:
+        """Test surface for the M3 generic-validation routing state."""
+        return self._current_physics_model
+
     def _on_measured_dataset_selected(self, dataset: MeasuredDataset) -> None:
         """Run validation against ``dataset`` when the Library row is
         selected. Errors are swallowed silently (UI feedback comes via
         the status label / future banner).
         """
-        try:
-            self._bouncing_controller.run_validation_from_dataset(dataset)
-        except (ValueError, OSError):
+        model = self._current_physics_model
+        if model is None or model.name == "Bouncing Ball":
+            try:
+                self._bouncing_controller.run_validation_from_dataset(dataset)
+            except (ValueError, OSError):
+                self._last_validation_metrics = None
+            return
+        self._run_generic_validation(model, dataset)
+
+    def _run_generic_validation(
+        self,
+        model: PhysicsModelProtocol,
+        dataset: MeasuredDataset,
+    ) -> None:
+        """Phase 9 M3 — drive the generalised Validation Bench layer.
+
+        Looks up the model's default ``(x_field, y_field)`` pair,
+        loads the two columns from ``dataset``, runs
+        :func:`run_validation_for_model` with the model's
+        default parameter values, then installs the same overlay
+        curves the BouncingBall path uses and updates the status bar.
+        Unknown models / missing columns surface a status hint and
+        clear ``last_validation_metrics``.
+        """
+        fields = default_validation_fields(model)
+        if fields is None:
+            self._time_controls.status_label().setText(
+                f"validation: no default fields for {model.name!r}"
+            )
             self._last_validation_metrics = None
+            return
+        x_field, y_field = fields
+        try:
+            measured_x, measured_y = self._load_measured_pair(dataset, x_field, y_field)
+        except (ValueError, OSError) as exc:
+            self._time_controls.status_label().setText(f"validation: {exc}")
+            self._last_validation_metrics = None
+            return
+        # PhysicsParam.default is float | None — fall back to min_value
+        # per the dataclass docstring so the runner always sees a float.
+        params: dict[str, float] = {
+            p.name: (p.default if p.default is not None else p.min_value) for p in model.parameters
+        }
+        try:
+            run = run_validation_for_model(
+                model,
+                params=params,
+                measured_x=measured_x,
+                measured_y=measured_y,
+                y_field=y_field,
+                x_field=x_field if model.time_mode == "static" else None,
+                initial_state=None,
+                dt_s=0.005 if model.time_mode == "dynamic" else None,
+            )
+        except ValueError as exc:
+            self._time_controls.status_label().setText(f"validation error: {exc}")
+            self._last_validation_metrics = None
+            return
+        self._bouncing_controller.install_validation_overlay(
+            measured_x, measured_y, run.sim_x, run.sim_y
+        )
+        self._on_validation_metrics_ready(run.metrics)
+
+    @staticmethod
+    def _load_measured_pair(
+        dataset: MeasuredDataset,
+        x_field: str,
+        y_field: str,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if x_field not in dataset.columns or y_field not in dataset.columns:
+            msg = f"dataset missing {x_field!r} or {y_field!r} (columns={dataset.columns})"
+            raise ValueError(msg)
+        if dataset.file_format == "csv":
+            arr = load_measured_csv(dataset)
+            xi = dataset.columns.index(x_field)
+            yi = dataset.columns.index(y_field)
+            return arr[:, xi], arr[:, yi]
+        return (
+            load_measured_hdf5(dataset, x_field),
+            load_measured_hdf5(dataset, y_field),
+        )
 
     def _on_validation_metrics_ready(self, metrics: ValidationMetrics) -> None:
         self._last_validation_metrics = metrics

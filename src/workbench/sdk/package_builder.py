@@ -13,8 +13,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from workbench.io.package_io import pack_package
-
 
 def build_package(source: Path | str, output: Path | str) -> Path:
     """Build a ``.trsim-pkg`` from ``source`` directory.
@@ -33,4 +31,11 @@ def build_package(source: Path | str, output: Path | str) -> Path:
             from :func:`pack_package`. See that function for the full
             list of failure modes.
     """
+    # Lazy import — :mod:`workbench.io.package_io` imports
+    # :mod:`workbench.sdk.manifest`, and the SDK package's
+    # ``__init__.py`` eagerly imports this module, so a top-level
+    # ``from workbench.io.package_io ...`` would deadlock when the IO
+    # layer is the first thing the SDK reaches.
+    from workbench.io.package_io import pack_package
+
     return pack_package(source, output)

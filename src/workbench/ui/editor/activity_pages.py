@@ -11,6 +11,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
+from workbench.ui.editor.atmosphere_panel import AtmospherePanel
 from workbench.ui.editor.composer import ScenarioComposer
 from workbench.ui.editor.map_editor import MapEditor
 from workbench.ui.editor.radar_editor import RadarEditor
@@ -105,6 +106,28 @@ class TargetsEditorPage(QWidget):
     def targets_editor(self) -> TargetsEditor:
         """Return the embedded :class:`TargetsEditor` (test helper)."""
         return self._targets_editor
+
+
+class AtmospherePanelPage(QWidget):
+    """Activity 5 — hosts the real :class:`AtmospherePanel` widget.
+
+    The 2026-05-14 cycle finally mounts AtmospherePanel: previously
+    the widget existed but no Activity referenced it. AtmospherePropagator
+    (wired from MainWindow) forwards its state_changed into the
+    ScenarioComposer's atmosphere hint label.
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("AtmospherePanelPage")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self._atmosphere_panel = AtmospherePanel(self)
+        layout.addWidget(self._atmosphere_panel)
+
+    def atmosphere_panel(self) -> AtmospherePanel:
+        """Return the embedded :class:`AtmospherePanel` (test helper)."""
+        return self._atmosphere_panel
 
 
 class ResourceBrowserPage(QWidget):

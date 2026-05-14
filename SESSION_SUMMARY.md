@@ -1,10 +1,10 @@
 # TRsim — 세션 요약 (v0.40 기준)
 
-**마지막 갱신**: 2026-05-11 — Phase 5 + Phase 6 + Phase 7 마감
+**마지막 갱신**: 2026-05-14 — Phase 3 100% (Profile gate) + Phase 4 ~80% (Editor 5 controllers + Atmosphere Activity + Simulator L1-L6) + Phase 9 100% (Validation Bench 일반화)
 **직전 완료 버전**: v0.40 (v0.39 + Physics Lab — 5번째 차별점)
-**현재 main**: `be41394` Phase 7.3+7.4+7.5 — DLC 시스템 마감
-**누적 test**: 1484 PASS local, 5 contracts KEPT
-**인계 doc**: `docs/sessions/phase_5_6_7_2026_05_11_handoff.md`
+**현재 PR head**: `b3012b9` Atmosphere Activity 마운트 (26 commit on PR #1)
+**누적 test**: 2648 PASS 로컬, 5 contracts KEPT
+**인계 doc**: `docs/sessions/phase_4_editor_simulator_2026_05_14_handoff.md`
 
 ---
 
@@ -531,3 +531,41 @@ Phase 6 NN MVP 직후 자동 진행. 5 sub-step + task 2/3/4 추가.
 - B Variant build runner
 - C Real TrainerService backend
 - D Resource Browser 데이터 source 연결
+
+---
+
+## 2026-05-13 자동 모드 (10 commit, 사용자 우선순위 = physics_lab > simulator > editor)
+
+직전 cycle (L1) 후 사용자가 "내일 아침 6:00 까지 자동 진행" + "HIL MVP
+공간만, 실 작업 ✗" 결정. 10 commit 으로 우선순위 #1 종결 + #2 frame
+binding 마감 + 사이드 quest 3 종.
+
+**Phase 9 Validation Bench 일반화 (#1) 종결**:
+- M1 `b733608` — `app/physics_lab/validation_runner.py` (3 함수 +
+  ValidationRun dataclass), 17 신규 tests.
+- M2 `afc52a2` — BouncingBallController.run_validation_from_dataset
+  가 M1 위임으로 refactor, 1 parity test.
+- M3 `3fdd9ff` — 임의 PhysicsModelProtocol UI dispatch
+  (default_validation_fields helper + workspace 분기), 9 신규 tests.
+
+**Phase 4 Simulator panel binding (#2 frame-level) 마감**:
+- L2 `e504df1` — PluginManager baseline + 5 신규 tests.
+- L3 `bda4d51` — FFT/RD/StageIO frame_label fan-out + 5 tests.
+- L4 `d715c68` — Properties live snapshot + selection pin + 5 tests.
+- L5 `66960b9` — StageIO 6 box placeholder text + 4 tests.
+
+**사이드 quest 3 종**:
+- #7 `d833889` — Phase 5 #18/#19 reproducibility tests (9 tests).
+- #9 `cf0f57e` — SDK manifest.py 이동 (domain/dlc → sdk/), 14 files
+  touched, domain/dlc/ 패키지 삭제. plan/02 § 2.6b 정렬.
+- #6 `5ce10d2` — Phase 3 Profile mode toggle (ProfileMode enum +
+  CLI flag + manifest metadata), 16 tests.
+
+누적 +71 tests 예상. 사용자 PC 에서 pytest / mypy --strict /
+lint_imports 검증 필요. 인계 doc 의 § 6 명령 참조.
+
+### 다음 세션 권고
+
+`docs/sessions/phase_9_validation_simulator_polish_2026_05_13.md`
+§ 5 참조. FFT/RD 실 spectrum/heatmap data binding 또는 Editor
+activity binding 중 선택.

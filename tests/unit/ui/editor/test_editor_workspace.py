@@ -63,7 +63,8 @@ def test_activity_actions_have_expected_shortcuts(qtbot) -> None:  # type: ignor
         Activity.MAP: "Ctrl+2",
         Activity.RADAR: "Ctrl+3",
         Activity.TARGETS: "Ctrl+4",
-        Activity.BROWSER: "Ctrl+5",
+        Activity.ATMOSPHERE: "Ctrl+5",
+        Activity.BROWSER: "Ctrl+6",
     }
     for activity, key in expected.items():
         assert ws.activity_action(activity).shortcut() == QKeySequence(key)

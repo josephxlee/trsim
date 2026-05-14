@@ -25,10 +25,12 @@ def test_activity_enum_values_are_stable_strings() -> None:
 
 def test_activity_order_starts_with_composer() -> None:
     # Plan/13 § 13.2.2 puts Composer first because composition is the
-    # Editor's primary purpose.
+    # Editor's primary purpose. The 2026-05-14 cycle promoted the
+    # Atmosphere panel to a 5th Activity (Ctrl+5) so the order is now
+    # 6 entries.
     assert ACTIVITY_ORDER[0] is Activity.COMPOSER
     assert set(ACTIVITY_ORDER) == set(Activity)
-    assert len(ACTIVITY_ORDER) == 5
+    assert len(ACTIVITY_ORDER) == 6
 
 
 def test_default_initial_activity_is_composer(qtbot: object) -> None:
@@ -68,6 +70,7 @@ def test_cycle_next_walks_in_activity_order(qtbot: object) -> None:
         Activity.MAP,
         Activity.RADAR,
         Activity.TARGETS,
+        Activity.ATMOSPHERE,
         Activity.BROWSER,
         Activity.COMPOSER,
     ]

@@ -45,13 +45,24 @@ from workbench.ui.commands import (
 )
 from workbench.ui.dlc_bootstrap import (
     DLCRuntime,
+    populate_composer_options_from_library,
     populate_resource_browser_from_library,
 )
 from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
-from workbench.ui.editor.activity_pages import MapEditorPage
-from workbench.ui.editor.map_editor import DEMImportController
+from workbench.ui.editor.activity_pages import (
+    AtmospherePanelPage,
+    MapEditorPage,
+    RadarEditorPage,
+    ScenarioComposerPage,
+    TargetsEditorPage,
+)
+from workbench.ui.editor.atmosphere_panel import AtmospherePropagator
+from workbench.ui.editor.composer import ScenarioComposerController
+from workbench.ui.editor.map_editor import DEMImportController, MapEditorController
 from workbench.ui.editor.package_manager_dialog import PackageManagerController
+from workbench.ui.editor.radar_editor import RadarEditorController
+from workbench.ui.editor.targets_editor import TargetsEditorController
 from workbench.ui.editor.workspace import EditorWorkspace
 from workbench.ui.main_menu import MainMenuBar
 from workbench.ui.physics_lab import PhysicsLabWorkspace
@@ -130,6 +141,54 @@ class MainWindow(QMainWindow):
                 self._editor_page().resource_browser(),
                 self._dlc_runtime.app.resource_library,
             )
+            # Phase 9 cycle — also feed the ScenarioComposer dropdowns
+            # so the Map / Radar / Targets references show real ids
+            # the moment the user lands on the Composer page. The
+            # helper is on the same dlc_bootstrap module the resource
+            # browser uses, so the two surfaces stay in sync.
+            composer_page = self._editor_page().page(Activity.COMPOSER)
+            assert isinstance(composer_page, ScenarioComposerPage)
+            populate_composer_options_from_library(
+                composer_page.composer(),
+                self._dlc_runtime.app.resource_library,
+            )
+
+        # Phase 9 cycle — Composer Validate button now produces real
+        # status feedback via the new controller (combo shape check).
+        # Wired unconditionally so tests / users without a dlc_runtime
+        # still see validation status when clicking Validate.
+        composer_page = self._editor_page().page(Activity.COMPOSER)
+        assert isinstance(composer_page, ScenarioComposerPage)
+        self._composer_controller = ScenarioComposerController(
+            composer=composer_page.composer(),
+            parent=self,
+        )
+        # Same pattern for the Targets Activity Validate button.
+        targets_page = self._editor_page().page(Activity.TARGETS)
+        assert isinstance(targets_page, TargetsEditorPage)
+        self._targets_controller = TargetsEditorController(
+            editor=targets_page.targets_editor(),
+            parent=self,
+        )
+        # Radar Activity live computed-values strip (beamwidth + peak
+        # gain). Refreshes on every relevant field edit.
+        radar_page = self._editor_page().page(Activity.RADAR)
+        assert isinstance(radar_page, RadarEditorPage)
+        self._radar_controller = RadarEditorController(
+            editor=radar_page.radar_editor(),
+            parent=self,
+        )
+        # Atmosphere Activity (6th tab, Ctrl+5) wires the AtmospherePanel
+        # to the ScenarioComposer's atmosphere hint label so edits in
+        # the detailed atmosphere form immediately reflect on the
+        # Composer page.
+        atmosphere_page = self._editor_page().page(Activity.ATMOSPHERE)
+        assert isinstance(atmosphere_page, AtmospherePanelPage)
+        self._atmosphere_propagator = AtmospherePropagator(
+            panel=atmosphere_page.atmosphere_panel(),
+            composer=composer_page.composer(),
+            parent=self,
+        )
 
         # Wire the DEM Import wizard so the MapEditor's "Import DEM..."
         # button opens it (Phase 4 dem_import_wizard E4).
@@ -138,6 +197,13 @@ class MainWindow(QMainWindow):
         assert isinstance(map_page, MapEditorPage)
         self._dem_import_controller = DEMImportController(
             map_editor=map_page.map_editor(),
+            parent=self,
+        )
+        # MapEditor Validate button — combo + domain shape check + auto-
+        # stale on domain edits. Same pattern as Composer / Targets /
+        # Radar controllers.
+        self._map_editor_controller = MapEditorController(
+            editor=map_page.map_editor(),
             parent=self,
         )
 
@@ -223,6 +289,7 @@ class MainWindow(QMainWindow):
             on_activity_map=lambda: self._show_activity(editor, Activity.MAP),
             on_activity_radar=lambda: self._show_activity(editor, Activity.RADAR),
             on_activity_targets=lambda: self._show_activity(editor, Activity.TARGETS),
+            on_activity_atmosphere=lambda: self._show_activity(editor, Activity.ATMOSPHERE),
             on_activity_browser=lambda: self._show_activity(editor, Activity.BROWSER),
             on_plugins_manage=self._open_dlc_manager,
             on_plugins_install_package=self._install_dlc_package,

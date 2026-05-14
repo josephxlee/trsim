@@ -58,6 +58,7 @@ from workbench.domain.physics_lab.time_modes import (
 )
 from workbench.domain.physics_lab.validation import (
     ValidationMetrics,
+    ValidationRun,
     compute_validation_metrics,
 )
 
@@ -83,6 +84,7 @@ __all__ = [
     "TimeMode",
     "Trihedral",
     "ValidationMetrics",
+    "ValidationRun",
     "VisualKind",
     "Wall",
     "compute_validation_metrics",

@@ -452,7 +452,7 @@ def load_training_job_from_toml(path: Path | str) -> TrainingJob:
     from a different cwd.
 
     Strips a UTF-8 BOM if present (PowerShell 5.1 ``Out-File -Encoding utf8``
-    artifact; same defence as ``domain/dlc/manifest.py``).
+    artifact; same defence as ``sdk/manifest.py``).
 
     Args:
         path: TOML file path.

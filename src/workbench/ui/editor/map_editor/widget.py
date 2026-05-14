@@ -200,6 +200,10 @@ class MapEditor(QWidget):
         row.setObjectName("MapEditorActionRow")
         h = QHBoxLayout(row)
         h.setContentsMargins(0, 0, 0, 0)
+        self._validation_status = QLabel("Status: not yet validated")
+        self._validation_status.setObjectName("MapEditorValidationStatus")
+        self._validation_status.setStyleSheet("color: #777;")
+        h.addWidget(self._validation_status)
         h.addStretch(1)
         for label, signal_name, object_name in (
             ("Save", "save_requested", "MapEditorSaveBtn"),
@@ -211,6 +215,14 @@ class MapEditor(QWidget):
             btn.clicked.connect(getattr(self, signal_name))
             h.addWidget(btn)
         return row
+
+    def set_validation_status(self, text: str) -> None:
+        """Update the validation status label shown in the action row."""
+        self._validation_status.setText(text)
+
+    def validation_status_label(self) -> QLabel:
+        """Test helper for the validation status widget."""
+        return self._validation_status
 
     # ------------------------------------------------------------------
     # Selection helpers
@@ -301,6 +313,9 @@ class MapEditor(QWidget):
 
     def domain_panel(self) -> DomainSettingsPanel:
         return self._domain_panel
+
+    def origin_label(self) -> QLabel:
+        return self._origin_label
 
     def right_tabs(self) -> QTabWidget:
         return self._right_tabs

@@ -174,6 +174,12 @@ class TargetsEditor(QWidget):
     def motion_combo(self) -> QComboBox:
         return self._motion_combo
 
+    def rcs_edit(self) -> QLineEdit:
+        return self._rcs_edit
+
+    def scatterers_edit(self) -> QLineEdit:
+        return self._scatterers_edit
+
     def waypoint_label(self) -> QLabel:
         return self._waypoint_count
 

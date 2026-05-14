@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from workbench.domain.dlc.manifest import (
+from workbench.sdk.manifest import (
     CompatibilitySpec,
     PackageManifest,
     PackageMeta,

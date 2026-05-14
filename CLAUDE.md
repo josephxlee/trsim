@@ -17,9 +17,67 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **2026-05-14 wrap — PR #1 26 commit, MVP 96% (HIL 제외)**. 직전
+> 핸드오프 `docs/sessions/phase_4_editor_simulator_2026_05_14_
+> handoff.md` (이 cycle 세션 옮김). Phase 3 → 100% (Profile gate),
+> Phase 4 → ~80% (Editor 5 controller + Atmosphere Activity +
+> Simulator L1-L6), Phase 9 → 100% (Validation Bench 일반화 종결).
+> 누적 2648 PASS, 5 contracts KEPT, CI 8/8 green. 다음 cycle 후보 =
+> FFT 실 spectrum array binding (#1, 사용자 우선순위 simulator).
+>
+> PR `claude/check-progress-status-KpNpy` HEAD = `b3012b9`. main 은
+> 아직 `fafd03c` 구버전; PR merge 결정 사용자 대기.
+
+> **Phase 9 M1+M2+M3 — Validation Bench 일반화 종결 (직전 cycle)**. 사용자 결정: Phase 8 HIL = MVP 공간만, 실 작업 ✗.
+> 우선순위 리스트 재정렬 (HIL 제외, physics_lab > simulator > editor
+> 적용) → 1순위 = Validation Bench 일반화.
+>
+> **M1 layer**: 신규 `app/physics_lab/validation_runner.py` —
+> `simulate_dynamic_for_validation` (dynamic 모델 step loop, x_field
+> 기본 "time_s" + y_field 매 step 수집) + `sweep_static_for_validation`
+> (static 모델 params[x_field] override + compute({}) → y_field 추출)
+> + `run_validation_for_model` (model.time_mode 자동 dispatch + 5
+> validation: shape / ndim / empty / dt_s for dynamic / x_field for
+> static + dynamic max(measured_x)>0). 신규 `ValidationRun` frozen
+> dataclass (metrics + sim_x + sim_y) in `domain/physics_lab/
+> validation.py`. 17 신규 tests (GravityOnlyModel closed-form gravity /
+> BouncingBallModel bounce / FreeSpaceLossModel 20log10(4πR/λ) /
+> dispatch / 7 error case / ValidationRun 묶음).
+>
+> **M2 BouncingBall delegation**: `BouncingBallController.run_validation
+> _from_dataset` 가 새 `run_validation_for_model(BouncingBallModel(),
+> ...)` 위임으로 단순화. obsolete `_simulate_for_validation` (~25 줄)
+> 제거. PL-9.2c GUI 동작 동일 (BouncingBallSimulator.step 과 Bouncing
+> BallModel.compute 가 비트 동일 알고리즘 — semi-implicit Euler +
+> 동일 bounce/drag 식 + 동일 floor clamp + 동일 jitter 차단). 1 parity
+> regression test (controller path == 직접 layer 호출 결과 1e-12
+> 일치).
+>
+> **M3 임의 PhysicsModelProtocol UI dispatch**: `domain/physics_lab/
+> validation_defaults.py` 신규 (`default_validation_fields` — 3
+> built-in 모델 매핑: BouncingBall+Gravity → (time_s, position_m),
+> FreeSpaceLoss → (range_m, loss_db)). `PhysicsLabWorkspace` 가
+> `LibraryWidget.physics_model_selected` 신호 연결 + `_current_physics
+> _model` track + `_on_measured_dataset_selected` 분기 (Bouncing Ball
+> 이면 기존 controller path = live simulator state, 그 외이면 새
+> `_run_generic_validation` path = `default_validation_fields` 룩업 +
+> model `.parameters[i].default` 로 params dict 생성 + `run_validation
+> _for_model` 호출 + `install_validation_overlay` (public 메서드 신
+> 추가) + status bar 갱신). 9 신규 tests (4 defaults helper + 5
+> workspace dispatch: current_model 초기 None / model 선택 시 track /
+> FSPL static dispatch → RMSE ≈ 0 + n_samples = 5 / unknown model 시
+> last_validation_metrics = None + 충돌 없음 / BouncingBall 시 legacy
+> path 유지). plan/19 § 19.7.5+ 우선순위 #1 **종결**.
+>
+> ruff / py_compile clean; mypy --strict / pytest 는 사용자 PC verify
+> 대기 (sandbox 에 numpy/pytest/PySide6 없음).
+>
+> **이 cycle 인계 예상 누적**: 2518 + 17 (M1) + 1 (M2 parity) + 9 (M3)
+> = 2545 PASS (사용자 PC verify 후 확정).
+
 > **Phase 4 L1 — Simulator Run panel 실 sim_time / frame_id binding
-> DONE**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선순위
-> (사용자 "Simulation 가장 시급" 명시) 의 첫 sub-step.
+> DONE (직전 cycle)**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선
+> 순위 (사용자 "Simulation 가장 시급" 명시) 의 첫 sub-step.
 > ui/simulator/panels/run_panel.py 에 새 "Simulation Time" GroupBox
 > 추가 (sim_t / frame / state / speed 4 readout). 신규
 > ui/simulator/run_controller.py = `SimulatorRunController(QObject)`
@@ -1251,4 +1309,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 4 L1 (Simulator Run panel 실 sim_time) DONE, 2518 PASS. Simulator 8 panel 중 첫 실 데이터 binding.
+최근 갱신: 2026-05-14 — 세션 옮김 wrap. PR #1 26 commit, MVP 96%. 핸드오프 = `docs/sessions/phase_4_editor_simulator_2026_05_14_handoff.md`. 다음 cycle 후보 = FFT 실 spectrum array binding 또는 PR merge.

@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 )
 
 from workbench.app.physics_lab import (
+    BouncingBallModel,
     BouncingBallSimulator,
     BouncingBallState,
     FitConfig,
@@ -47,6 +48,7 @@ from workbench.app.physics_lab import (
     PhysicsClock,
     analytic_peak_height_m,
     fit_bouncing_ball,
+    run_validation_for_model,
 )
 from workbench.domain.physics_lab import (
     BOUNCING_BALL_PARAM_SPECS,
@@ -56,7 +58,6 @@ from workbench.domain.physics_lab import (
     TestObject,
     TimeMode,
     ValidationMetrics,
-    compute_validation_metrics,
     default_library,
     load_measured_csv,
     load_measured_hdf5,
@@ -1198,17 +1199,52 @@ class BouncingBallController(QObject):
                 column names.
         """
         measured_x, measured_y = self._load_measurement_columns(dataset, x_column, y_column)
-        # Simulate from t=0 to max(measured_x) with the current state.
-        sim_x, sim_y = self._simulate_for_validation(measured_x, dt_s)
-        metrics = compute_validation_metrics(measured_x, measured_y, sim_x, sim_y)
-        self._install_validation_overlays(measured_x, measured_y, sim_x, sim_y)
-        self.validation_metrics_ready.emit(metrics)
-        return metrics
+        sim = self.simulator
+        params: dict[str, float] = {
+            "gravity_m_s2": sim.gravity_m_s2,
+            "restitution": sim.restitution,
+            "initial_height_m": sim.initial_height_m,
+            "initial_velocity_m_s": sim.initial_velocity_m_s,
+            "drag_coefficient_k": sim.drag_coefficient_k,
+        }
+        initial_state: dict[str, object] = {
+            "position_m": sim.initial_height_m,
+            "velocity_m_s": sim.initial_velocity_m_s,
+            "bounces": 0,
+        }
+        run = run_validation_for_model(
+            BouncingBallModel(),
+            params=params,
+            measured_x=measured_x,
+            measured_y=measured_y,
+            y_field="position_m",
+            initial_state=initial_state,
+            dt_s=dt_s,
+        )
+        self._install_validation_overlays(measured_x, measured_y, run.sim_x, run.sim_y)
+        self.validation_metrics_ready.emit(run.metrics)
+        return run.metrics
 
     def clear_validation_overlays(self) -> None:
         """Remove the validation overlay curves added by the last run."""
         self._plot.remove_overlay_curve(self.VALIDATION_MEASURED_CURVE)
         self._plot.remove_overlay_curve(self.VALIDATION_SIM_CURVE)
+
+    def install_validation_overlay(
+        self,
+        measured_x: np.ndarray,
+        measured_y: np.ndarray,
+        sim_x: np.ndarray,
+        sim_y: np.ndarray,
+    ) -> None:
+        """Public hook used by the workspace for generic-model validation.
+
+        The PL-9.2c (BouncingBall) flow installs the same overlays
+        internally; this entry point lets the workspace drive the same
+        plot from the Phase 9 M3 generic dispatch path without
+        reaching into a private method.
+        """
+        self._install_validation_overlays(measured_x, measured_y, sim_x, sim_y)
 
     def fit_to_measurement(
         self,
@@ -1304,39 +1340,6 @@ class BouncingBallController(QObject):
             load_measured_hdf5(dataset, x_col),
             load_measured_hdf5(dataset, y_col),
         )
-
-    def _simulate_for_validation(
-        self,
-        measured_x: np.ndarray,
-        dt_s: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Run a fresh sim from t=0 to ``max(measured_x)``.
-
-        Does not touch the controller's live simulator or history —
-        the user's interactive state stays intact across validation
-        runs.
-        """
-        end_t = float(measured_x.max())
-        if end_t <= 0.0:
-            msg = "run_validation: measured x-range must include positive values"
-            raise ValueError(msg)
-        sim = BouncingBallSimulator(
-            gravity_m_s2=self.simulator.gravity_m_s2,
-            restitution=self.simulator.restitution,
-            initial_height_m=self.simulator.initial_height_m,
-            initial_velocity_m_s=self.simulator.initial_velocity_m_s,
-            drag_coefficient_k=self.simulator.drag_coefficient_k,
-        )
-        n_steps = max(2, int(np.ceil(end_t / dt_s)) + 1)
-        times = np.empty(n_steps, dtype=np.float64)
-        ys = np.empty(n_steps, dtype=np.float64)
-        times[0] = sim.state.time_s
-        ys[0] = sim.state.position_m
-        for i in range(1, n_steps):
-            state = sim.step(dt_s)
-            times[i] = state.time_s
-            ys[i] = state.position_m
-        return times, ys
 
     def _install_validation_overlays(
         self,

@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 from workbench.domain.types import SpeedMultiplier
 from workbench.ui.nn_training import NNTrainingController, TrainingPanel
 from workbench.ui.panel_registry import PanelRegistration, PanelRegistry
+from workbench.ui.simulator.builtin_pipeline_plugins import BUILTIN_SIMULATOR_PLUGINS
 from workbench.ui.simulator.nn_mode import Step1DatasetPanel, Step2EvalPanel
 from workbench.ui.simulator.nn_mode.step1_controller import NNStep1Controller
 from workbench.ui.simulator.nn_mode.step2_controller import NNStep2Controller
@@ -71,6 +72,30 @@ class DLCMountError:
 
     registration: PanelRegistration
     message: str
+
+
+# Phase 4 L6 — placeholder peak-count generator. Real FFT spectra
+# arrive once Pipeline.step is wired into SimulatorRunController; until
+# then the FFTPanel "peaks: N up / N down" readout cycles through a
+# deterministic pattern so users see the spectra block respond to the
+# simulation clock.
+_SYNTHETIC_UP_PEAK_PATTERN: tuple[int, ...] = (3, 4, 5, 4, 3, 2)
+_SYNTHETIC_DOWN_PEAK_PATTERN: tuple[int, ...] = (3, 4, 3, 4, 3, 5)
+
+
+def synthetic_peak_counts(frame_id: int) -> tuple[int, int]:
+    """Return (up_peaks, down_peaks) for the FFT panel placeholder.
+
+    Cycles through fixed small patterns so the panel readout moves
+    while still being fully deterministic for tests. Always returns
+    non-negative integers.
+    """
+    if frame_id < 0:
+        msg = f"frame_id must be non-negative, got {frame_id}"
+        raise ValueError(msg)
+    up = _SYNTHETIC_UP_PEAK_PATTERN[frame_id % len(_SYNTHETIC_UP_PEAK_PATTERN)]
+    down = _SYNTHETIC_DOWN_PEAK_PATTERN[frame_id % len(_SYNTHETIC_DOWN_PEAK_PATTERN)]
+    return up, down
 
 
 class SimulatorWorkspace(QWidget):
@@ -200,6 +225,11 @@ class SimulatorWorkspace(QWidget):
         if panel_registry is not None:
             self.mount_dlc_panels(panel_registry.get_panels_for_workspace("simulator"))
 
+        # Phase 4 L2 — Populate PluginManager with the curated baseline
+        # of workbench-ships plug-ins. DLC plug-ins discovered via
+        # PluginLoader augment this list in a follow-up sub-step.
+        self._populate_builtin_pipeline_plugins()
+
         # Phase 4 L1 — Run panel live sim_time / frame_id readouts. The
         # controller owns its own SimulationClock + 16 ms QTimer.
         # Tests pass ``autostart_run_timer=False`` for deterministic
@@ -210,6 +240,18 @@ class SimulatorWorkspace(QWidget):
             autostart_timer=autostart_run_timer,
             parent=self,
         )
+
+        # Phase 4 L3 — Fan the controller's per-tick (sim_t_s, frame_id)
+        # signal out to the FFT / RD / StageIO panels so their frame
+        # readouts move in lock-step with the Run panel. Future cycles
+        # will push real spectra / heatmaps / stage payloads on top of
+        # this same edge.
+        # Phase 4 L4 — also paint the Properties panel with the live
+        # Simulator-context snapshot. The flag below flips True once a
+        # scene-select hooks in (later cycle) so the tick stops
+        # clobbering the user's choice.
+        self._properties_owned_by_selection: bool = False
+        self._run_controller.tick_completed.connect(self._on_run_tick_completed)
 
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
@@ -261,6 +303,114 @@ class SimulatorWorkspace(QWidget):
     def dlc_mount_errors(self) -> tuple[DLCMountError, ...]:
         """Tuple of DLC panels that failed to mount."""
         return tuple(self._dlc_mount_errors)
+
+    # ------------------------------------------------------------------
+    # Phase 4 L4 — Properties panel ownership
+    # ------------------------------------------------------------------
+    def show_selected_in_properties(self, label: str, properties: dict[str, str]) -> None:
+        """Pin the Properties panel to a user-selected object.
+
+        Stops the per-tick Simulator-context refresh from overwriting
+        the form. Calling :meth:`clear_property_selection` (or letting
+        a future Scene3D deselect handler call it) returns the panel to
+        the live tick-driven view.
+        """
+        self._properties_owned_by_selection = True
+        self._properties_panel.show_object(label, properties)
+
+    def clear_property_selection(self) -> None:
+        """Hand the Properties panel back to the tick handler."""
+        self._properties_owned_by_selection = False
+        self._properties_panel.clear()
+
+    def is_properties_owned_by_selection(self) -> bool:
+        """Test surface for the L4 ownership flag."""
+        return self._properties_owned_by_selection
+
+    # ------------------------------------------------------------------
+    # Phase 4 L3 — Run-tick fan-out
+    # ------------------------------------------------------------------
+    def _on_run_tick_completed(self, sim_t_s: float, frame_id: int) -> None:
+        """Slot for :attr:`SimulatorRunController.tick_completed`.
+
+        L3 mirrors ``frame_id`` into the three downstream panels that
+        carry frame readouts (FFT / RD / StageIO). L4 also paints the
+        Properties panel with a live Simulator-context snapshot
+        (``sim_t_s`` / ``frame_id`` / state / speed) whenever no other
+        object owns the panel; once Scene3D wiring lands the
+        ``_properties_owned_by_selection`` flag flips to ``True`` and
+        the tick stops clobbering the user's choice.
+
+        L6 also pushes a deterministic peak-count pair into the FFT
+        panel's "peaks: N up / N down" readout so users see the spectra
+        block move with the simulation. Real FFT spectra arrive once
+        Pipeline.step is wired into the controller (later cycle).
+        """
+        self._fft_panel.set_frame(frame_id)
+        self._range_doppler_panel.set_frame(frame_id)
+        self._stage_io_panel.set_frame(frame_id)
+        up_peaks, down_peaks = synthetic_peak_counts(frame_id)
+        self._fft_panel.set_peak_counts(up_peaks, down_peaks)
+        # Phase 4 L5 — paint a deterministic placeholder summary into
+        # each of the 6 Stage I/O boxes. The text encodes ``frame_id``
+        # so users can confirm the boxes refresh in lock-step with the
+        # other panels. Real per-stage payload strings come from a
+        # later cycle once an actual pipeline runs.
+        self._stage_io_panel.set_stage_io(
+            "Transmitter",
+            in_text=f"scenario @ frame={frame_id}",
+            out_text=f"FMCW chirp #{frame_id}",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Environment",
+            in_text="tx signal",
+            out_text=f"rx signal @ t={sim_t_s:.3f}s",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Receiver",
+            in_text="rx signal",
+            out_text=f"beats #{frame_id}",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Detector",
+            in_text=f"beats #{frame_id}",
+            out_text="(pipeline pending)",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Pairing",
+            in_text="(pipeline pending)",
+            out_text="(pipeline pending)",
+        )
+        self._stage_io_panel.set_stage_io(
+            "Tracker",
+            in_text="(pipeline pending)",
+            out_text="(pipeline pending)",
+        )
+        if not self._properties_owned_by_selection:
+            clock = self._run_controller.clock
+            self._properties_panel.show_object(
+                "Simulator",
+                {
+                    "sim_t_s": f"{sim_t_s:.3f}",
+                    "frame_id": str(frame_id),
+                    "state": clock.state.name,
+                    "speed": f"{int(clock.speed)}x",
+                },
+            )
+
+    # ------------------------------------------------------------------
+    # Phase 4 L2 — PluginManager baseline population
+    # ------------------------------------------------------------------
+    def _populate_builtin_pipeline_plugins(self) -> None:
+        """Push the curated built-in plug-in names into the panel.
+
+        Looks up :data:`BUILTIN_SIMULATOR_PLUGINS` and calls
+        :meth:`PluginManagerPanel.set_stage_plugins` per stage. Stages
+        with an empty tuple stay empty (Predictor / Classifier ship no
+        baseline plug-ins as of Phase 9; the UI displays a blank list).
+        """
+        for stage, names in BUILTIN_SIMULATOR_PLUGINS.items():
+            self._plugin_manager_panel.set_stage_plugins(stage, list(names))
 
     # ------------------------------------------------------------------
     # Test helpers / Phase 5+ wiring

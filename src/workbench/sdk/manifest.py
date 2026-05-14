@@ -5,6 +5,12 @@ Phase 7.1 — read-only schema. The TOML file lives at the root of a
 (Phase 7.2) needs to register the package's plugins / resources / UI
 panels.
 
+Originally lived in :mod:`workbench.domain.dlc.manifest`; the Phase 9
+SDK-cleanup sidequest moved it to the SDK layer so DLC authors can
+``import workbench.sdk as trsim_sdk`` without reaching into the
+domain package (plan/02 § 2.6b — SDK is the single public surface
+for plug-in authors).
+
 Validation rules (plan/17 § 17.2.4):
 
 - ``package.id`` — non-empty, kebab-case (lowercase letters, digits,
