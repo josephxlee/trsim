@@ -74,6 +74,30 @@ class DLCMountError:
     message: str
 
 
+# Phase 4 L6 — placeholder peak-count generator. Real FFT spectra
+# arrive once Pipeline.step is wired into SimulatorRunController; until
+# then the FFTPanel "peaks: N up / N down" readout cycles through a
+# deterministic pattern so users see the spectra block respond to the
+# simulation clock.
+_SYNTHETIC_UP_PEAK_PATTERN: tuple[int, ...] = (3, 4, 5, 4, 3, 2)
+_SYNTHETIC_DOWN_PEAK_PATTERN: tuple[int, ...] = (3, 4, 3, 4, 3, 5)
+
+
+def synthetic_peak_counts(frame_id: int) -> tuple[int, int]:
+    """Return (up_peaks, down_peaks) for the FFT panel placeholder.
+
+    Cycles through fixed small patterns so the panel readout moves
+    while still being fully deterministic for tests. Always returns
+    non-negative integers.
+    """
+    if frame_id < 0:
+        msg = f"frame_id must be non-negative, got {frame_id}"
+        raise ValueError(msg)
+    up = _SYNTHETIC_UP_PEAK_PATTERN[frame_id % len(_SYNTHETIC_UP_PEAK_PATTERN)]
+    down = _SYNTHETIC_DOWN_PEAK_PATTERN[frame_id % len(_SYNTHETIC_DOWN_PEAK_PATTERN)]
+    return up, down
+
+
 class SimulatorWorkspace(QWidget):
     """Composite simulator view with eight runtime panels."""
 
@@ -317,11 +341,16 @@ class SimulatorWorkspace(QWidget):
         ``_properties_owned_by_selection`` flag flips to ``True`` and
         the tick stops clobbering the user's choice.
 
-        Future cycles use ``sim_t_s`` to drive spectra / heatmaps too.
+        L6 also pushes a deterministic peak-count pair into the FFT
+        panel's "peaks: N up / N down" readout so users see the spectra
+        block move with the simulation. Real FFT spectra arrive once
+        Pipeline.step is wired into the controller (later cycle).
         """
         self._fft_panel.set_frame(frame_id)
         self._range_doppler_panel.set_frame(frame_id)
         self._stage_io_panel.set_frame(frame_id)
+        up_peaks, down_peaks = synthetic_peak_counts(frame_id)
+        self._fft_panel.set_peak_counts(up_peaks, down_peaks)
         # Phase 4 L5 — paint a deterministic placeholder summary into
         # each of the 6 Stage I/O boxes. The text encodes ``frame_id``
         # so users can confirm the boxes refresh in lock-step with the
