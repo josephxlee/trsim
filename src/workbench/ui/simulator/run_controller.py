@@ -76,20 +76,38 @@ class SimulatorRunController(QObject):
     # Transport
     # ------------------------------------------------------------------
     def play(self) -> None:
-        """STOPPED / PAUSED -> RUNNING. STOPPED also resets frame_id."""
+        """STOPPED / PAUSED -> RUNNING. STOPPED also resets frame_id.
+
+        Idempotent: re-pressing Play while already RUNNING is a no-op.
+        The underlying :class:`SimulationClock.start` raises
+        ``RuntimeError`` on a double-start (intentional invariant at
+        the domain layer); the controller absorbs that here because
+        the user can easily click the toolbar Play button twice or
+        re-trigger the command via the palette.
+        """
+        if self._clock.state is SimulationState.RUNNING:
+            return  # Already running; nothing to do.
         if self._clock.state is SimulationState.STOPPED:
             self._frame_id = 0
         self._clock.start()
         self._refresh_panel()
 
     def pause(self) -> None:
-        """RUNNING -> PAUSED. frame_id frozen; sim_t_s frozen."""
+        """RUNNING -> PAUSED. frame_id frozen; sim_t_s frozen.
+
+        Idempotent: pressing Pause when already PAUSED / STOPPED is
+        a no-op (matches the toolbar UX expectation).
+        """
         if self._clock.state is SimulationState.RUNNING:
             self._clock.pause()
             self._refresh_panel()
 
     def stop(self) -> None:
-        """Any -> STOPPED. Resets sim_t_s and frame_id."""
+        """Any -> STOPPED. Resets sim_t_s and frame_id.
+
+        Always safe to call — :class:`SimulationClock.stop` is itself
+        idempotent at the domain layer.
+        """
         self._clock.stop()
         self._frame_id = 0
         self._refresh_panel()
