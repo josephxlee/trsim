@@ -11,6 +11,10 @@ them into the panels.
 
 from __future__ import annotations
 
+from workbench.app.simulator.mock_primary_target import (
+    MockPrimaryTargetGenerator,
+    MockPrimaryTargetSnapshot,
+)
 from workbench.app.simulator.mock_range_doppler import (
     DEFAULT_DOPPLER_MAX_MPS,
     DEFAULT_DOPPLER_MIN_MPS,
@@ -51,6 +55,8 @@ __all__ = [
     "DEFAULT_RANGE_MAX_M",
     "DEFAULT_RANGE_MIN_M",
     "PIPELINE_STAGE_BOXES",
+    "MockPrimaryTargetGenerator",
+    "MockPrimaryTargetSnapshot",
     "MockRangeDopplerFrame",
     "MockRangeDopplerGenerator",
     "MockSceneFrame",

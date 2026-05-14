@@ -56,6 +56,9 @@ from workbench.ui.simulator.panels import (
     ScopePOVPanel,
     StageIOPanel,
 )
+from workbench.ui.simulator.primary_target_controller import (
+    SimulatorPrimaryTargetController,
+)
 from workbench.ui.simulator.profiler_panel import ProfilerPanel
 from workbench.ui.simulator.rd_controller import SimulatorRDController
 from workbench.ui.simulator.run_controller import SimulatorRunController
@@ -264,6 +267,18 @@ class SimulatorWorkspace(QWidget):
             parent=self,
         )
 
+        # Phase 4 L6 — Scope POV cross-hair + Properties primary-target
+        # form. Both panels share one MockPrimaryTargetGenerator so the
+        # scope and the form always agree on what the radar is looking
+        # at. The Scope panel's cross-hair is now a live pyqtgraph
+        # scatter point in normalized [-1, 1] x [-1, 1] coordinates.
+        self._primary_target_controller = SimulatorPrimaryTargetController(
+            scope_panel=self._scope_panel,
+            properties_panel=self._properties_panel,
+            run_controller=self._run_controller,
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
     # ------------------------------------------------------------------
@@ -365,6 +380,9 @@ class SimulatorWorkspace(QWidget):
 
     def stage_io_controller(self) -> SimulatorStageIOController:
         return self._stage_io_controller
+
+    def primary_target_controller(self) -> SimulatorPrimaryTargetController:
+        return self._primary_target_controller
 
     def sim_play(self) -> None:
         """Toolbar / hook entry — start simulation clock."""
