@@ -31,8 +31,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QKeyEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
@@ -210,8 +210,16 @@ class SimulatorWorkspace(QWidget):
         if panel_registry is not None:
             self.mount_dlc_panels(panel_registry.get_panels_for_workspace("simulator"))
 
+        # P5c — debounced paint-release timer for resize drag handling.
+        # Created up-front so resizeEvent (which Qt may call before
+        # __init__ finishes on some platforms) finds it ready.
+        self._resize_release_timer = QTimer(self)
+        self._resize_release_timer.setSingleShot(True)
+        self._resize_release_timer.setInterval(self.RESIZE_PAINT_RELEASE_MS)
+        self._resize_release_timer.timeout.connect(self._on_resize_settled)
+
         # Phase 4 L1 — Run panel live sim_time / frame_id readouts. The
-        # controller owns its own SimulationClock + 16 ms QTimer.
+        # controller owns its own SimulationClock + 33 ms QTimer.
         # Tests pass ``autostart_run_timer=False`` for deterministic
         # tick control.
         self._run_controller = SimulatorRunController(
@@ -393,6 +401,11 @@ class SimulatorWorkspace(QWidget):
     MANUAL_AZ_STEP_DEG: float = 0.5
     #: Per-keypress elevation nudge [deg].
     MANUAL_EL_STEP_DEG: float = 0.5
+    #: P5c — milliseconds of stillness after the last ``resizeEvent``
+    #: before downstream controllers are allowed to repaint their
+    #: pyqtgraph widgets again. Stops the 30 Hz tick from competing
+    #: with Qt's splitter reflow during a window-resize drag.
+    RESIZE_PAINT_RELEASE_MS: int = 150
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802 — Qt API
         """Map arrow keys to the primary-target manual pointing offset.
@@ -436,6 +449,33 @@ class SimulatorWorkspace(QWidget):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    # ------------------------------------------------------------------
+    # P5c — Resize-drag paint suppression
+    # ------------------------------------------------------------------
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 — Qt API
+        """Suppress downstream paint signals while the window is being
+        resized.
+
+        Window resize triggers a cascade through 5 nested
+        QSplitter widgets + 4 pyqtgraph PlotWidgets + (optionally) a
+        pyvistaqt QtInteractor — each frame's reflow competes with the
+        30 Hz tick the RunController fires. We flip a suppression flag
+        on the RunController so ``tick_completed`` is silently dropped
+        for the duration of the drag, then a single-shot
+        ``QTimer.timeout`` clears it ``RESIZE_PAINT_RELEASE_MS`` after
+        the last resize event lands.
+        """
+        super().resizeEvent(event)
+        self._run_controller.set_paint_suppressed(True)
+        # Restartable single-shot — every resizeEvent extends the
+        # debounce window. Once the user stops dragging, no more
+        # resizeEvents arrive and the timer finally fires.
+        self._resize_release_timer.start()
+
+    def _on_resize_settled(self) -> None:
+        """Called ``RESIZE_PAINT_RELEASE_MS`` after the last resize."""
+        self._run_controller.set_paint_suppressed(False)
 
     def sim_play(self) -> None:
         """Toolbar / hook entry — start simulation clock."""
