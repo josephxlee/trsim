@@ -122,10 +122,13 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 
 ## Phase 5 — 물리 검증 ✓
 
-17 카테고리 + 이 세션 12 sub-step 후속 보강 끝 (2065 PASS).
-plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
-#19 (Frame Profiler 결과 재현성) 의 본격 재현성 시험은 △
-(정량 invariant 만 추가, 같은 seed/load → 같은 결과 검증 ✗).
+17 카테고리 + 이 세션 12 sub-step 후속 보강 + P4 #18/#19 재현성
+정량 끝. plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing
+재현성) + #19 (Frame Profiler 결과 재현성) ✓ — P4 신규
+`tests/physics/test_reference_timing_reproducibility.py` +
+`test_frame_profiler_reproducibility.py` (frozen dataclass 동일성 +
+sample sequence 동일 → 동일 report + percentile 단조 + reset
+idempotent + multi-stage 독립).
 
 ---
 
@@ -229,13 +232,12 @@ placeholder 상태:
 
 | 우선 | 작업 | 크기 | 비고 |
 |---|---|---|---|
-| 1 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
-| 2 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
-| 3 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
-| 4 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
-| 5 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
-| 6 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 7 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 1 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
+| 2 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
+| 3 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
+| 4 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
+| 5 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
+| 6 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
 | post-MVP | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | MVP 완성 후 별도 cycle. 자리만 예약, 작업 시작은 사용자 신호 후. |
 | post-MVP | **Phase 4 L-series 후속**: Pipeline 실 연결 (mock generators 교체) | 큼 | 8 panel 의 mock generator 들을 실 `Pipeline.step()` probe 로 교체. Phase 6+ probe recorder 와 짝. |
 
