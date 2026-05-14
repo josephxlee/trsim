@@ -110,7 +110,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4, MVP 4-page distillation: Source/Land-Sea/Output/Summary) |
 | **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | ✓ (G1-G3, dataclass + `DomainSettingsPanel` widget + Map Editor QTabWidget mount as "Domain" tab; live data binding via `set_map_bounds` is later cycle) |
 | Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
-| Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
+| Targets Editor widget skeleton (메타 + Trajectory Preview) | △ (widget + Validate button → `TargetsEditorController` (name/motion/RCS/scatterers shape check, OK/WARN/ERROR status) ✓; trajectory CSV / preview / save 미) |
 | Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
 | Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run ✓ L1; PluginManager ✓ L2 baseline; FFT/RD/StageIO frame_label ✓ L3 fan-out; Properties ✓ L4 snapshot + selection pin; StageIO 6 box IN/OUT ✓ L5 deterministic placeholder text. FFT spectrum / RD heatmap data binding은 실 pipeline 후 후속.) |
 | Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | △ (Phase 4.10 lazy create) |
@@ -298,4 +298,5 @@ shell 만 (members 없음).
 - 2026-05-13 Sidequest #6 — Phase 3 Profile mode toggle △ → ✓. `src/workbench/domain/timing/profile_mode.py` 신규 (ProfileMode StrEnum + DEFAULT_PROFILE_MODE=OFF + PROFILE_MODES_IN_DISPLAY_ORDER tuple + parse_profile_mode helper). CLI `trsim run --profile-mode {off,explicit,live}` flag 추가 (default off) + manifest metadata 에 profile_mode 기록. `trsim profile` 도 explicit/live 선택 (default explicit). 9 신규 enum tests + 7 신규 CLI tests. Runtime probe gating 은 Pipeline.step 본격 wire 후 후속.
 - 2026-05-13 Editor Composer dropdown wiring — `populate_composer_options_from_library` 신규 헬퍼 + MainWindow 가 dlc_runtime 있을 때 `populate_resource_browser_from_library` 옆에서 같이 호출. Composer 의 Map / Radar / Targets 콤보가 처음으로 실 ResourceLibrary 항목으로 채워짐. 3 신규 tests (빈 library / 3 카테고리 round-trip / scenarios 무시).
 - 2026-05-13 Editor Composer validation controller — `ui/editor/composer/controller.py` 신규 (`ScenarioComposerController`). MainWindow 가 dlc_runtime 무관 wire. `validate_requested` 신호 받아 combo shape check + OK/WARN/ERROR 분류 + `set_validation(status, messages)` 호출. 5 신규 tests (OK / Map 누락 ERROR / Radar 누락 ERROR / targets 만 누락 WARN / signal end-to-end).
-**최종 갱신**: 2026-05-13 — Phase 4 L1~L5 + #7 + #9 + #6 + Composer dropdown + Composer validation controller ✓.
+- 2026-05-14 Editor TargetsEditor validation controller — `ui/editor/targets_editor/controller.py` 신규 (`TargetsEditorController`). TargetsEditor 에 `rcs_edit()` / `scatterers_edit()` accessor 추가. MainWindow 에서 wire. shape check (name/motion/RCS/scatterers) + OK/WARN/ERROR + `set_validation_status` 호출. 8 신규 tests.
+**최종 갱신**: 2026-05-14 — Composer + Targets validation controllers ✓.
