@@ -245,8 +245,12 @@ class ScenarioComposer(QWidget):
         self._atmosphere_combo = QComboBox(box)
         self._atmosphere_combo.setObjectName("ComposerAtmosphere")
         self._atmosphere_combo.addItems(DEFAULT_ATMOSPHERES)
+        self._atmosphere_hint = QLabel("(editor: not yet set)")
+        self._atmosphere_hint.setObjectName("ComposerAtmosphereHint")
+        self._atmosphere_hint.setStyleSheet("color: #777;")
         form.addRow("Sea State", self._sea_state_combo)
         form.addRow("Atmosphere", self._atmosphere_combo)
+        form.addRow("", self._atmosphere_hint)
         return box
 
     def _build_validation_block(self) -> QGroupBox:
@@ -300,6 +304,21 @@ class ScenarioComposer(QWidget):
 
     def set_targets_options(self, names: Iterable[str]) -> None:
         self._populate_combo(self._targets_combo, names)
+
+    def set_atmosphere_hint(self, text: str) -> None:
+        """Update the editor-atmosphere hint label below the Atmosphere combo.
+
+        Phase 9 cycle: the AtmospherePropagator subscribes to
+        :attr:`AtmospherePanel.state_changed` and forwards a short
+        human-readable summary here so the Composer always reflects
+        whatever the user is currently editing in the Atmosphere
+        Activity.
+        """
+        self._atmosphere_hint.setText(text)
+
+    def atmosphere_hint_label(self) -> QLabel:
+        """Test helper for the atmosphere hint widget."""
+        return self._atmosphere_hint
 
     def set_validation(self, status: str, messages: Iterable[str]) -> None:
         """Update the validation status banner + message list."""

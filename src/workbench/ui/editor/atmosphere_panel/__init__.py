@@ -12,9 +12,20 @@ domain.atmosphere via ScenarioService.
 
 from __future__ import annotations
 
+from workbench.ui.editor.atmosphere_panel.controller import (
+    AtmospherePropagator,
+    format_atmosphere_hint,
+)
 from workbench.ui.editor.atmosphere_panel.widget import (
     SKY_CONDITIONS,
     AtmospherePanel,
+    AtmosphereState,
 )
 
-__all__ = ["SKY_CONDITIONS", "AtmospherePanel"]
+__all__ = [
+    "SKY_CONDITIONS",
+    "AtmospherePanel",
+    "AtmospherePropagator",
+    "AtmosphereState",
+    "format_atmosphere_hint",
+]
