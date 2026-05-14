@@ -18,8 +18,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from workbench.io.package_io import read_manifest_from_package
-
 
 @dataclass(frozen=True, slots=True)
 class PackageTestResult:
@@ -56,6 +54,12 @@ def test_package(pkg_path: Path | str) -> PackageTestResult:
         ValueError: Archive is missing ``manifest.toml`` or the
             manifest fails to parse / validate.
     """
+    # Lazy import — see :mod:`workbench.sdk.package_builder` for the
+    # same defence: sdk/__init__.py eagerly imports this module, and
+    # package_io now imports :mod:`workbench.sdk.manifest`, so a
+    # top-level import would create a circular load.
+    from workbench.io.package_io import read_manifest_from_package
+
     manifest = read_manifest_from_package(pkg_path)
     issues: list[str] = []
     if not manifest.package.description:

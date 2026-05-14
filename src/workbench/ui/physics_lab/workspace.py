@@ -60,6 +60,7 @@ from PySide6.QtWidgets import (
 from workbench.app.physics_lab import (
     FitResult,
     default_physics_models,
+    default_validation_fields,
     run_validation_for_model,
 )
 from workbench.domain.physics_lab import (
@@ -68,7 +69,6 @@ from workbench.domain.physics_lab import (
     SavedExperiment,
     TimeMode,
     ValidationMetrics,
-    default_validation_fields,
     list_measured_datasets,
     list_papers,
     list_saved_experiments,
@@ -532,7 +532,11 @@ class PhysicsLabWorkspace(QWidget):
             self._time_controls.status_label().setText(f"validation: {exc}")
             self._last_validation_metrics = None
             return
-        params = {p.name: p.default for p in model.parameters}
+        # PhysicsParam.default is float | None — fall back to min_value
+        # per the dataclass docstring so the runner always sees a float.
+        params: dict[str, float] = {
+            p.name: (p.default if p.default is not None else p.min_value) for p in model.parameters
+        }
         try:
             run = run_validation_for_model(
                 model,

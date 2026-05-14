@@ -61,9 +61,6 @@ from workbench.domain.physics_lab.validation import (
     ValidationRun,
     compute_validation_metrics,
 )
-from workbench.domain.physics_lab.validation_defaults import (
-    default_validation_fields,
-)
 
 __all__ = [
     "BOUNCING_BALL_PARAM_SPECS",
@@ -92,7 +89,6 @@ __all__ = [
     "Wall",
     "compute_validation_metrics",
     "default_library",
-    "default_validation_fields",
     "get_physics_params",
     "inspect_csv",
     "inspect_hdf5",

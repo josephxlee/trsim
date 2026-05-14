@@ -48,6 +48,9 @@ from workbench.app.physics_lab.parameter_fitter import (
     FitResult,
     fit_bouncing_ball,
 )
+from workbench.app.physics_lab.validation_defaults import (
+    default_validation_fields,
+)
 from workbench.app.physics_lab.validation_runner import (
     run_validation_for_model,
     simulate_dynamic_for_validation,
@@ -72,6 +75,7 @@ __all__ = [
     "analytic_peak_height_m",
     "builtin_physics_models",
     "default_physics_models",
+    "default_validation_fields",
     "fit_bouncing_ball",
     "physics_models_from",
     "physics_models_from_loaded_plugins",

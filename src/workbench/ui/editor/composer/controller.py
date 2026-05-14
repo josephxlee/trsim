@@ -41,6 +41,12 @@ class ScenarioComposerController(QObject):
     def composer(self) -> ScenarioComposer:
         return self._composer
 
+    # The Composer's resource combos default to "(none)" (Phase 4.5
+    # placeholder, see :meth:`ScenarioComposer._make_resource_combo`).
+    # Treat that exactly like an empty selection so the validation
+    # controller does not declare a half-typed scenario "OK".
+    _PLACEHOLDER_VALUE: str = "(none)"
+
     def run_validation(self) -> tuple[str, tuple[str, ...]]:
         """Inspect the current Composer state + push status into the panel.
 
@@ -49,9 +55,9 @@ class ScenarioComposerController(QObject):
             :meth:`ScenarioComposer.set_validation`. Useful for tests
             and CLI surface.
         """
-        map_id = self._composer.map_combo().currentText().strip()
-        radar_id = self._composer.radar_combo().currentText().strip()
-        targets_id = self._composer.targets_combo().currentText().strip()
+        map_id = self._normalised(self._composer.map_combo().currentText())
+        radar_id = self._normalised(self._composer.radar_combo().currentText())
+        targets_id = self._normalised(self._composer.targets_combo().currentText())
 
         messages: list[str] = []
         if not map_id:
@@ -69,3 +75,11 @@ class ScenarioComposerController(QObject):
 
         self._composer.set_validation(status, messages)
         return status, tuple(messages)
+
+    @classmethod
+    def _normalised(cls, raw: str) -> str:
+        """Strip whitespace and demote the ``(none)`` placeholder to empty."""
+        value = raw.strip()
+        if value == cls._PLACEHOLDER_VALUE:
+            return ""
+        return value

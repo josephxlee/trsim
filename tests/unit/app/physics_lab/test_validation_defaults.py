@@ -6,8 +6,8 @@ from workbench.app.physics_lab import (
     BouncingBallModel,
     FreeSpaceLossModel,
     GravityOnlyModel,
+    default_validation_fields,
 )
-from workbench.domain.physics_lab import default_validation_fields
 
 
 def test_defaults_bouncing_ball() -> None:

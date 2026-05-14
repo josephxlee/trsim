@@ -191,10 +191,15 @@ class TestObjectProtocol(Protocol):
     def analytic_rcs_m2(self, wavelength_m: float) -> float | None: ...
 
 
-# Stop pytest from collecting the Protocol class as a test (its name
-# starts with "Test"). Set after class definition so ``runtime_checkable``
-# does not include ``__test__`` in the required-attribute set.
-TestObjectProtocol.__test__ = False  # type: ignore[attr-defined]
+# pytest skips classes that inherit a non-default ``__init__`` (Protocol
+# inherits one from ``Generic``), so it does not try to collect
+# ``TestObjectProtocol`` as a test class even though the name matches
+# its default ``python_classes`` pattern. Previously this module also
+# set ``TestObjectProtocol.__test__ = False`` after the class body,
+# but on Python 3.11 ``typing._get_protocol_attrs`` reads the class
+# ``__dict__`` at isinstance() time, so the post-class assignment
+# leaked ``__test__`` into the required-attribute set and broke every
+# ``isinstance(obj, TestObjectProtocol)`` check on 3.11. Removed.
 
 
 @runtime_checkable
