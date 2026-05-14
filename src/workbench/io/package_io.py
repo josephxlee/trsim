@@ -24,7 +24,7 @@ import zipfile
 from collections.abc import Iterator
 from pathlib import Path
 
-from workbench.domain.dlc.manifest import PackageManifest, load_manifest_from_toml
+from workbench.sdk.manifest import PackageManifest, load_manifest_from_toml
 
 MANIFEST_FILENAME: str = "manifest.toml"
 """Required file at the zip root. Mirrors plan/17 § 17.2.4."""
@@ -187,7 +187,7 @@ def read_manifest_from_package(pkg_path: Path | str) -> PackageManifest:
 
     # Defer validation to the same blob loader used by the on-disk
     # path (`load_manifest_from_toml` -> `_manifest_from_blob`).
-    from workbench.domain.dlc.manifest import _manifest_from_blob
+    from workbench.sdk.manifest import _manifest_from_blob
 
     return _manifest_from_blob(data, source=str(pkg))
 

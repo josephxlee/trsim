@@ -26,7 +26,7 @@ Out of scope (future):
 
 from __future__ import annotations
 
-from workbench.domain.dlc.manifest import PackageManifest
+from workbench.sdk.manifest import PackageManifest
 
 KNOWN_ENTRY_POINT_SLOTS: frozenset[str] = frozenset(
     {

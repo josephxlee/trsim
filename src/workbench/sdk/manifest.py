@@ -1,9 +1,14 @@
 """DLC manifest.toml schema + parser (plan/17 § 17.2.4).
 
-Phase 7.1 — read-only schema. The TOML file lives at the root of a
-``.trsim-pkg`` and declares every entry point the PackageManager
-(Phase 7.2) needs to register the package's plugins / resources / UI
-panels.
+Phase 7.1 — read-only schema. P8 relocated this module from
+``workbench.domain.dlc.manifest`` to ``workbench.sdk.manifest``
+because the manifest is the public contract DLC authors write
+against and belongs in the SDK surface alongside
+``protocols.py`` + ``resource_schemas.py``.
+
+The TOML file lives at the root of a ``.trsim-pkg`` and declares
+every entry point the PackageManager (Phase 7.2) needs to register
+the package's plugins / resources / UI panels.
 
 Validation rules (plan/17 § 17.2.4):
 

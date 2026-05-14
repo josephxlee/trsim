@@ -157,7 +157,7 @@ idempotent + multi-stage 독립).
 | 영역 | 상태 |
 |---|---|
 | SDK: protocols.py (11 Plugin Protocol) | ✓ |
-| **SDK: manifest.py** | △ (domain/dlc/manifest.py 에 있음, sdk/ 이동 고려) |
+| **SDK: manifest.py** | ✓ (P8 — `domain/dlc/manifest.py` → `sdk/manifest.py` 이동, `domain/dlc/` 디렉토리 완전 제거, 모든 import 사이트 갱신, sdk/__init__.py re-export, tests/unit/domain/test_dlc_manifest.py → tests/unit/sdk/test_manifest.py) |
 | SDK: resource_schemas.py (`validate_resource_toml_blob`, 4 categories) | ✓ (C8) |
 | SDK: package_builder.py + `trsim sdk build` CLI | ✓ (C2) |
 | SDK: test_harness.py + `trsim sdk test` CLI | ✓ (C3) |
@@ -232,8 +232,7 @@ placeholder 상태:
 
 | 우선 | 작업 | 크기 | 비고 |
 |---|---|---|---|
-| 1 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 2 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 1 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능 — 본격 MVP 완료, 이건 후속 작업 lane. |
 | post-MVP | **Phase 6 Step 2 real Tracker/Predictor/Classifier loss** + **multi-step rollout** | 중 | TrackerNNPlugin / PredictorNNPlugin / ClassifierNNPlugin Protocol + sequence dataset spec 출시 후. 현재 stub + "n/a (plugin unsupported)" UI surface 가 MVP-acceptable. |
 | post-MVP | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | MVP 완성 후 별도 cycle. 자리만 예약, 작업 시작은 사용자 신호 후. |
 | post-MVP | **Phase 4 L-series 후속**: Pipeline 실 연결 (mock generators 교체) | 큼 | 8 panel 의 mock generator 들을 실 `Pipeline.step()` probe 로 교체. Phase 6+ probe recorder 와 짝. |
