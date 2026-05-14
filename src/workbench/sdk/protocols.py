@@ -86,9 +86,20 @@ class UIPanelProtocol(Protocol):
 
 @runtime_checkable
 class DUTAdapterProtocol(Protocol):
-    """HIL DUT communication adapter (plan/18 § 18.7).
+    """HIL DUT communication adapter (plan/18 § 18.7) — **post-MVP placeholder**.
 
-    Includes Lock-step Handshake methods for Reference Timing (plan/18 § 18.16.4, v0.39).
+    The MVP scope excludes HIL. This declaration is a reserved-name
+    shell so plan/17's 11-Protocol count is intact and any future DLC
+    that wants to ship a DUT adapter can already write
+    ``Protocol`` against the SDK surface, but the runtime members
+    (``open_session`` / ``send_track`` / ``recv_track`` / ``handshake_
+    request`` / etc., plan/18 § 18.7 + § 18.16.4) land with Phase 8.
+
+    See ``docs/MVP_STATUS.md`` § "Post-MVP — Phase 8 HIL" for the
+    progress matrix. Until Phase 8 starts this shell deliberately
+    has zero members so a ``runtime_checkable`` ``isinstance`` check
+    matches *any* object — callers must NOT rely on the result; treat
+    a ``True`` here as "type system says HIL is wired up later".
     """
 
 

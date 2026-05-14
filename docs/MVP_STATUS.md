@@ -172,18 +172,27 @@ plan/04 § 4.3 Phase 5 list 의 #18 (Reference Timing 재현성) +
 
 ---
 
-## Phase 8 — HIL (Wave 3, v0.38) **전체 ✗** (단 SDK Protocol stub 만 △)
+## Phase 8 — HIL (Wave 3, v0.38) — **POST-MVP**, 자리만 예약
 
-`app/hil/` + `domain/hil/` + `ui/simulator/hil_panel/` 모두 `__init__.py`
-만 (빈 디렉토리). `sdk/protocols.py` 에 `DUTAdapterProtocol` declaration
-shell 만 (members 없음).
+> **사용자 결정 (2026-05-14)**: HIL 은 MVP 이후 별도 cycle 에서
+> 본격 작업. MVP 작업 중에는 디렉토리 + Protocol shell 자리만
+> 남겨두고 진행하지 않음.
+
+placeholder 상태:
+- `src/workbench/app/hil/__init__.py` — docstring 만, 모듈 0개
+- `src/workbench/domain/hil/__init__.py` — docstring 만, 모듈 0개
+- `src/workbench/ui/simulator/hil_panel/__init__.py` — docstring 만, panel 0개
+- `src/workbench/sdk/protocols.py` 의 `DUTAdapterProtocol` —
+  `@runtime_checkable` class + post-MVP 안내 docstring, 멤버 0개
+
+전체 Phase 8 행렬 (14 ✗ + 1 △, 본격 작업은 post-MVP):
 
 | 8.1 MVP HIL (TCP/JSON + L5 Track) | 상태 |
 |---|---|
 | domain/hil/dut_messages.py (DUTTrack L5 dataclass) | ✗ |
 | domain/hil/tx_signal.py (TXSignalDigital) | ✗ |
 | domain/hil/comparison.py (HILComparisonResult 3-way) | ✗ |
-| sdk/protocols.py 에 DUTAdapter Protocol (10번째, v0.39 lock-step) | △ (class declaration + docstring 만 — `@runtime_checkable Protocol` shell, plan/18 § 18.7 의 메소드 시그니처 미선언) |
+| sdk/protocols.py 에 DUTAdapter Protocol (10번째, v0.39 lock-step) | △ (post-MVP placeholder shell — `@runtime_checkable Protocol` 자리만, plan/18 § 18.7 의 메소드 시그니처 post-MVP) |
 | plugins_builtin/tcp_json_dut_adapter.py | ✗ |
 | app/hil/hil_evaluator.py (L5 비교) | ✗ |
 | app/hil/time_synchronizer.py (sim_time 모드) | ✗ |
@@ -214,21 +223,23 @@ shell 만 (members 없음).
 다음 작업 결정 시 이 매트릭스 참조. 사용자 우선순위 (변동 없음):
 **physics_lab > simulator > editor**.
 
-**Phase 4 UI 실 데이터 binding sweep 마감** (L1-L6 + M1+M2). 잔여 항목:
+**Phase 4 UI 실 데이터 binding sweep 마감** (L1-L6 + M1+M2). HIL 은
+사용자 결정으로 **post-MVP** (자리만 예약, 위 § "Phase 8 — HIL"
+참조). MVP 잔여 항목:
 
 | 우선 | 작업 | 크기 | 비고 |
 |---|---|---|---|
-| 1 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock. `sdk/DUTAdapterProtocol` 만 ✓; `app/hil/` 비어있고 `domain/hil/` 도 비어있음. |
-| 2 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연. |
-| 3 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
-| 4 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
-| 5 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | △ — domain dataclass 없음. CLI flag + runtime gating. |
-| 6 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
-| 7 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
-| 8 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
-| 9 | **Phase 4 L-series 후속**: Pipeline 실 연결 (mock generators 교체) | 큼 | 8 panel 의 mock generator 들을 실 `Pipeline.step()` probe 로 교체. Phase 6+ probe recorder 와 짝. |
-| 10 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 11 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 1 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연. |
+| 2 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | △ — domain dataclass 없음. CLI flag + runtime gating. |
+| 3 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
+| 4 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
+| 5 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
+| 6 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
+| 7 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
+| 8 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
+| 9 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| post-MVP | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | MVP 완성 후 별도 cycle. 자리만 예약, 작업 시작은 사용자 신호 후. |
+| post-MVP | **Phase 4 L-series 후속**: Pipeline 실 연결 (mock generators 교체) | 큼 | 8 panel 의 mock generator 들을 실 `Pipeline.step()` probe 로 교체. Phase 6+ probe recorder 와 짝. |
 
 ---
 
