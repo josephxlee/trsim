@@ -32,6 +32,12 @@ from workbench.app.simulator.mock_spectrum import (
     MockSpectrumFrame,
     MockSpectrumGenerator,
 )
+from workbench.app.simulator.mock_stage_io import (
+    DEFAULT_PLUGIN_NAMES,
+    PIPELINE_STAGE_BOXES,
+    MockStageIOFrame,
+    MockStageIOGenerator,
+)
 
 __all__ = [
     "DEFAULT_DOPPLER_MAX_MPS",
@@ -41,12 +47,16 @@ __all__ = [
     "DEFAULT_N_BINS",
     "DEFAULT_N_DOPPLER_BINS",
     "DEFAULT_N_RANGE_BINS",
+    "DEFAULT_PLUGIN_NAMES",
     "DEFAULT_RANGE_MAX_M",
     "DEFAULT_RANGE_MIN_M",
+    "PIPELINE_STAGE_BOXES",
     "MockRangeDopplerFrame",
     "MockRangeDopplerGenerator",
     "MockSceneFrame",
     "MockSceneGenerator",
     "MockSpectrumFrame",
     "MockSpectrumGenerator",
+    "MockStageIOFrame",
+    "MockStageIOGenerator",
 ]

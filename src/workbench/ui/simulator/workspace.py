@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from workbench.app.simulator import DEFAULT_PLUGIN_NAMES
 from workbench.domain.types import SpeedMultiplier
 from workbench.ui.nn_training import NNTrainingController, TrainingPanel
 from workbench.ui.panel_registry import PanelRegistration, PanelRegistry
@@ -59,6 +60,7 @@ from workbench.ui.simulator.profiler_panel import ProfilerPanel
 from workbench.ui.simulator.rd_controller import SimulatorRDController
 from workbench.ui.simulator.run_controller import SimulatorRunController
 from workbench.ui.simulator.scene_controller import SimulatorSceneController
+from workbench.ui.simulator.stage_io_controller import SimulatorStageIOController
 from workbench.ui.widgets import DetachableTabWidget
 
 
@@ -247,6 +249,21 @@ class SimulatorWorkspace(QWidget):
             parent=self,
         )
 
+        # Phase 4 L5 — Stage I/O panel live binding + Plugin Manager
+        # default plugin seed. ``MockStageIOGenerator`` paints one
+        # IN/OUT row per pipeline stage with counts that move with
+        # sim_t_s; the panel's Record toggle drives the controller's
+        # in-memory log. PluginManager rows are seeded with the
+        # ``DEFAULT_PLUGIN_NAMES`` placeholders so the user sees
+        # something non-empty out of the box.
+        for stage, names in DEFAULT_PLUGIN_NAMES.items():
+            self._plugin_manager_panel.set_stage_plugins(stage, list(names))
+        self._stage_io_controller = SimulatorStageIOController(
+            stage_io_panel=self._stage_io_panel,
+            run_controller=self._run_controller,
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
     # ------------------------------------------------------------------
@@ -345,6 +362,9 @@ class SimulatorWorkspace(QWidget):
 
     def scene_controller(self) -> SimulatorSceneController:
         return self._scene_controller
+
+    def stage_io_controller(self) -> SimulatorStageIOController:
+        return self._stage_io_controller
 
     def sim_play(self) -> None:
         """Toolbar / hook entry — start simulation clock."""

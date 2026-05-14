@@ -112,6 +112,9 @@ class StageIOPanel(QWidget):
     def record_button(self) -> QPushButton:
         return self._record_btn
 
+    def frame_label(self) -> QLabel:
+        return self._frame_label
+
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
