@@ -57,7 +57,7 @@ from workbench.ui.editor.activity_pages import (
     TargetsEditorPage,
 )
 from workbench.ui.editor.composer import ScenarioComposerController
-from workbench.ui.editor.map_editor import DEMImportController
+from workbench.ui.editor.map_editor import DEMImportController, MapEditorController
 from workbench.ui.editor.package_manager_dialog import PackageManagerController
 from workbench.ui.editor.radar_editor import RadarEditorController
 from workbench.ui.editor.targets_editor import TargetsEditorController
@@ -184,6 +184,13 @@ class MainWindow(QMainWindow):
         assert isinstance(map_page, MapEditorPage)
         self._dem_import_controller = DEMImportController(
             map_editor=map_page.map_editor(),
+            parent=self,
+        )
+        # MapEditor Validate button — combo + domain shape check + auto-
+        # stale on domain edits. Same pattern as Composer / Targets /
+        # Radar controllers.
+        self._map_editor_controller = MapEditorController(
+            editor=map_page.map_editor(),
             parent=self,
         )
 
