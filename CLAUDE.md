@@ -109,7 +109,7 @@
 
   | sub | commit | new | 내용 |
   |---|---|---|---|
-  | L3 | (이 cycle) | +48 | `app/simulator/mock_range_doppler.py` 신규 (`MockRangeDopplerGenerator` deterministic 2-D Gaussian + Lissajous trajectory + `MockRangeDopplerFrame`) + `panels/range_doppler_panel.py` pyqtgraph PlotWidget + ImageItem (row-major + viridis LUT + setRect axis calibration) + 2 InfiniteLine cross-hair + `set_heatmap / set_peak / clear_peak` + `ui/simulator/rd_controller.py` 신규 (`SimulatorRDController` tick_completed wire + paint_for) + SimulatorWorkspace 자동 wiring + `rd_controller()` accessor |
+  | L3 | `24d1894` | +48 | `app/simulator/mock_range_doppler.py` 신규 (`MockRangeDopplerGenerator` deterministic 2-D Gaussian + Lissajous trajectory + `MockRangeDopplerFrame`) + `panels/range_doppler_panel.py` pyqtgraph PlotWidget + ImageItem (row-major + viridis LUT + setRect axis calibration) + 2 InfiniteLine cross-hair + `set_heatmap / set_peak / clear_peak` + `ui/simulator/rd_controller.py` 신규 (`SimulatorRDController` tick_completed wire + paint_for) + SimulatorWorkspace 자동 wiring + `rd_controller()` accessor |
 
   학습 (1개):
   - **pyqtgraph ImageItem.boundingRect() 가 local pixel rect 반환** —
