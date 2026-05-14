@@ -1,8 +1,9 @@
 """SimulatorRunController — Phase 4 L1 live sim_time + frame_id wiring.
 
 Bridges :class:`workbench.app.simulation_clock.SimulationClock` to
-:class:`workbench.ui.simulator.panels.RunPanel`. A 16 ms QTimer drives
-``advance(wall_dt_s)`` while RUNNING; every tick pushes the live
+:class:`workbench.ui.simulator.panels.RunPanel`. A 33 ms QTimer (30 Hz,
+P5b polish) drives ``advance(wall_dt_s)`` while RUNNING; every tick
+pushes the live
 ``sim_t_s`` / ``frame_id`` / state / speed into the RunPanel readouts
 added in L1.
 
@@ -64,14 +65,6 @@ class SimulatorRunController(QObject):
         self._clock: SimulationClock = clock or SimulationClock()
         self._tick_interval_ms = tick_interval_ms
         self._frame_id: int = 0
-        # P5c — paint-suppression flag the SimulatorWorkspace flips on
-        # during a resize drag to stop downstream controllers (FFT, RD,
-        # Scene3D, StageIO, Properties, Scope) from re-painting their
-        # pyqtgraph widgets while Qt is busy reflowing the splitter
-        # tree. The Run panel readout still updates because we call
-        # ``_refresh_panel`` unconditionally — only the
-        # ``tick_completed`` signal is held back.
-        self._paint_suppressed: bool = False
         self._timer = QTimer(self)
         self._timer.setInterval(tick_interval_ms)
         self._timer.timeout.connect(self._on_timer_tick)
@@ -118,29 +111,8 @@ class SimulatorRunController(QObject):
         if sim_dt > 0.0:
             self._frame_id += 1
         self._refresh_panel()
-        # P5c — hold the downstream paint signal while a workspace
-        # resize drag is in progress. ``_refresh_panel`` above still
-        # runs because the Run readout is cheap (4 setText calls).
-        if not self._paint_suppressed:
-            self.tick_completed.emit(self._clock.sim_t_s, self._frame_id)
+        self.tick_completed.emit(self._clock.sim_t_s, self._frame_id)
         return sim_dt
-
-    # ------------------------------------------------------------------
-    # P5c — paint suppression (workspace-driven debounce)
-    # ------------------------------------------------------------------
-    def set_paint_suppressed(self, value: bool) -> None:
-        """Toggle whether ``tick_completed`` signals are emitted.
-
-        The SimulatorWorkspace flips this on inside ``resizeEvent`` and
-        clears it after a short debounce so the user's resize drag does
-        not compete with 30 Hz pyqtgraph re-paints on every panel.
-        Tests can drive it directly to assert downstream behaviour.
-        """
-        self._paint_suppressed = bool(value)
-
-    @property
-    def paint_suppressed(self) -> bool:
-        return self._paint_suppressed
 
     def _on_timer_tick(self) -> None:
         wall_dt_s = self._tick_interval_ms / 1000.0
