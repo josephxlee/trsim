@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
@@ -383,6 +384,58 @@ class SimulatorWorkspace(QWidget):
 
     def primary_target_controller(self) -> SimulatorPrimaryTargetController:
         return self._primary_target_controller
+
+    # ------------------------------------------------------------------
+    # Phase 4 P5 — Manual pointing arrow-key handler
+    # ------------------------------------------------------------------
+    #: Per-keypress azimuth nudge [deg]. Used by the workspace's
+    #: ``keyPressEvent`` to drive the manual pointing accumulator.
+    MANUAL_AZ_STEP_DEG: float = 0.5
+    #: Per-keypress elevation nudge [deg].
+    MANUAL_EL_STEP_DEG: float = 0.5
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802 — Qt API
+        """Map arrow keys to the primary-target manual pointing offset.
+
+        - Left / Right -> azimuth -/+ ``MANUAL_AZ_STEP_DEG`` deg.
+        - Down / Up    -> elevation -/+ ``MANUAL_EL_STEP_DEG`` deg.
+        - Home / 0     -> reset the accumulator back to zero.
+
+        Modifier keys (Shift / Ctrl) are intentionally ignored — the
+        Command palette + MainMenuBar already own every modifier-bearing
+        shortcut, and the user discovers the arrow-key nudge as the
+        "natural" pointing input.
+        """
+        key = event.key()
+        if key == Qt.Key.Key_Left:
+            self._primary_target_controller.add_manual_offset(
+                d_az_deg=-self.MANUAL_AZ_STEP_DEG, d_el_deg=0.0
+            )
+            event.accept()
+            return
+        if key == Qt.Key.Key_Right:
+            self._primary_target_controller.add_manual_offset(
+                d_az_deg=self.MANUAL_AZ_STEP_DEG, d_el_deg=0.0
+            )
+            event.accept()
+            return
+        if key == Qt.Key.Key_Down:
+            self._primary_target_controller.add_manual_offset(
+                d_az_deg=0.0, d_el_deg=-self.MANUAL_EL_STEP_DEG
+            )
+            event.accept()
+            return
+        if key == Qt.Key.Key_Up:
+            self._primary_target_controller.add_manual_offset(
+                d_az_deg=0.0, d_el_deg=self.MANUAL_EL_STEP_DEG
+            )
+            event.accept()
+            return
+        if key in (Qt.Key.Key_Home, Qt.Key.Key_0):
+            self._primary_target_controller.reset_manual_offset()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def sim_play(self) -> None:
         """Toolbar / hook entry — start simulation clock."""
