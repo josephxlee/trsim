@@ -10,9 +10,9 @@ push 후 해당 행 ✓ 갱신 (`CLAUDE.md` § 3.6 자동 업데이트 규약).
 | △ | 부분 완료 (skeleton / placeholder 만, 실 데이터 binding 또는 CLI 미구현) |
 | ✗ | 미구현 |
 
-**최종 갱신**: 2026-05-14 — Phase 4 L3 (Simulator RD panel pyqtgraph live heatmap) 완료 후.
-**누적 test**: 2607 PASS local, 5 contracts KEPT.
-**HEAD**: L3 Simulator Range-Doppler panel 의 pyqtgraph ImageItem 통합 + MockRangeDopplerGenerator + SimulatorRDController — RunController.tick_completed 마다 2-D 색맵 + peak cross-hair live repaint.
+**최종 갱신**: 2026-05-14 — Phase 4 sweep (L4 + L5 + L6 + Editor M1/M2) **모두 완료**.
+**누적 test**: 2707 PASS local, 5 contracts KEPT.
+**HEAD**: Simulator 8 panel 전체가 live data binding 끝났고, Editor 의 DEM import → Map bounds auto-wire + Composer Installation block (terrain altitude + coverage stats) 도 live. Phase 4 의 실 데이터 binding sweep 본격 마감.
 
 이전 historical gap 보고 (2026-05-12 시점, 사용자가 MVP_GUIDE 따라
 검증한 결과) 는 [`docs/sessions/mvp_status_gap_report_2026_05_12.md`]
@@ -97,23 +97,23 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 
 ---
 
-## Phase 4 — UI △ (골격 ✓, 실 데이터 binding ✗)
+## Phase 4 — UI ✓ (실 데이터 binding sweep 완료, 2026-05-14)
 
 | 영역 | 상태 |
 |---|---|
 | pyqtgraph + pyvista + pyvistaqt 의존성 | ✓ |
 | Main Window / Workspace selector / Dock manager / Command palette / Toolbar / Menu | ✓ |
 | Editor Activity Selector (5 Activity 좌측 아이콘) + Resource Browser sidebar | ✓ |
-| Scenario Composer widget skeleton | △ (widget.py 만, 실 데이터 binding ✗) |
-| **Scenario Composer Installation Panel** (DEM + 차폐 Preview + Coverage Stats) | △ (G4, Position 5 row + DEM preview placeholder + Coverage Stats 3-readout + Domain Override block + `CoverageStats` dataclass + `set_terrain_altitude` / `set_coverage_stats` API; 실 Map/Radar/Validator binding ✗) |
-| Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ |
-| **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4, MVP 4-page distillation: Source/Land-Sea/Output/Summary) |
-| **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | ✓ (G1-G3, dataclass + `DomainSettingsPanel` widget + Map Editor QTabWidget mount as "Domain" tab; live data binding via `set_map_bounds` is later cycle) |
+| Scenario Composer widget skeleton | ✓ (M2 ComposerInstallationController — `position_changed` → mock probe → 실 readouts) |
+| **Scenario Composer Installation Panel** (DEM + 차폐 Preview + Coverage Stats) | ✓ (G4 layout + M2 live binding via `set_terrain_altitude` / `set_coverage_stats`) |
+| Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ (skeleton, brush/spot edit 본격은 후속) |
+| **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4 + M1 successful import → `set_map_bounds` 자동 호출) |
+| **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | ✓ (G1-G3 + M1 live Map bounds readout) |
 | Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
 | Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
 | Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
-| Simulator panels (FFT / RD / Run / Properties / PluginMgr / StageIO) | △ (Run ✓ L1; FFT ✓ L2; RD panel = pyqtgraph ImageItem + viridis LUT + peak cross-hair + MockRangeDopplerGenerator live binding ✓ L3; 나머지 3 panel placeholder) |
-| Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | △ (Phase 4.10 lazy create) |
+| Simulator panels (Run / FFT / RD / Scene3D / PluginMgr / StageIO / Properties / ScopePOV) | ✓ (L1 Run + L2 FFT + L3 RD + L4 Scene3D + L5 PluginMgr seed + StageIO live + L6 Scope/Properties primary-target — 모두 RunController.tick_completed 에 묶임) |
+| Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | ✓ (L4 — radar/target sphere + terrain plane placeholder + `enable_3d_viewer` lazy + `trsim ui --no-3d-viewer` flag) |
 | Profiler panel (timing breakdown / scale indicator / report) | ✓ |
 | NN mode panels (Step 1 Dataset / Step 2 Eval / Training) | ✓ |
 | 방향키 이벤트 / Mode 전환 UI (DSP ↔ NN) / 단축키 정책 | △ |
@@ -214,21 +214,21 @@ shell 만 (members 없음).
 다음 작업 결정 시 이 매트릭스 참조. 사용자 우선순위 (변동 없음):
 **physics_lab > simulator > editor**.
 
-직전 2-day 자동 모드 끝 시점 — 9 cycle (E1-J1) 으로 우선순위
-1~3/5/6 모두 완료. 새 잔여 항목 리스트:
+**Phase 4 UI 실 데이터 binding sweep 마감** (L1-L6 + M1+M2). 잔여 항목:
 
 | 우선 | 작업 | 크기 | 비고 |
 |---|---|---|---|
 | 1 | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | 새 protocol + 새 layer + UI panel + sample mock. `sdk/DUTAdapterProtocol` 만 ✓; `app/hil/` 비어있고 `domain/hil/` 도 비어있음. |
-| 2 | **Phase 4 UI 실 데이터 binding** (Editor 5 activity / Simulator 8 panel / Map Editor `set_map_bounds` wire) | 대 | 골격 ✓, 후속 큰 작업. 여러 cycle 분할 필요. G3-G4 의 `set_map_bounds` / `set_terrain_altitude` / `set_coverage_stats` API 가 준비됨 — wiring 만 남음. |
-| 3 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연. |
-| 4 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
-| 5 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
-| 6 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | △ — domain dataclass 없음. CLI flag + runtime gating. |
-| 7 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
-| 8 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
-| 9 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 10 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 2 | **Phase 9 § 19.7.5+ Validation Bench 일반화** | 소-중 | `BouncingBallController.run_validation_from_dataset` 가 현재 BouncingBall 만 — 임의 PhysicsModelProtocol 받게 일반화. H+I+J 위에 자연. |
+| 3 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
+| 4 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
+| 5 | **Phase 3 Profile 모드 toggle** (off / explicit / live, Q4) | 소 | △ — domain dataclass 없음. CLI flag + runtime gating. |
+| 6 | **Phase 5 #18/#19 재현성 정량 검증** (Reference Timing / Frame Profiler) | 소 | test-only. seed/load → same result. |
+| 7 | **Phase 4 UI 잡** (방향키 이벤트 / Mode 전환 UI / 단축키 정책) | 소 | △ — workspace 안 키 routing 정리. |
+| 8 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
+| 9 | **Phase 4 L-series 후속**: Pipeline 실 연결 (mock generators 교체) | 큼 | 8 panel 의 mock generator 들을 실 `Pipeline.step()` probe 로 교체. Phase 6+ probe recorder 와 짝. |
+| 10 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
+| 11 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
 
 ---
 
@@ -281,3 +281,8 @@ shell 만 (members 없음).
 - 2026-05-13 L1 — Phase 4 cycle: Simulator Run panel 실 sim_time/frame_id binding + `SimulatorRunController` (16ms QTimer + SimulationClock) + MainWindow sim.start/pause/stop/speed hooks (2490 → 2518 PASS). Simulator Run panel 실 데이터 binding ✗ → ✓.
 - 2026-05-14 L2 — Phase 4 cycle: Simulator FFT panel pyqtgraph 통합 (2 curve up/down sweep + InfiniteLine peak markers) + `app/simulator/mock_spectrum.py` (`MockSpectrumGenerator` deterministic sim_t_s → 곡선) + `SimulatorFFTController` (RunController.tick_completed → mock generator → panel) + SimulatorWorkspace 자동 wiring (2518 → 2559 PASS). Simulator FFT panel 실 데이터 binding ✗ → ✓.
 - 2026-05-14 L3 — Phase 4 cycle: Simulator Range-Doppler panel pyqtgraph 통합 (`pg.ImageItem` row-major + viridis LUT + InfiniteLine cross-hair + axis 캘리브레이션 via `setRect`) + `app/simulator/mock_range_doppler.py` (`MockRangeDopplerGenerator` deterministic + 2-D Gaussian peak, Lissajous trajectory) + `SimulatorRDController` (tick_completed → heatmap_for → panel) + SimulatorWorkspace 자동 wiring (2559 → 2607 PASS). Simulator RD panel 실 데이터 binding ✗ → ✓.
+- 2026-05-14 L4 — Phase 4 cycle: Simulator Scene 3D panel pyvistaqt QtInteractor lazy mount + `MockSceneGenerator` (radar sphere + target sphere on circular orbit + terrain plane placeholder) + `SimulatorSceneController` + `enable_3d_viewer` kwarg propagation through `Scene3DPanel` / `SimulatorWorkspace` / `MainWindow` + `trsim ui --no-3d-viewer` CLI flag + `tests/unit/ui/simulator/conftest.py` pyvista OFF_SCREEN setup (2607 → 2635 PASS). Simulator Scene 3D 실 데이터 binding ✗ → ✓.
+- 2026-05-14 L5 — Phase 4 cycle: Simulator Stage I/O panel live + Plugin Manager default seed. `app/simulator/mock_stage_io.py` (`MockStageIOGenerator` per-stage IN/OUT strings + `DEFAULT_PLUGIN_NAMES`) + `SimulatorStageIOController` (tick_completed → panel + Record toggle → in-memory log) + workspace seeds plugin rows once via `set_stage_plugins` (2635 → 2663 PASS). Simulator StageIO/PluginMgr 실 데이터 binding ✗ → ✓.
+- 2026-05-14 L6 — Phase 4 cycle: Simulator Scope POV cross-hair canvas + Properties primary-target form. `app/simulator/mock_primary_target.py` (`MockPrimaryTargetGenerator`: orbit-driven range/az/el/RCS/speed + servo lag + scope cross-hair offset + lock flag) + ScopePOVPanel pyqtgraph PlotWidget + cross-hair InfiniteLine + ScatterPlotItem target marker + `SimulatorPrimaryTargetController` 가 Scope + Properties 두 panel 에 동시 push (2663 → 2693 PASS). Simulator Scope/Properties 실 데이터 binding ✗ → ✓. **Simulator 8 panel 전체 live binding 완료**.
+- 2026-05-14 M1 — Phase 4 cycle: Editor `DEMImportController._on_import` 성공 시 grid_shape × cell_size 으로 `MapBounds` 계산 → `MapEditor.set_map_bounds` 자동 호출 → Domain Settings tab readout live (2693 → 2697 PASS). Map Editor DEM import → bounds live wire ✗ → ✓.
+- 2026-05-14 M2 — Phase 4 cycle: `ComposerInstallationController` (composer.position_changed → mock probe → composer.set_terrain_altitude + set_coverage_stats) + MainWindow 자동 mount (2697 → 2707 PASS). Composer Installation 실 데이터 binding ✗ → ✓. **Phase 4 UI 실 데이터 binding sweep 본격 마감**.

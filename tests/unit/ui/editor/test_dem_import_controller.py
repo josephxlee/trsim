@@ -252,3 +252,81 @@ def test_default_runner_is_run_dem_import(qtbot, tmp_path) -> None:  # type: ign
     # Direct call verifies the default runner is well-formed (the
     # other tests verify the controller routes to it).
     assert summary.output_path.is_file()
+
+
+# ---------------------------------------------------------------------
+# M1: Map Editor bounds auto-wire after successful import
+# ---------------------------------------------------------------------
+
+
+def test_successful_import_pushes_bounds_into_map_editor(qtbot, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Phase 4 M1: a successful run_dem_import call must call
+    ``MapEditor.set_map_bounds`` so the Domain Settings tab readout
+    updates without the user having to do anything else.
+    """
+    host = QMainWindow()
+    qtbot.addWidget(host)
+    editor = MapEditor()
+    qtbot.addWidget(editor)
+
+    request = DEMImportRequest(
+        source_asc_path=tmp_path / "demo.asc",
+        output_npz_path=tmp_path / "out.npz",
+        land_sea_mode=LandSeaMode.NODATA,
+    )
+    captured: list[DEMImportSummary] = []
+
+    def fake_runner(req: DEMImportRequest) -> DEMImportSummary:
+        summary = DEMImportSummary(
+            request=req,
+            output_path=req.output_npz_path,
+            grid_shape=(20, 30),
+            cell_size_m=50.0,
+            land_cell_count=400,
+            sea_cell_count=200,
+            nodata_cell_count=0,
+        )
+        captured.append(summary)
+        return summary
+
+    controller = DEMImportController(
+        map_editor=editor, parent=host, runner=fake_runner
+    )
+    editor.import_dem_requested.emit()
+    wiz = controller.active_wizard()
+    assert wiz is not None
+    qtbot.addWidget(wiz)
+    wiz.import_requested.emit(request)
+
+    assert len(captured) == 1
+    # 20 rows * 50 m = 1000 m north extent, 30 cols * 50 m = 1500 m east.
+    bounds_text = editor.domain_panel().map_bounds_label().text()
+    assert "0, 1500" in bounds_text
+    assert "0, 1000" in bounds_text
+
+
+def test_failed_import_does_not_touch_map_bounds(qtbot, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """A failed import (runner raises) must leave the Map bounds
+    label at its default '(no map loaded)' state."""
+    host = QMainWindow()
+    qtbot.addWidget(host)
+    editor = MapEditor()
+    qtbot.addWidget(editor)
+
+    def boom(_req: DEMImportRequest) -> DEMImportSummary:
+        msg = "broken DEM"
+        raise ValueError(msg)
+
+    controller = DEMImportController(map_editor=editor, parent=host, runner=boom)
+    editor.import_dem_requested.emit()
+    wiz = controller.active_wizard()
+    assert wiz is not None
+    qtbot.addWidget(wiz)
+    wiz.import_requested.emit(
+        DEMImportRequest(
+            source_asc_path=tmp_path / "x.asc",
+            output_npz_path=tmp_path / "y.npz",
+            land_sea_mode=LandSeaMode.NODATA,
+        )
+    )
+    assert "no map loaded" in editor.domain_panel().map_bounds_label().text().lower()

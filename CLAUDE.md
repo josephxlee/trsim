@@ -17,27 +17,26 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
-> **Phase 4 L3 — Simulator RD panel pyqtgraph live heatmap DONE**.
-> L2 (FFT) 직후 Simulator 8 panel 중 세 번째 panel 이 실 데이터 받음.
-> 신규 app/simulator/mock_range_doppler.py — `MockRangeDopplerGenerator`
-> (deterministic sim_t_s → 2-D Gaussian heatmap, range/doppler 두
-> 독립 sinusoid → Lissajous-like trajectory, Gaussian noise quantised
-> by sim_t_s ^ rng_seed) + `MockRangeDopplerFrame` frozen dataclass.
-> 갱신 ui/simulator/panels/range_doppler_panel.py — placeholder QFrame
-> 제거 후 `pg.PlotWidget` + `pg.ImageItem` row-major + viridis LUT +
-> ``setRect`` axis calibration ([m] vs [m/s]) + 2 InfiniteLine
-> cross-hair (vertical doppler + horizontal range, DashLine) +
-> `set_heatmap(heatmap_db, range_axis_m, doppler_axis_mps, *,
-> levels_db)` + `set_peak / clear_peak`. Phase 4.9 header API
-> (set_frame) 보존. 신규 ui/simulator/rd_controller.py =
-> `SimulatorRDController(QObject)` — L2 의 FFTController 패턴 그대로
-> 재활용 (tick_completed → generator.heatmap_for → panel push +
-> enabled toggle + paint_for headless 진입점). SimulatorWorkspace 가
-> FFTController 직후 RDController 자동 인스턴스화 + `rd_controller()`
-> accessor. 누적 **2607 PASS** (+48 신규 in this cycle: 26
-> mock_range_doppler + 12 range_doppler_panel + 10
-> rd_controller/workspace), 5 contracts KEPT. ruff / mypy --strict /
-> import-linter all clean.
+> **Phase 4 UI 실 데이터 binding sweep DONE — 8 sub-step 묶음**.
+> L1 (Run panel sim_t/frame_id, `25db1ae`) → L2 (FFT pyqtgraph,
+> `0d6b8db`) → L3 (RD pyqtgraph ImageItem, `24d1894`) → L4 (Scene 3D
+> PyVista lazy + `enable_3d_viewer` headless toggle + `trsim ui
+> --no-3d-viewer`, `49cc19f`) → L5 (PluginMgr default seed + StageIO
+> mock + Record log, `2c316bc`) → L6 (Scope POV cross-hair + Properties
+> primary-target form, `e3ec01f`) → M1 (DEMImportController →
+> set_map_bounds auto-wire) → M2 (`ComposerInstallationController` —
+> position_changed → mock probe → set_terrain_altitude +
+> set_coverage_stats). Simulator 8 panel 전체 live binding + Editor
+> Map Editor / Composer 실 readout live. 모든 controller 가 동일
+> `tick_completed → generator.X_for → panel.set_X` 패턴. 누적
+> **2707 PASS** (+189 신규 across 8 sub-step), 5 contracts KEPT.
+> ruff / mypy --strict / import-linter all clean.
+
+> **Phase 4 L3 — Simulator RD panel pyqtgraph live heatmap DONE —
+> 1 sub-step (직전 cycle 묶음)**. mock_range_doppler.py + range_
+> doppler_panel.py pg.ImageItem + viridis LUT + cross-hair +
+> SimulatorRDController + workspace 자동 wiring. 누적 2559 → 2607
+> PASS (+48).
 
 > **Phase 4 L2 — Simulator FFT panel pyqtgraph live spectrum DONE —
 > 1 sub-step (직전 cycle)**. app/simulator/mock_spectrum.py 신규
@@ -1303,4 +1302,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-14 — Phase 4 L3 (Simulator RD panel pyqtgraph live heatmap) DONE, 2607 PASS. Simulator 8 panel 중 세 번째 실 데이터 binding.
+최근 갱신: 2026-05-14 — Phase 4 UI 실 데이터 binding sweep (L1~L6 + M1+M2) **마감**. 2707 PASS. Simulator 8 panel 전체 + Editor Map/Composer live readout.

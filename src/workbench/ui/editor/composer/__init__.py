@@ -15,6 +15,9 @@ real Coherence Validator is connected.
 
 from __future__ import annotations
 
-from workbench.ui.editor.composer.widget import ScenarioComposer
+from workbench.ui.editor.composer.installation_controller import (
+    ComposerInstallationController,
+)
+from workbench.ui.editor.composer.widget import CoverageStats, ScenarioComposer
 
-__all__ = ["ScenarioComposer"]
+__all__ = ["ComposerInstallationController", "CoverageStats", "ScenarioComposer"]

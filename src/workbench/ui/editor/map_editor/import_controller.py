@@ -28,6 +28,7 @@ from collections.abc import Callable
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QWidget
 
+from workbench.domain.map_resource import MapBounds
 from workbench.io.dem_import import (
     DEMImportRequest,
     DEMImportSummary,
@@ -70,6 +71,7 @@ class DEMImportController(QObject):
     ) -> None:
         super().__init__(parent)
         self._parent = parent
+        self._map_editor = map_editor
         self._wizard_factory = wizard_factory
         self._runner = runner
         self._active_wizard: DEMImportWizard | None = None
@@ -104,6 +106,24 @@ class DEMImportController(QObject):
             self._active_wizard.report_import_error(str(exc))
             return
         self._active_wizard.report_import_result(summary)
+        # M1 live binding — push the imported DEM's axis-aligned bounds
+        # into the Map Editor's Domain Settings tab so the user can
+        # immediately see the loaded map's extent. The bounds are
+        # derived from the grid shape * cell size; the local-ENU
+        # origin is the SW corner (0, 0).
+        rows, cols = summary.grid_shape
+        east_max = cols * summary.cell_size_m
+        north_max = rows * summary.cell_size_m
+        # Guard against degenerate empty grids — MapBounds requires
+        # strictly positive extents.
+        if east_max > 0.0 and north_max > 0.0:
+            bounds = MapBounds(
+                east_min_m=0.0,
+                east_max_m=east_max,
+                north_min_m=0.0,
+                north_max_m=north_max,
+            )
+            self._map_editor.set_map_bounds(bounds)
 
     def _on_finished(self, _result: int) -> None:
         # Drop the reference so the next button click opens a fresh

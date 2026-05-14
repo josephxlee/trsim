@@ -49,7 +49,8 @@ from workbench.ui.dlc_bootstrap import (
 )
 from workbench.ui.dock_manager import DockManager
 from workbench.ui.editor.activities import Activity
-from workbench.ui.editor.activity_pages import MapEditorPage
+from workbench.ui.editor.activity_pages import MapEditorPage, ScenarioComposerPage
+from workbench.ui.editor.composer import ComposerInstallationController
 from workbench.ui.editor.map_editor import DEMImportController
 from workbench.ui.editor.package_manager_dialog import PackageManagerController
 from workbench.ui.editor.workspace import EditorWorkspace
@@ -140,12 +141,27 @@ class MainWindow(QMainWindow):
             )
 
         # Wire the DEM Import wizard so the MapEditor's "Import DEM..."
-        # button opens it (Phase 4 dem_import_wizard E4).
+        # button opens it (Phase 4 dem_import_wizard E4). The
+        # controller's success path also pushes the imported DEM's
+        # axis-aligned bounds into the Map Editor Domain Settings tab
+        # (Phase 4 M1).
         editor_page = self._editor_page()
         map_page = editor_page.page(Activity.MAP)
         assert isinstance(map_page, MapEditorPage)
         self._dem_import_controller = DEMImportController(
             map_editor=map_page.map_editor(),
+            parent=self,
+        )
+
+        # Phase 4 M2 — Scenario Composer Installation block: drive
+        # ``set_terrain_altitude`` + ``set_coverage_stats`` from the
+        # Composer's ``position_changed`` signal through a deterministic
+        # mock probe. Replaces the static placeholders with live readouts
+        # that move as the user pans / azimuth-rotates the radar.
+        composer_page = editor_page.page(Activity.COMPOSER)
+        assert isinstance(composer_page, ScenarioComposerPage)
+        self._composer_installation_controller = ComposerInstallationController(
+            composer=composer_page.composer(),
             parent=self,
         )
 
