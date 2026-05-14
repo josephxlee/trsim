@@ -92,7 +92,7 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | io/dem_import (ESRI ASCII grid → terrain.npz, NODATA→NaN, north-up flip, land_mask default) | ✓ (D4) |
 | CLI: `trsim run` / `trsim profile` / `trsim ui` | ✓ |
 | Reference Timing v0.39 (performance_clock / frame_boundary / stage_probe / frame_profiler) | ✓ |
-| Profile 모드 toggle (off / explicit / live, Q4) | ✓ (Phase 9 sidequest #6 — `domain/timing/profile_mode.py` ProfileMode StrEnum + `trsim run --profile-mode` CLI flag + manifest metadata 기록. Pipeline / probe runtime gating 은 Pipeline.step 본격 wire 시 후속) |
+| Profile 모드 toggle (off / explicit / live, Q4) | ✓ (sidequest #6 — `domain/timing/profile_mode.py` ProfileMode StrEnum + CLI flag + manifest metadata; **2026-05-14 cycle** — `app/timing/profile_gate.py` `gated_stage_probe` 런타임 게이트 추가: OFF → nullcontext (probe 0), EXPLICIT/LIVE → 실 StageTimingProbe. `trsim profile` 가 게이트 통과로 wire) |
 | Warmup discard | ✓ |
 
 ---
@@ -303,4 +303,5 @@ shell 만 (members 없음).
 - 2026-05-14 Editor AtmospherePropagator — `ui/editor/atmosphere_panel/controller.py` 신규. ScenarioComposer 의 Composition block 에 `set_atmosphere_hint(text)` / `atmosphere_hint_label()` + Composer widget 의 hint QLabel. Propagator 는 `AtmospherePanel.state_changed` 받아 `format_atmosphere_hint(state)` 로 짧은 sky/vis/rain 요약 → composer 갱신. 7 신규 tests. MainWindow 통합은 AtmospherePanel 이 Editor Activity 로 mount 되는 후속 cycle.
 - 2026-05-14 Editor MapEditorController — `ui/editor/map_editor/controller.py` 신규. MapEditor 에 `_validation_status` QLabel + `set_validation_status(text)` / `validation_status_label()` + `origin_label()` accessor. Validate button: origin 미설정 → WARN, SimulationDomain `__post_init__` 실패 → ERROR, 모두 valid → OK + 요약. `domain_changed` / `outside_environment_changed` 발생 시 status "not yet validated" 로 auto-stale. MainWindow 에서 wire. 6 신규 tests.
 - 2026-05-14 L6 Simulator — `synthetic_peak_counts(frame_id)` 헬퍼 + SimulatorWorkspace tick handler 가 매 frame 마다 `FFTPanel.set_peak_counts(up, down)` 호출 (deterministic 6-frame 패턴). FFT panel "peaks: N up / N down" 라벨 처음으로 sim 클럭에 반응. 실 FFT spectrum array 는 Pipeline.step wire 후. 8 신규 tests.
-**최종 갱신**: 2026-05-14 — Editor 5 controllers + Simulator L6 FFT peak counts ✓.
+- 2026-05-14 Profile mode runtime gating — `app/timing/profile_gate.py` `gated_stage_probe(mode, profiler, stage_name)` helper. OFF → `nullcontext()` (per-stage overhead 0), EXPLICIT/LIVE → 실 `StageTimingProbe`. `trsim profile` 가 게이트 통과로 wire. 8 신규 tests. **Phase 3 → 100%**.
+**최종 갱신**: 2026-05-14 — Phase 3 마감 + Editor 5 controllers + Simulator L6 ✓.
