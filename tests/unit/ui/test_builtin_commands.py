@@ -82,23 +82,25 @@ def test_register_creates_every_phase_4_2_command() -> None:
         "plugins.install_package",
         "plugins.reload_all",
         "help.about",
-        # Phase 4.3
+        # Phase 4.3 (+ 2026-05-14 Atmosphere Activity)
         "editor.activity.composer",
         "editor.activity.map",
         "editor.activity.radar",
         "editor.activity.targets",
+        "editor.activity.atmosphere",
         "editor.activity.browser",
     }
     assert {cmd.id for cmd in reg.all()} == expected
 
 
-def test_phase_4_3_activity_shortcuts_are_ctrl_one_through_five() -> None:
+def test_phase_4_3_activity_shortcuts_are_ctrl_one_through_six() -> None:
     reg, _ = _seeded_registry()
     assert reg.get("editor.activity.composer").shortcut == "Ctrl+1"
     assert reg.get("editor.activity.map").shortcut == "Ctrl+2"
     assert reg.get("editor.activity.radar").shortcut == "Ctrl+3"
     assert reg.get("editor.activity.targets").shortcut == "Ctrl+4"
-    assert reg.get("editor.activity.browser").shortcut == "Ctrl+5"
+    assert reg.get("editor.activity.atmosphere").shortcut == "Ctrl+5"
+    assert reg.get("editor.activity.browser").shortcut == "Ctrl+6"
 
 
 def test_phase_4_3_activity_hooks_dispatch_in_isolation() -> None:

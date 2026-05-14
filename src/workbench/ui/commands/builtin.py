@@ -82,6 +82,7 @@ class CommandHooks:
     on_activity_map: Callable[[], None] = field(default=_noop)
     on_activity_radar: Callable[[], None] = field(default=_noop)
     on_activity_targets: Callable[[], None] = field(default=_noop)
+    on_activity_atmosphere: Callable[[], None] = field(default=_noop)
     on_activity_browser: Callable[[], None] = field(default=_noop)
 
 
@@ -298,11 +299,18 @@ def register_builtin_commands(
             shortcut="Ctrl+4",
         ),
         WorkbenchCommand(
+            id="editor.activity.atmosphere",
+            title="Editor: Open Atmosphere Panel",
+            category="Editor",
+            execute=hooks.on_activity_atmosphere,
+            shortcut="Ctrl+5",
+        ),
+        WorkbenchCommand(
             id="editor.activity.browser",
             title="Editor: Open Resource Browser",
             category="Editor",
             execute=hooks.on_activity_browser,
-            shortcut="Ctrl+5",
+            shortcut="Ctrl+6",
         ),
     ):
         registry.register(cmd)

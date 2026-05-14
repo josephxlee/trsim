@@ -24,17 +24,20 @@ from PySide6.QtCore import QObject, Signal
 
 
 class Activity(StrEnum):
-    """Top-level Editor activity (plan/13 section 13.2.2 - 5 icons).
+    """Top-level Editor activity (plan/13 section 13.2.2).
 
-    The order matches the spec - Composer first because the Editor's
-    primary purpose is *composition*; the four other activities are
-    tools invoked from the Composer.
+    The order matches the spec — Composer first because the Editor's
+    primary purpose is *composition*; the other activities are tools
+    invoked from the Composer. ``ATMOSPHERE`` joined the list in the
+    2026-05-14 cycle so the AtmospherePanel widget finally has a
+    visible mount point.
     """
 
     COMPOSER = "composer"
     MAP = "map"
     RADAR = "radar"
     TARGETS = "targets"
+    ATMOSPHERE = "atmosphere"
     BROWSER = "browser"
 
 
@@ -43,6 +46,7 @@ ACTIVITY_ORDER: tuple[Activity, ...] = (
     Activity.MAP,
     Activity.RADAR,
     Activity.TARGETS,
+    Activity.ATMOSPHERE,
     Activity.BROWSER,
 )
 """Activities in the order they appear on the left activity bar."""
