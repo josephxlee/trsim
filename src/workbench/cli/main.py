@@ -38,7 +38,7 @@ from pathlib import Path
 from workbench import __version__
 from workbench.app.resource_library import ResourceLibrary
 from workbench.app.timing.frame_profiler import FrameProfiler
-from workbench.app.timing.stage_timing_probe import StageTimingProbe
+from workbench.app.timing.profile_gate import gated_stage_probe
 from workbench.domain.timing import (
     DEFAULT_PROFILE_MODE,
     PROFILE_MODES_IN_DISPLAY_ORDER,
@@ -298,17 +298,25 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_profile(args: argparse.Namespace) -> int:
-    """`trsim profile` — exercise FrameProfiler synthetically."""
+    """`trsim profile` — exercise FrameProfiler synthetically.
+
+    Phase 3 Q4: ``--profile-mode`` (``explicit`` default, ``live``
+    available) gates the per-stage probe overhead via
+    :func:`gated_stage_probe`. The CLI never accepts ``off`` here so
+    every frame produces real samples; the gate exists for symmetry
+    with ``trsim run --profile-mode``.
+    """
     if args.frames < 1:
         print("error: --frames must be >= 1", file=sys.stderr)
         return 2
+    profile_mode = parse_profile_mode(args.profile_mode)
     profiler = FrameProfiler()
     for _ in range(args.frames):
-        with StageTimingProbe(profiler, stage_name="detector"):
+        with gated_stage_probe(profile_mode, profiler, stage_name="detector"):
             # Synthetic 0.5 ms work — Python loop short-circuit so it's
             # cheap on CI but produces non-zero samples.
             sum(range(50))
-        with StageTimingProbe(profiler, stage_name="tracker"):
+        with gated_stage_probe(profile_mode, profiler, stage_name="tracker"):
             sum(range(20))
 
     reports = [asdict(r) for r in profiler.report_all()]
