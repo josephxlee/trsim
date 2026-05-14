@@ -97,7 +97,7 @@ class SimulatorWorkspace(QWidget):
         *,
         panel_registry: PanelRegistry | None = None,
         nn_datasets_root: Path | None | object = _NN_DATASETS_DEFAULT,
-        run_tick_interval_ms: int = 16,
+        run_tick_interval_ms: int = 33,
         autostart_run_timer: bool = True,
         enable_3d_viewer: bool = True,
     ) -> None:

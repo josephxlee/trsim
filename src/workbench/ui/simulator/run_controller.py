@@ -21,7 +21,12 @@ from workbench.app.simulation_clock import SimulationClock
 from workbench.domain.types import SimulationState, SpeedMultiplier
 from workbench.ui.simulator.panels import RunPanel
 
-_DEFAULT_TICK_MS: int = 16
+# P5b — 60 Hz tick (16 ms) is more than the user can perceive on a
+# panel-readout repaint and amplifies reflow cost during window resize
+# / layout reflow. 30 Hz (33 ms) is the common compromise: smooth
+# scope cross-hair motion, half the CPU cost, no visible step on
+# numeric readouts.
+_DEFAULT_TICK_MS: int = 33
 
 
 class SimulatorRunController(QObject):
