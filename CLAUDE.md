@@ -17,22 +17,39 @@
 
 ## 1. 현재 진행 상황 (이 줄만 수시로 갱신)
 
+> **Phase 4 L2 — Simulator FFT panel pyqtgraph live spectrum DONE**.
+> plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선순위 (사용자
+> "Simulation 가장 시급" 명시) 의 두 번째 sub-step. Simulator 8 panel
+> 중 두 번째 panel 이 실 데이터 받음. 신규 app/simulator/mock_spectrum.
+> py — `MockSpectrumGenerator` (deterministic sim_t_s → up/down sweep
+> beat spectrum, sinusoidal peak motion, Gaussian noise quantised by
+> sim_t_s ^ rng_seed) + `MockSpectrumFrame` frozen dataclass. 갱신
+> ui/simulator/panels/fft_panel.py — placeholder QFrame 제거 후 `pg.
+> PlotWidget` 임베드 + 2 PlotDataItem (up=red, down=blue) + 2
+> InfiniteLine peak markers (DashLine, hidden by default) +
+> `set_spectrum / set_peak_freqs / clear_peak_freqs`. Phase 4.9 헤더
+> API (set_frame / set_peak_counts) 보존. 신규 ui/simulator/
+> fft_controller.py = `SimulatorFFTController(QObject)` —
+> run_controller.tick_completed → generator.spectrum_for → panel push
+> + enabled toggle + `paint_for(sim_t_s, frame_id)` headless 진입점.
+> SimulatorWorkspace 가 RunController 직후 FFTController 자동
+> 인스턴스화 + `fft_controller()` accessor. 누적 **2559 PASS** (+41
+> 신규 in this cycle: 21 mock_spectrum + 10 fft_panel + 10
+> fft_controller/workspace), 5 contracts KEPT. ruff / mypy --strict /
+> import-linter all clean.
+
 > **Phase 4 L1 — Simulator Run panel 실 sim_time / frame_id binding
-> DONE**. plan/04 § 4.3 의 Phase 4 UI 실 데이터 binding 우선순위
-> (사용자 "Simulation 가장 시급" 명시) 의 첫 sub-step.
-> ui/simulator/panels/run_panel.py 에 새 "Simulation Time" GroupBox
-> 추가 (sim_t / frame / state / speed 4 readout). 신규
-> ui/simulator/run_controller.py = `SimulatorRunController(QObject)`
-> — 16ms QTimer + 자체 `SimulationClock` + play/pause/stop/set_speed
-> + tick(wall_dt_s) test 진입점 + tick_completed signal. frame_id
-> 는 advance 시 sim_dt > 0 일 때만 +1 (paused/stopped 무영향).
-> SimulatorWorkspace 가 controller 인스턴스 owned + sim_play /
-> sim_pause / sim_stop / sim_set_speed forward 메서드. MainWindow 의
-> `_build_command_hooks` 가 sim.start / pause / stop / speed 명령
-> hook 을 그쪽으로 routing — Toolbar Play/Pause/Stop 버튼이 처음으로
-> 실 SimulationClock 에 연결. 누적 **2518 PASS** (+28 신규 in this
-> cycle), 5 contracts KEPT. ruff / mypy --strict / import-linter all
-> clean.
+> DONE — 1 sub-step (직전 cycle)**. ui/simulator/panels/run_panel.py
+> 에 새 "Simulation Time" GroupBox 추가 (sim_t / frame / state / speed
+> 4 readout). 신규 ui/simulator/run_controller.py =
+> `SimulatorRunController(QObject)` — 16ms QTimer + 자체
+> `SimulationClock` + play/pause/stop/set_speed + tick(wall_dt_s) test
+> 진입점 + tick_completed signal. frame_id 는 advance 시 sim_dt > 0 일
+> 때만 +1 (paused/stopped 무영향). SimulatorWorkspace 가 controller
+> 인스턴스 owned + sim_play / sim_pause / sim_stop / sim_set_speed
+> forward 메서드. MainWindow 의 `_build_command_hooks` 가 sim.start /
+> pause / stop / speed 명령 hook 을 그쪽으로 routing. 누적 2490 →
+> 2518 PASS (+28).
 
 > **Phase 9 MainWindow DLC Physics-Model Auto-Register (J1) DONE —
 > 1 sub-step (직전 cycle)**. ui/main_window.py 가 DLCRuntime 받으면
@@ -68,19 +85,30 @@
 > Domain Override block + `CoverageStats` frozen dataclass (G4).
 > 누적 2360 → 2434 PASS (+74).
 >
-> **이 cycle 인계**: `docs/sessions/phase_4_l1_run_panel_2026_05_13.md`.
-> **사용자 GUI 손 테스트 체크리스트**: `docs/sessions/user_acceptance_
-> test_2026_05_13.md`.
+> **이 cycle 인계**: `docs/sessions/phase_4_l2_fft_panel_2026_05_14.md`.
+> 직전 cycle 인계: `docs/sessions/phase_4_l1_run_panel_2026_05_13.md`.
 > 사용자 우선순위 (변동 없음):
-> **physics_lab > simulator > editor** — Phase 9 / Phase 5 후속 / Phase
-> 6 NN 보강 / Phase 5 추가 후속 / Phase 7 DLC CLI / Phase 7 remainder /
-> Phase 3 누락 4 모듈 / Phase 4 dem_import_wizard / Phase 4 domain_
-> settings + installation_panel / Phase 9 § 19.7.5+ Library Models 동적
-> + PluginLoader discovery + MainWindow auto-register 전부 ✓ → 다음
-> cycle 후보: Phase 4 UI 실 데이터 binding (큼) / Phase 8 HIL 전체
-> (매우 큼) / Phase 9 § 19.7.5+ Validation Bench 일반화 (소-중).
+> **physics_lab > simulator > editor** — Simulator 8 panel 중 Run + FFT
+> ✓; 다음 cycle 후보: L3 RD panel range-doppler heatmap (중) / L4 Scene
+> 3D PyVista lazy create (큼) / L5+L6 (Properties / ScopePOV / PluginMgr
+> stage / StageIO record).
 
-- **Phase 4 cycle (L1) 1 sub-step (이 cycle)** — Simulator Run panel
+- **Phase 4 cycle (L2) 1 sub-step (이 cycle)** — Simulator 8 panel 중
+  두 번째 panel (FFT) 가 처음으로 실 데이터 받음. RunController.
+  tick_completed → mock generator → panel push 연결. 누적 +41 tests.
+
+  | sub | commit | new | 내용 |
+  |---|---|---|---|
+  | L2 | (이 cycle) | +41 | `app/simulator/mock_spectrum.py` 신규 (`MockSpectrumGenerator` deterministic + `MockSpectrumFrame`) + `panels/fft_panel.py` pyqtgraph PlotWidget + 2 PlotDataItem + 2 InfiniteLine peak marker + `set_spectrum / set_peak_freqs / clear_peak_freqs` + `ui/simulator/fft_controller.py` 신규 (`SimulatorFFTController` tick_completed wire + enabled toggle + paint_for) + SimulatorWorkspace 자동 wiring + `fft_controller()` accessor |
+
+  학습 (2개):
+  - **PySide6 ``QPen.setStyle`` raw int 거부** — `pyqtgraph.mkPen(...,
+    style=2)` 가 PySide6 6.11 strict-typed signature 에 의해 `TypeError`.
+    `Qt.PenStyle.DashLine` (또는 `SolidLine`/`DotLine` 등) enum 사용 필수.
+  - **ruff RUF046** — Python 3 `round()` 는 이미 int 반환. `int(round(x))`
+    는 redundant cast — `round(x * 1.0e6)` 로 충분.
+
+- **Phase 4 cycle (L1) 1 sub-step (직전 cycle)** — Simulator Run panel
   이 처음으로 실 데이터 (SimulationClock state) 받음. 사용자
   "Simulation 가장 시급" 우선순위 첫 진입. 누적 +28 tests.
 
@@ -1251,4 +1279,4 @@ bindfs 가 가끔 파일 끝 1~5 char 잘라먹음 (Phase 1 부터 반복 발생
 새 트리거 추가 시 워크플로 .md + 위 표에 한 줄.
 
 ---
-최근 갱신: 2026-05-13 — Phase 4 L1 (Simulator Run panel 실 sim_time) DONE, 2518 PASS. Simulator 8 panel 중 첫 실 데이터 binding.
+최근 갱신: 2026-05-14 — Phase 4 L2 (Simulator FFT panel pyqtgraph live spectrum) DONE, 2559 PASS. Simulator 8 panel 중 두 번째 실 데이터 binding.

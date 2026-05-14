@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 from workbench.domain.types import SpeedMultiplier
 from workbench.ui.nn_training import NNTrainingController, TrainingPanel
 from workbench.ui.panel_registry import PanelRegistration, PanelRegistry
+from workbench.ui.simulator.fft_controller import SimulatorFFTController
 from workbench.ui.simulator.nn_mode import Step1DatasetPanel, Step2EvalPanel
 from workbench.ui.simulator.nn_mode.step1_controller import NNStep1Controller
 from workbench.ui.simulator.nn_mode.step2_controller import NNStep2Controller
@@ -211,6 +212,16 @@ class SimulatorWorkspace(QWidget):
             parent=self,
         )
 
+        # Phase 4 L2 — FFT panel live spectrum binding. The controller
+        # listens to ``run_controller.tick_completed`` and repaints the
+        # FFT curves + peak markers via a deterministic
+        # ``MockSpectrumGenerator``. Real Pipeline binding lands later.
+        self._fft_controller = SimulatorFFTController(
+            fft_panel=self._fft_panel,
+            run_controller=self._run_controller,
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
     # ------------------------------------------------------------------
@@ -296,10 +307,13 @@ class SimulatorWorkspace(QWidget):
         return self._bottom_tabs
 
     # ------------------------------------------------------------------
-    # Phase 4 L1 — Run controller (live sim_time / frame_id)
+    # Phase 4 L1 / L2 — Run + FFT controllers (live sim_time / spectrum)
     # ------------------------------------------------------------------
     def run_controller(self) -> SimulatorRunController:
         return self._run_controller
+
+    def fft_controller(self) -> SimulatorFFTController:
+        return self._fft_controller
 
     def sim_play(self) -> None:
         """Toolbar / hook entry — start simulation clock."""
