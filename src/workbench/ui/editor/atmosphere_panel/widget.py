@@ -1,9 +1,11 @@
-"""AtmospherePanel widget (Phase 4.8, plan/15 § 15.4.3)."""
+"""AtmospherePanel widget (Phase 4.8 + P7 live attenuation preview, plan/15 § 15.4.3)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
+import pyqtgraph as pg
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
@@ -13,6 +15,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from workbench.physics.atmosphere import rain_attenuation_dbpkm
 
 # plan/15 § 15.4.3 sky-condition vocabulary.
 SKY_CONDITIONS: tuple[str, ...] = ("Clear", "Cloudy", "Fog", "Rain")
@@ -47,6 +51,7 @@ class AtmospherePanel(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
         layout.addWidget(self._build_form_block())
+        layout.addWidget(self._build_preview_block(), 1)
 
     # ------------------------------------------------------------------
     # Builders
@@ -78,6 +83,47 @@ class AtmospherePanel(QWidget):
         self._sky.currentTextChanged.connect(lambda _: self._emit_state())
         return box
 
+    def _build_preview_block(self) -> QGroupBox:
+        """Phase 4 P7 — rain-attenuation preview.
+
+        Plots ``rain_attenuation_dbpkm(frequency, rain_rate)`` over the
+        1..40 GHz band at the current rain-rate value. The curve
+        refreshes any time the user types a new rain rate so the
+        editor's right pane stops feeling static. The plot uses the
+        validated X-band ITU-R P.838 simplified model the physics
+        layer already ships (plan/15 § 15.5.1).
+        """
+        box = QGroupBox("Atmosphere preview — rain attenuation vs frequency", self)
+        box.setObjectName("AtmospherePanelPreview")
+        v = QVBoxLayout(box)
+        v.setContentsMargins(4, 4, 4, 4)
+        self._preview_plot = pg.PlotWidget(box)
+        self._preview_plot.setObjectName("AtmospherePreviewPlot")
+        self._preview_plot.setLabel("left", "rain attenuation", units="dB/km")
+        self._preview_plot.setLabel("bottom", "frequency", units="GHz")
+        self._preview_plot.showGrid(x=True, y=True, alpha=0.3)
+        self._preview_curve: pg.PlotDataItem = self._preview_plot.plot(
+            [], [], pen=pg.mkPen("#1f77b4", width=2)
+        )
+        v.addWidget(self._preview_plot)
+        self._refresh_preview()
+        return box
+
+    def _refresh_preview(self) -> None:
+        """Re-evaluate the rain-attenuation curve at the current rain rate."""
+        try:
+            rain_rate = float(self._rain_rate.text())
+        except ValueError:
+            return
+        if rain_rate < 0.0:
+            return
+        freqs_ghz = np.linspace(1.0, 40.0, 80, dtype=np.float64)
+        atten = np.array(
+            [rain_attenuation_dbpkm(float(f), rain_rate) for f in freqs_ghz],
+            dtype=np.float64,
+        )
+        self._preview_curve.setData(freqs_ghz, atten)
+
     # ------------------------------------------------------------------
     # State serialization
     # ------------------------------------------------------------------
@@ -88,6 +134,7 @@ class AtmospherePanel(QWidget):
             # User typed garbage; quietly skip until they fix it.
             return
         self.state_changed.emit(state)
+        self._refresh_preview()
 
     def current_state(self) -> AtmosphereState:
         """Parse the current widget values into an :class:`AtmosphereState`.
@@ -148,3 +195,9 @@ class AtmospherePanel(QWidget):
 
     def pressure_edit(self) -> QLineEdit:
         return self._pressure
+
+    def preview_plot(self) -> pg.PlotWidget:
+        return self._preview_plot
+
+    def preview_curve(self) -> pg.PlotDataItem:
+        return self._preview_curve

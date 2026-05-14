@@ -109,9 +109,9 @@ Models 동적 + PluginLoader discovery + MainWindow auto-register) ✓.
 | Map Editor widget skeleton (Pan/Zoom + Land/Sea Brush + Spot Edit + Flatten + AddBuilding) | △ (skeleton, brush/spot edit 본격은 후속) |
 | **Map Editor DEM Import Wizard** (7 step, v0.22) | ✓ (E1-E4 + M1 successful import → `set_map_bounds` 자동 호출) |
 | **Map Editor Domain Settings panel** (Simulation Domain + Outside Environment, v0.29) | ✓ (G1-G3 + M1 live Map bounds readout) |
-| Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | △ |
-| Targets Editor widget skeleton (메타 + Trajectory Preview) | △ |
-| Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | △ |
+| Radar Editor widget skeleton (AntennaType 드롭다운 + 동적 폼 + Beam Pattern Preview) | ✓ (P7 — `_BeamPatternPreview` pyqtgraph PlotWidget + sinc^2 analytic 패턴, `update_pattern(beamwidth_deg)`) |
+| Targets Editor widget skeleton (메타 + Trajectory Preview) | ✓ (P7 — `_TrajectoryPreview` pyqtgraph PlotWidget + 7 motion-kind 별 synthetic 2D path, motion_kind combo 가 preview 자동 swap, set_trajectory 명시 API) |
+| Atmosphere Panel widget skeleton (sky / visibility / rain_rate 등) | ✓ (P7 — rain-attenuation vs frequency preview, `rain_attenuation_dbpkm` ITU-R P.838 simplified model 사용, rain_rate edit 시 자동 refresh) |
 | Simulator panels (Run / FFT / RD / Scene3D / PluginMgr / StageIO / Properties / ScopePOV) | ✓ (L1 Run + L2 FFT + L3 RD + L4 Scene3D + L5 PluginMgr seed + StageIO live + L6 Scope/Properties primary-target — 모두 RunController.tick_completed 에 묶임) |
 | Scene 3D PyVista (DEM / wave / atmosphere / actors / 3rd-person + Scope POV / F-key focus) | ✓ (L4 — radar/target sphere + terrain plane placeholder + `enable_3d_viewer` lazy + `trsim ui --no-3d-viewer` flag) |
 | Profiler panel (timing breakdown / scale indicator / report) | ✓ |
@@ -232,9 +232,8 @@ placeholder 상태:
 
 | 우선 | 작업 | 크기 | 비고 |
 |---|---|---|---|
-| 1 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
-| 2 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 3 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 1 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
+| 2 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
 | post-MVP | **Phase 6 Step 2 real Tracker/Predictor/Classifier loss** + **multi-step rollout** | 중 | TrackerNNPlugin / PredictorNNPlugin / ClassifierNNPlugin Protocol + sequence dataset spec 출시 후. 현재 stub + "n/a (plugin unsupported)" UI surface 가 MVP-acceptable. |
 | post-MVP | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | MVP 완성 후 별도 cycle. 자리만 예약, 작업 시작은 사용자 신호 후. |
 | post-MVP | **Phase 4 L-series 후속**: Pipeline 실 연결 (mock generators 교체) | 큼 | 8 panel 의 mock generator 들을 실 `Pipeline.step()` probe 로 교체. Phase 6+ probe recorder 와 짝. |

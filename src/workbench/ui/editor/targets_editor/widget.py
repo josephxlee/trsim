@@ -1,10 +1,13 @@
-"""TargetsEditor widget (Phase 4.8, plan/13 § 13.6)."""
+"""TargetsEditor widget (Phase 4.8 + P7 live trajectory preview, plan/13 § 13.6)."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import math
+from collections.abc import Iterable, Sequence
 
-from PySide6.QtCore import Qt, Signal
+import numpy as np
+import pyqtgraph as pg
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -30,20 +33,103 @@ MOTION_KINDS: tuple[str, ...] = (
 )
 
 
-class _TrajectoryPreviewPlaceholder(QFrame):
-    """Stub trajectory preview canvas - real plot lands in Phase 4.8.x."""
+class _TrajectoryPreview(QFrame):
+    """Live trajectory preview canvas (Phase 4 P7).
+
+    pyqtgraph PlotWidget with an aspect-locked top-down (East/North)
+    2D scatter + line path. ``set_motion_kind(kind)`` swaps in a
+    synthetic trajectory representative of each motion kind so the
+    user sees something non-trivial as they click through the combo.
+
+    Real scenario-driven trajectory plots land in a post-MVP cycle
+    once the scenario loader populates the editor.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setObjectName("TrajectoryPreviewPlaceholder")
+        self.setObjectName("TrajectoryPreview")
         self.setFrameShape(QFrame.Shape.StyledPanel)
-        self.setMinimumHeight(160)
+        self.setMinimumHeight(180)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        hint = QLabel("Trajectory Preview (Phase 4.8.x mounts the pyqtgraph 2D path view)")
-        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hint.setStyleSheet("color: #777;")
-        layout.addWidget(hint)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        self._plot = pg.PlotWidget(self)
+        self._plot.setObjectName("TrajectoryPlot")
+        self._plot.setLabel("left", "north", units="m")
+        self._plot.setLabel("bottom", "east", units="m")
+        self._plot.setAspectLocked(lock=True, ratio=1.0)
+        self._plot.showGrid(x=True, y=True, alpha=0.3)
+        self._curve: pg.PlotDataItem = self._plot.plot([], [], pen=pg.mkPen("#1f77b4", width=2))
+        # Start marker (East/North origin sample) — small filled circle.
+        self._start_marker: pg.ScatterPlotItem = pg.ScatterPlotItem(
+            size=10, pen=pg.mkPen("#2ca02c", width=2), brush=pg.mkBrush("#2ca02c")
+        )
+        self._plot.addItem(self._start_marker)
+        layout.addWidget(self._plot)
+
+        self.set_motion_kind("AIRCRAFT")
+
+    def set_motion_kind(self, kind: str) -> None:
+        """Replace the curve with a deterministic synthetic trajectory."""
+        east, north = _synthetic_trajectory(kind)
+        self._curve.setData(east, north)
+        self._start_marker.setData([east[0]], [north[0]])
+
+    def set_trajectory(
+        self,
+        east_m: Sequence[float],
+        north_m: Sequence[float],
+    ) -> None:
+        """Push an explicit (east, north) path (post-MVP scenario hook)."""
+        if len(east_m) != len(north_m):
+            msg = f"trajectory east ({len(east_m)}) / north ({len(north_m)}) length mismatch"
+            raise ValueError(msg)
+        if len(east_m) == 0:
+            self._curve.setData([], [])
+            self._start_marker.setData([], [])
+            return
+        self._curve.setData(list(east_m), list(north_m))
+        self._start_marker.setData([east_m[0]], [north_m[0]])
+
+    def plot_widget(self) -> pg.PlotWidget:
+        return self._plot
+
+    def curve(self) -> pg.PlotDataItem:
+        return self._curve
+
+    def start_marker(self) -> pg.ScatterPlotItem:
+        return self._start_marker
+
+
+def _synthetic_trajectory(kind: str) -> tuple[np.ndarray, np.ndarray]:
+    """Deterministic mock path for each motion kind.
+
+    The shapes are illustrative only — the user sees them flip as
+    they click the motion-kind combo so the preview pane feels alive.
+    """
+    t = np.linspace(0.0, 1.0, 200, dtype=np.float64)
+    if kind == "FIXED_GROUND" or kind == "FLOATING_STATIC":
+        east = np.zeros_like(t)
+        north = np.zeros_like(t)
+    elif kind == "GROUND_VEHICLE":
+        east = 1_000.0 * t
+        north = 200.0 * np.sin(2.0 * math.pi * t)
+    elif kind == "SURFACE_VESSEL":
+        east = 800.0 * t
+        north = 800.0 * np.sin(math.pi * t)
+    elif kind == "AIRCRAFT":
+        east = 2_000.0 * np.cos(2.0 * math.pi * t) - 2_000.0
+        north = 1_500.0 * np.sin(2.0 * math.pi * t)
+    elif kind == "POWERED_FLIGHT":
+        east = 1_500.0 * t
+        north = 1_000.0 * t**2
+    elif kind == "BALLISTIC":
+        east = 3_000.0 * t
+        north = 3_000.0 * t - 4_500.0 * t**2  # parabolic arc
+    else:
+        east = np.zeros_like(t)
+        north = np.zeros_like(t)
+    return east, north
 
 
 class TargetsEditor(QWidget):
@@ -111,7 +197,11 @@ class TargetsEditor(QWidget):
         toolbar.addWidget(self._waypoint_count)
         v.addLayout(toolbar)
 
-        v.addWidget(_TrajectoryPreviewPlaceholder(self), 1)
+        self._trajectory_preview = _TrajectoryPreview(self)
+        v.addWidget(self._trajectory_preview, 1)
+        # Wire the motion-kind combo so the preview swaps to a matching
+        # synthetic path the moment the user picks a row.
+        self._motion_combo.currentTextChanged.connect(self._trajectory_preview.set_motion_kind)
         return box
 
     def _build_validation_block(self) -> QGroupBox:
@@ -179,3 +269,6 @@ class TargetsEditor(QWidget):
 
     def validation_label(self) -> QLabel:
         return self._validation_label
+
+    def trajectory_preview(self) -> _TrajectoryPreview:
+        return self._trajectory_preview

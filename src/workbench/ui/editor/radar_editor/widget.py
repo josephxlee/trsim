@@ -1,10 +1,13 @@
-"""RadarEditor widget (Phase 4.7, plan/05 § 5.3.9)."""
+"""RadarEditor widget (Phase 4.7 + P7 live beam pattern preview, plan/05 § 5.3.9)."""
 
 from __future__ import annotations
 
+import math
 from enum import StrEnum
 
-from PySide6.QtCore import Qt, Signal
+import numpy as np
+import pyqtgraph as pg
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -89,19 +92,69 @@ class _PlanarArrayForm(QWidget):
 
 
 class _BeamPatternPreview(QFrame):
-    """Tiny placeholder for the beam-pattern plot (Phase 4.7.x)."""
+    """Live beam-pattern preview (Phase 4 P7).
+
+    pyqtgraph PlotWidget hosting a normalized one-way antenna gain
+    pattern ``G(theta)`` in dB. ``update_pattern(beamwidth_deg)``
+    replaces the curve with a sinc^2 approximation centred at boresight
+    and clipped at -40 dB so the plot stays readable. Tests call the
+    method directly to verify the curve, but the RadarEditor's
+    "Apply / Refresh preview" workflow also lives here.
+    """
+
+    DEFAULT_BEAMWIDTH_DEG: float = 4.0
+    _MIN_DB: float = -40.0
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("BeamPatternPreview")
         self.setFrameShape(QFrame.Shape.StyledPanel)
-        self.setMinimumHeight(120)
+        self.setMinimumHeight(160)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        hint = QLabel("Beam Pattern Preview (Phase 4.7.x mounts the polar plot)")
-        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hint.setStyleSheet("color: #777;")
-        layout.addWidget(hint)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        self._plot = pg.PlotWidget(self)
+        self._plot.setObjectName("BeamPatternPlot")
+        self._plot.setLabel("left", "gain", units="dB")
+        self._plot.setLabel("bottom", "angle off boresight", units="deg")
+        self._plot.setYRange(self._MIN_DB, 0.0)
+        self._plot.showGrid(x=True, y=True, alpha=0.3)
+        self._curve: pg.PlotDataItem = self._plot.plot([], [], pen=pg.mkPen("#d62728", width=2))
+        layout.addWidget(self._plot)
+
+        self.update_pattern(self.DEFAULT_BEAMWIDTH_DEG)
+
+    def update_pattern(self, beamwidth_deg: float) -> None:
+        """Replace the curve with a sinc^2 pattern of the given 3 dB BW.
+
+        sinc^2(u) reaches -3 dB at u ≈ 0.443 (one-way pattern). Convert
+        the requested half-power beamwidth into the matching argument
+        scale and clamp to ``[_MIN_DB, 0]`` so the plot stays bounded.
+        """
+        if beamwidth_deg <= 0.0:
+            msg = f"beamwidth_deg must be > 0, got {beamwidth_deg}"
+            raise ValueError(msg)
+        # u = 0.443 at the half-power angle (theta_hpbw / 2).
+        scale = 0.443 / (0.5 * beamwidth_deg)
+        thetas = np.linspace(-3.0 * beamwidth_deg, 3.0 * beamwidth_deg, 401)
+        u = scale * thetas
+        # sinc^2 with safety against division-by-zero at u==0.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            sinc = np.where(
+                u == 0.0,
+                1.0,
+                np.sin(math.pi * u) / (math.pi * u),
+            )
+        gain_lin = sinc**2
+        gain_db = 10.0 * np.log10(np.maximum(gain_lin, 1e-12))
+        gain_db = np.maximum(gain_db, self._MIN_DB)
+        self._curve.setData(thetas, gain_db)
+
+    def plot_widget(self) -> pg.PlotWidget:
+        return self._plot
+
+    def curve(self) -> pg.PlotDataItem:
+        return self._curve
 
 
 class RadarEditor(QWidget):
