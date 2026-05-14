@@ -147,8 +147,8 @@ idempotent + multi-stage 독립).
 | nn_mode panels: Step 1 Dataset Builder + Step 2 Eval + Training | ✓ |
 | Adam optimizer (numpy 구현, backend="numpy_mlp_adam") | ✓ (A1-a) |
 | workbench-train CLI (`trsim train --job <toml>`, in-process subprocess-ready) | ✓ (A1-b) |
-| Step 2 Tracker / Predictor / Classifier 행 dispatch framework (stub functions → `n/a` rendering) | △ (A1-c, real loss functions TBD when Tracker/Predictor/Classifier NN plugins ship) |
-| Step 2 multi-step rollout RMSE metric (stub `multi_step_rollout_rmse` with input validation) | △ (A1-d, sequence dataset spec + Predictor NN plugin TBD) |
+| Step 2 Tracker / Predictor / Classifier 행 dispatch framework (stub functions → `n/a` rendering) | ✓-MVP (P6 — stub `tracker_loss / predictor_loss / classifier_loss` raise `NotImplementedError("Phase 6 follow-up")`; Step 2 controller catches → renders "n/a (plugin unsupported)"; locked by `tests/unit/app/test_nn_evaluator_postmvp_stubs.py`. **Real loss는 TrackerNNPlugin / PredictorNNPlugin / ClassifierNNPlugin 출시 후 post-MVP**) |
+| Step 2 multi-step rollout RMSE metric (stub `multi_step_rollout_rmse` with input validation) | ✓-MVP (P6 — `multi_step_rollout_rmse(n_steps=...)` validates `n_steps` then raises `NotImplementedError`. **실 구현은 sequence dataset spec + PredictorNNPlugin 후 post-MVP**) |
 
 ---
 
@@ -232,11 +232,10 @@ placeholder 상태:
 
 | 우선 | 작업 | 크기 | 비고 |
 |---|---|---|---|
-| 1 | **Phase 6 Step 2 per-category real dispatch** (Tracker / Predictor / Classifier loss) | 중 | A1-c stub 만 있음. Tracker / Predictor / Classifier NN plug-in 출시 후. |
-| 2 | **Phase 6 multi-step rollout RMSE real** | 중 | A1-d stub. Sequence dataset spec + Predictor NN plug-in 후. |
-| 3 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
-| 4 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
-| 5 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| 1 | **Phase 4 Editor remainder** (Radar Editor beam preview / Targets Editor trajectory preview / Atmosphere panel live) | 중 | Editor 5 activity 중 Composer ✓ + Map ✓; Radar/Targets/Atmosphere 는 form ✓ + preview canvas 미완. |
+| 2 | **SDK manifest.py 이동** (domain/dlc → sdk/) | 잡 | 위치만 옮김 + import 갱신 + test 갱신. |
+| 3 | **Polish**: Floating dock 옵션 B / Theme manager / Stone Soup adapter | 소 | 미루기 가능. |
+| post-MVP | **Phase 6 Step 2 real Tracker/Predictor/Classifier loss** + **multi-step rollout** | 중 | TrackerNNPlugin / PredictorNNPlugin / ClassifierNNPlugin Protocol + sequence dataset spec 출시 후. 현재 stub + "n/a (plugin unsupported)" UI surface 가 MVP-acceptable. |
 | post-MVP | **Phase 8 HIL 전체** (8.1 MVP → Lock-step → 8.2 L2/L4 → 8.3 L1+AWG) | 매우 대 | MVP 완성 후 별도 cycle. 자리만 예약, 작업 시작은 사용자 신호 후. |
 | post-MVP | **Phase 4 L-series 후속**: Pipeline 실 연결 (mock generators 교체) | 큼 | 8 panel 의 mock generator 들을 실 `Pipeline.step()` probe 로 교체. Phase 6+ probe recorder 와 짝. |
 
