@@ -139,6 +139,12 @@ class SimulatorWorkspace(QWidget):
         center.setSizes([320, 220])
 
         # Top row - PluginManager | center | Scope | Properties.
+        # Stretch factors preserve the column-width ratio when the
+        # window is maximised. Center (FFT / RD / Scene 3D) takes the
+        # largest share; the three flanking columns grow proportionally
+        # at 1:3:1:1. Without non-zero stretch on the flanks, they stay
+        # at the initial pixel sizes and the center column eats every
+        # extra pixel — visibly wrong on 1920+ resolutions.
         top_row = QSplitter(Qt.Orientation.Horizontal, self)
         top_row.setObjectName("SimulatorTopRowSplitter")
         top_row.setChildrenCollapsible(False)
@@ -146,10 +152,10 @@ class SimulatorWorkspace(QWidget):
         top_row.addWidget(center)
         top_row.addWidget(self._scope_panel)
         top_row.addWidget(self._properties_panel)
-        top_row.setStretchFactor(0, 0)
-        top_row.setStretchFactor(1, 1)
-        top_row.setStretchFactor(2, 0)
-        top_row.setStretchFactor(3, 0)
+        top_row.setStretchFactor(0, 1)
+        top_row.setStretchFactor(1, 3)
+        top_row.setStretchFactor(2, 1)
+        top_row.setStretchFactor(3, 1)
         top_row.setSizes([240, 640, 240, 240])
 
         # NN-mode panels (plan/05 § 5.1 principle 6, plan/07 § 7.4 / § 7.5).
@@ -187,13 +193,17 @@ class SimulatorWorkspace(QWidget):
         bottom_tabs.addTab(self._nn_step2_panel, "NN Step 2")
         bottom_tabs.addTab(self._nn_training_panel, "NN Training")
 
+        # Outer split: top_row (8 panel) above, bottom_tabs below.
+        # Both stretch so a maximised window grows both areas
+        # proportionally (top : bottom = 3 : 1, matching the default
+        # 520 : 220 pixel ratio).
         outer = QSplitter(Qt.Orientation.Vertical, self)
         outer.setObjectName("SimulatorOuterSplitter")
         outer.setChildrenCollapsible(False)
         outer.addWidget(top_row)
         outer.addWidget(bottom_tabs)
-        outer.setStretchFactor(0, 1)
-        outer.setStretchFactor(1, 0)
+        outer.setStretchFactor(0, 3)
+        outer.setStretchFactor(1, 1)
         outer.setSizes([520, 220])
         self._outer_splitter = outer
         self._top_splitter = top_row

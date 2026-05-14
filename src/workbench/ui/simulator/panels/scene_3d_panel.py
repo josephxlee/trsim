@@ -187,6 +187,14 @@ class Scene3DPanel(QWidget):
 
             self._interactor = QtInteractor(canvas)
             self._interactor.setObjectName("Scene3DInteractor")
+            # Click + wheel trackball interaction needs StrongFocus so
+            # the interactor sees mouse press / wheel events; without
+            # this the inner VTK render window receives keyboard /
+            # wheel input only after a click, and on some Qt setups not
+            # at all. Mouse-tracking ensures hover motion reaches it
+            # immediately for camera spin / pan.
+            self._interactor.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            self._interactor.setMouseTracking(True)
             cl.addWidget(self._interactor)
         else:
             cl.addWidget(self._status_label)
