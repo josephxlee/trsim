@@ -20,7 +20,7 @@ pytestmark = pytest.mark.qt
 def test_main_window_default_workspace_is_editor(qtbot) -> None:  # type: ignore[no-untyped-def]
     from workbench.ui.physics_lab import PhysicsLabWorkspace
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert win.selector.current == Workspace.EDITOR
     assert isinstance(win.page(Workspace.EDITOR), EditorWorkspace)
@@ -33,7 +33,7 @@ def test_main_window_default_workspace_is_editor(qtbot) -> None:  # type: ignore
 
 def test_main_window_switches_to_physics_lab(qtbot) -> None:  # type: ignore[no-untyped-def]
     """PL-A: Ctrl+Shift+L lands on the Physics Lab workspace page."""
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     win.selector.set_workspace(Workspace.PHYSICS_LAB)
     central = win.centralWidget()
@@ -43,7 +43,7 @@ def test_main_window_switches_to_physics_lab(qtbot) -> None:  # type: ignore[no-
 
 def test_sim_toolbars_hidden_outside_simulator_workspace(qtbot) -> None:  # type: ignore[no-untyped-def]
     """Option A: Sim + Target toolbars are Simulator-workspace-only."""
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     # Default Editor workspace -> toolbars hidden.
     assert win.simulation_toolbar().isVisibleTo(win) is False
@@ -59,7 +59,7 @@ def test_sim_toolbars_hidden_outside_simulator_workspace(qtbot) -> None:  # type
 
 
 def test_set_workspace_swaps_central_page_and_action_state(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     win.selector.set_workspace(Workspace.SIMULATOR)
 
@@ -77,7 +77,7 @@ def test_workspace_toolbar_actions_carry_no_shortcut(qtbot) -> None:  # type: ig
     both — that bug shipped through Phase 4.2c and was reported as
     "Ctrl+Shift+E/S do not work" in MVP verification.
     """
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     editor_act = win.workspace_action(Workspace.EDITOR)
     sim_act = win.workspace_action(Workspace.SIMULATOR)
@@ -87,7 +87,7 @@ def test_workspace_toolbar_actions_carry_no_shortcut(qtbot) -> None:  # type: ig
 
 def test_main_menu_owns_workspace_and_palette_shortcuts(qtbot) -> None:  # type: ignore[no-untyped-def]
     """MainMenuBar holds the single source of truth for shortcuts."""
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     menu_bar = win.main_menu_bar()
     expected = {
@@ -108,13 +108,13 @@ def test_main_menu_owns_workspace_and_palette_shortcuts(qtbot) -> None:  # type:
 def test_window_title_includes_version(qtbot) -> None:  # type: ignore[no-untyped-def]
     from workbench import __version__
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert __version__ in win.windowTitle()
 
 
 def test_triggering_action_updates_selector(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     with qtbot.waitSignal(win.selector.workspace_changed, timeout=500) as blocker:
         win.workspace_action(Workspace.SIMULATOR).trigger()
@@ -126,7 +126,7 @@ def test_triggering_action_updates_selector(qtbot) -> None:  # type: ignore[no-u
 
 
 def test_main_window_seeds_command_registry_with_workspace_and_palette(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     ids = {cmd.id for cmd in win.commands.all()}
     assert {
@@ -137,7 +137,7 @@ def test_main_window_seeds_command_registry_with_workspace_and_palette(qtbot) ->
 
 
 def test_command_palette_dispatches_workspace_switch(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert win.selector.current == Workspace.EDITOR
     win.commands.dispatch("workspace.switch_to_simulator")
@@ -145,7 +145,7 @@ def test_command_palette_dispatches_workspace_switch(qtbot) -> None:  # type: ig
 
 
 def test_open_command_palette_shows_dialog(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     palette = win.command_palette()
     assert isinstance(palette, CommandPalette)
@@ -162,14 +162,14 @@ def test_main_window_mounts_sim_and_target_toolbars(qtbot) -> None:  # type: ign
     from workbench.ui.toolbars.simulation_toolbar import SimulationToolbar
     from workbench.ui.toolbars.target_run_toolbar import TargetRunToolbar
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert isinstance(win.simulation_toolbar(), SimulationToolbar)
     assert isinstance(win.target_run_toolbar(), TargetRunToolbar)
 
 
 def test_main_window_registers_full_phase_4_2_command_set(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     ids = {cmd.id for cmd in win.commands.all()}
     assert {
@@ -187,7 +187,7 @@ def test_main_window_registers_full_phase_4_2_command_set(qtbot) -> None:  # typ
 
 
 def test_sim_lifecycle_button_dispatches_via_registry(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     # No-op hook for sim.start at Phase 4.2b — must not raise.
     win.simulation_toolbar().lifecycle_action("sim.start").trigger()
@@ -199,7 +199,7 @@ def test_sim_lifecycle_button_dispatches_via_registry(qtbot) -> None:  # type: i
 def test_main_window_mounts_menu_bar(qtbot) -> None:  # type: ignore[no-untyped-def]
     from PySide6.QtWidgets import QMenuBar
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     bar = win.main_menu_bar()
     assert isinstance(bar, QMenuBar)
@@ -207,7 +207,7 @@ def test_main_window_mounts_menu_bar(qtbot) -> None:  # type: ignore[no-untyped-
 
 
 def test_menu_bar_has_seven_top_level_menus(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     titles = [a.text() for a in win.main_menu_bar().actions() if a.menu() is not None]
     assert titles == ["&File", "&Edit", "&View", "&Run", "&Plugins", "&Tools", "&Help"]
@@ -219,7 +219,7 @@ def test_menu_bar_has_seven_top_level_menus(qtbot) -> None:  # type: ignore[no-u
 def test_main_window_owns_dock_manager(qtbot) -> None:  # type: ignore[no-untyped-def]
     from workbench.ui.dock_manager import DockManager
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     mgr = win.dock_manager()
     assert isinstance(mgr, DockManager)
@@ -234,7 +234,7 @@ def test_main_window_owns_dock_manager(qtbot) -> None:  # type: ignore[no-untype
 def test_activity_command_switches_to_editor_workspace_and_activity(qtbot) -> None:  # type: ignore[no-untyped-def]
     from workbench.ui.editor.activities import Activity
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     # Start in Simulator to confirm the command also flips the workspace.
     win.selector.set_workspace(Workspace.SIMULATOR)
@@ -248,7 +248,7 @@ def test_activity_command_switches_to_editor_workspace_and_activity(qtbot) -> No
 def test_every_activity_command_is_dispatchable(qtbot) -> None:  # type: ignore[no-untyped-def]
     from workbench.ui.editor.activities import Activity
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     editor = win.page(Workspace.EDITOR)
     for cid, activity in (

@@ -26,12 +26,12 @@ from workbench.sdk.resource_schemas import (
 from workbench.sdk.test_harness import PackageTestResult, test_package
 
 __all__ = [
+    "KNOWN_ENTRY_POINT_SLOTS",
     "AngleEstimatorProtocol",
     "ClassifierProtocol",
     "DUTAdapterProtocol",
     "DataAssociatorProtocol",
     "DetectorProtocol",
-    "KNOWN_ENTRY_POINT_SLOTS",
     "PackageTestResult",
     "PairingProtocol",
     "PhysicsModelProtocol",

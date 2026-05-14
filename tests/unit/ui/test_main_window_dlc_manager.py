@@ -16,14 +16,14 @@ pytestmark = pytest.mark.qt
 
 
 def test_main_window_creates_dlc_manager_controller(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     ctrl = win.dlc_manager_controller()
     assert isinstance(ctrl, PackageManagerController)
 
 
 def test_dlc_manager_uses_default_packages_root_without_runtime(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     root = win.dlc_manager_controller().packages_root()
     # Resolves under ~/.trsim/packages (don't pin the literal home).
@@ -31,7 +31,7 @@ def test_dlc_manager_uses_default_packages_root_without_runtime(qtbot) -> None: 
 
 
 def test_plugins_manage_menu_action_opens_dialog(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     menu_bar = win.main_menu_bar()
     assert isinstance(menu_bar, MainMenuBar)
@@ -47,7 +47,7 @@ def test_plugins_manage_menu_action_opens_dialog(qtbot) -> None:  # type: ignore
 
 
 def test_plugins_install_package_menu_entry_exists(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     menu_bar = win.main_menu_bar()
     action = menu_bar.action_for("plugins.install_package")
@@ -59,7 +59,7 @@ def test_plugins_install_package_action_invokes_file_picker(qtbot, tmp_path, mon
     ``install_via_file_picker``. We monkey-patch the file picker on the
     controller after construction so we don't have to spawn a real
     QFileDialog."""
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     ctrl = win.dlc_manager_controller()
 
@@ -86,6 +86,6 @@ def test_dlc_runtime_overrides_packages_root(qtbot, tmp_path) -> None:  # type: 
         builtin_root=None,
     )
     runtime = build_dlc_runtime(paths=paths)
-    win = MainWindow(dlc_runtime=runtime)
+    win = MainWindow(dlc_runtime=runtime, enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert win.dlc_manager_controller().packages_root() == tmp_path / "alt_packages"

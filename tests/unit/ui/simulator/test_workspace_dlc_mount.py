@@ -40,7 +40,7 @@ class _NotAWidget:
 
 
 def test_workspace_no_registry_has_no_dlc_panels(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert ws.dlc_panels == ()
     assert ws.dlc_mount_errors == ()
@@ -61,7 +61,7 @@ def test_registry_with_simulator_panel_mounts_as_bottom_tab(qtbot) -> None:  # t
         dock_area="right",
         source_package_id="demo-dlc",
     )
-    ws = SimulatorWorkspace(panel_registry=registry)
+    ws = SimulatorWorkspace(panel_registry=registry, enable_3d_viewer=False)
     qtbot.addWidget(ws)
 
     assert ws.bottom_tabs().count() == 7
@@ -76,7 +76,7 @@ def test_two_simulator_panels_mount_in_order(qtbot) -> None:  # type: ignore[no-
     registry.register(
         _AnotherPanel, workspace="simulator", dock_area="right", source_package_id="b"
     )
-    ws = SimulatorWorkspace(panel_registry=registry)
+    ws = SimulatorWorkspace(panel_registry=registry, enable_3d_viewer=False)
     qtbot.addWidget(ws)
 
     assert ws.bottom_tabs().count() == 8
@@ -87,7 +87,7 @@ def test_two_simulator_panels_mount_in_order(qtbot) -> None:  # type: ignore[no-
 def test_builtin_workspace_tag_skipped_when_workspace_is_editor(qtbot) -> None:  # type: ignore[no-untyped-def]
     registry = PanelRegistry()
     registry.register(_GoodPanel, workspace="editor", dock_area="left")
-    ws = SimulatorWorkspace(panel_registry=registry)
+    ws = SimulatorWorkspace(panel_registry=registry, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     # Editor-tagged panels must not land on the Simulator workspace.
     assert ws.bottom_tabs().count() == 6
@@ -97,7 +97,7 @@ def test_builtin_workspace_tag_skipped_when_workspace_is_editor(qtbot) -> None: 
 def test_empty_package_id_uses_class_only_label(qtbot) -> None:  # type: ignore[no-untyped-def]
     registry = PanelRegistry()
     registry.register(_GoodPanel, workspace="simulator", dock_area="right")
-    ws = SimulatorWorkspace(panel_registry=registry)
+    ws = SimulatorWorkspace(panel_registry=registry, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert ws.bottom_tabs().tabText(6) == "[DLC] _GoodPanel"
 
@@ -112,7 +112,7 @@ def test_raising_constructor_recorded_as_mount_error(qtbot) -> None:  # type: ig
     registry.register(
         _RaisingPanel, workspace="simulator", dock_area="right", source_package_id="broken"
     )
-    ws = SimulatorWorkspace(panel_registry=registry)
+    ws = SimulatorWorkspace(panel_registry=registry, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert ws.dlc_panels == ()
     assert ws.bottom_tabs().count() == 6
@@ -128,7 +128,7 @@ def test_non_qwidget_factory_recorded_as_mount_error(qtbot) -> None:  # type: ig
     registry.register(
         _NotAWidget, workspace="simulator", dock_area="right", source_package_id="wrong-shape"
     )
-    ws = SimulatorWorkspace(panel_registry=registry)
+    ws = SimulatorWorkspace(panel_registry=registry, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert ws.dlc_panels == ()
     assert len(ws.dlc_mount_errors) == 1
@@ -141,7 +141,7 @@ def test_mixed_good_and_bad_isolates_failure(qtbot) -> None:  # type: ignore[no-
         _RaisingPanel, workspace="simulator", dock_area="right", source_package_id="x"
     )
     registry.register(_GoodPanel, workspace="simulator", dock_area="right", source_package_id="y")
-    ws = SimulatorWorkspace(panel_registry=registry)
+    ws = SimulatorWorkspace(panel_registry=registry, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert len(ws.dlc_panels) == 1
     assert len(ws.dlc_mount_errors) == 1
@@ -154,7 +154,7 @@ def test_mixed_good_and_bad_isolates_failure(qtbot) -> None:  # type: ignore[no-
 
 
 def test_mount_dlc_panels_returns_added_count(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     added = ws.mount_dlc_panels(
         [
@@ -177,7 +177,7 @@ def test_mount_dlc_panels_accepts_qlabel_subclass(qtbot) -> None:  # type: ignor
         def __init__(self, parent: QWidget | None = None) -> None:
             super().__init__("hello", parent)
 
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     added = ws.mount_dlc_panels(
         [

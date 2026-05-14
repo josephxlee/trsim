@@ -131,7 +131,9 @@ def test_re_enable_controller_resumes_painting(qtbot) -> None:  # type: ignore[n
 
 
 def _ws(qtbot) -> SimulatorWorkspace:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace(nn_datasets_root=None, autostart_run_timer=False)
+    ws = SimulatorWorkspace(
+        nn_datasets_root=None, autostart_run_timer=False, enable_3d_viewer=False
+    )
     qtbot.addWidget(ws)
     return ws
 

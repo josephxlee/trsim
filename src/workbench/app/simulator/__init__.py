@@ -21,6 +21,10 @@ from workbench.app.simulator.mock_range_doppler import (
     MockRangeDopplerFrame,
     MockRangeDopplerGenerator,
 )
+from workbench.app.simulator.mock_scene import (
+    MockSceneFrame,
+    MockSceneGenerator,
+)
 from workbench.app.simulator.mock_spectrum import (
     DEFAULT_FREQ_MAX_HZ,
     DEFAULT_FREQ_MIN_HZ,
@@ -41,6 +45,8 @@ __all__ = [
     "DEFAULT_RANGE_MIN_M",
     "MockRangeDopplerFrame",
     "MockRangeDopplerGenerator",
+    "MockSceneFrame",
+    "MockSceneGenerator",
     "MockSpectrumFrame",
     "MockSpectrumGenerator",
 ]

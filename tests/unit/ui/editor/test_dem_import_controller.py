@@ -209,7 +209,7 @@ def test_main_window_wires_dem_import_controller(qtbot) -> None:  # type: ignore
     from workbench.ui.main_window import MainWindow
     from workbench.ui.workspace_selector import Workspace
 
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     controller = win.dem_import_controller()
     assert isinstance(controller, DEMImportController)

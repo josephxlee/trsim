@@ -19,7 +19,7 @@ pytestmark = pytest.mark.qt
 
 def test_nn_panels_are_instantiated(qtbot) -> None:  # type: ignore[no-untyped-def]
     """Phase 4.11 panels finally live inside the Simulator workspace."""
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert isinstance(ws.nn_step1_panel(), Step1DatasetPanel)
     assert isinstance(ws.nn_step2_panel(), Step2EvalPanel)
@@ -27,7 +27,7 @@ def test_nn_panels_are_instantiated(qtbot) -> None:  # type: ignore[no-untyped-d
 
 
 def test_nn_controllers_are_attached_to_their_panels(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     s1c = ws.nn_step1_controller()
     s2c = ws.nn_step2_controller()
@@ -41,7 +41,7 @@ def test_nn_controllers_are_attached_to_their_panels(qtbot) -> None:  # type: ig
 
 
 def test_nn_panels_occupy_three_bottom_tabs(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     tabs = ws.bottom_tabs()
     # Built-in 3 runtime tabs (0..2) + 3 NN-mode tabs (3..5).
@@ -57,7 +57,7 @@ def test_nn_step1_build_signal_drives_controller(qtbot, tmp_path: Path) -> None:
     controller listens for the panel's ``build_requested`` signal and
     routes to the real :class:`DatasetBuilder` / :class:`PipelineRunner`.
     """
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     panel = ws.nn_step1_panel()
     out = tmp_path / "demo.h5"
@@ -70,7 +70,7 @@ def test_nn_step1_build_signal_drives_controller(qtbot, tmp_path: Path) -> None:
 
 def test_nn_training_panel_object_name_is_set(qtbot) -> None:  # type: ignore[no-untyped-def]
     """Smoke check: the mounted Training panel preserves its objectName."""
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     tp = ws.nn_training_panel()
     assert tp.objectName() == "NNTrainingPanel"
@@ -87,7 +87,7 @@ def test_simulator_workspace_auto_registers_numpy_pairing_nn(qtbot) -> None:  # 
     # Pass an explicit ``nn_datasets_root=None`` so the cwd /datasets
     # auto-scan stays out of the assertion. Production launches leave
     # the kwarg out -> scan ``./datasets``.
-    ws = SimulatorWorkspace(nn_datasets_root=None)
+    ws = SimulatorWorkspace(nn_datasets_root=None, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     combo = ws.nn_step2_panel().plugin_combo()
     assert combo.findText("numpy_pairing_nn") >= 0
@@ -103,7 +103,7 @@ def test_step1_build_completed_refreshes_step2_dataset_combo(  # type: ignore[no
     Step 1, the Step 2 dataset combo stayed empty because the workspace
     only scanned ``./datasets/`` once at construction time.
     """
-    ws = SimulatorWorkspace(nn_datasets_root=tmp_path)
+    ws = SimulatorWorkspace(nn_datasets_root=tmp_path, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     # Step 2 dataset combo starts empty (no .h5 in tmp_path yet).
     assert ws.nn_step2_panel().dataset_combo().findText("demo_single") < 0
@@ -149,7 +149,7 @@ def test_simulator_workspace_picks_up_datasets_from_root(  # type: ignore[no-unt
     builder.finalize()
     assert out.is_file()
 
-    ws = SimulatorWorkspace(nn_datasets_root=tmp_path)
+    ws = SimulatorWorkspace(nn_datasets_root=tmp_path, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     combo = ws.nn_step2_panel().dataset_combo()
     assert combo.findText("demo_ds") >= 0

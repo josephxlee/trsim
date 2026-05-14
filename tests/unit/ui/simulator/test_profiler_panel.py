@@ -149,7 +149,7 @@ def test_profiler_panel_action_buttons_emit_signals(qtbot) -> None:  # type: ign
 def test_simulator_workspace_mounts_profiler_tab(qtbot) -> None:  # type: ignore[no-untyped-def]
     from workbench.ui.simulator.workspace import SimulatorWorkspace
 
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     tabs = ws.bottom_tabs()
     titles = [tabs.tabText(i) for i in range(tabs.count())]

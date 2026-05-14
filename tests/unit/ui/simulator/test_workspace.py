@@ -22,7 +22,7 @@ pytestmark = pytest.mark.qt
 
 
 def test_workspace_mounts_every_panel(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert isinstance(ws.fft_panel(), FFTPanel)
     assert isinstance(ws.range_doppler_panel(), RangeDopplerPanel)
@@ -42,7 +42,7 @@ def test_bottom_tabs_have_runtime_and_nn_mode_tabs(qtbot) -> None:  # type: igno
     Simulator workspace itself so users can drive Step 1 / Step 2 /
     Training from the GUI.
     """
-    ws = SimulatorWorkspace()
+    ws = SimulatorWorkspace(enable_3d_viewer=False)
     qtbot.addWidget(ws)
     tabs = ws.bottom_tabs()
     titles = [tabs.tabText(i) for i in range(tabs.count())]

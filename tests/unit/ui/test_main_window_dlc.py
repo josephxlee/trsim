@@ -18,7 +18,7 @@ pytestmark = pytest.mark.qt
 
 
 def test_main_window_default_has_no_dlc_runtime(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert win.dlc_runtime() is None
 
@@ -26,7 +26,7 @@ def test_main_window_default_has_no_dlc_runtime(qtbot) -> None:  # type: ignore[
 def test_main_window_with_dlc_runtime_exposes_it(qtbot, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     paths = DLCPaths(packages_root=tmp_path / "ghost", user_root=None, builtin_root=None)
     runtime = build_dlc_runtime(paths=paths)
-    win = MainWindow(dlc_runtime=runtime)
+    win = MainWindow(dlc_runtime=runtime, enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert win.dlc_runtime() is runtime
 
@@ -43,7 +43,7 @@ def test_main_window_populates_editor_sidebar_from_user_resources(  # type: igno
     paths = DLCPaths(packages_root=tmp_path / "ghost", user_root=user_root, builtin_root=None)
     runtime = build_dlc_runtime(paths=paths)
 
-    win = MainWindow(dlc_runtime=runtime)
+    win = MainWindow(dlc_runtime=runtime, enable_3d_viewer=False)
     qtbot.addWidget(win)
 
     editor = win.page(Workspace.EDITOR)
@@ -54,7 +54,7 @@ def test_main_window_populates_editor_sidebar_from_user_resources(  # type: igno
 
 
 def test_main_window_without_runtime_leaves_sidebar_empty(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     editor = win.page(Workspace.EDITOR)
     sidebar = editor.resource_browser()  # type: ignore[attr-defined]
@@ -84,7 +84,7 @@ def test_main_window_routes_dlc_panel_into_simulator_workspace(  # type: ignore[
     paths = DLCPaths(packages_root=tmp_path / "ghost", user_root=None, builtin_root=None)
     runtime = build_dlc_runtime(paths=paths, panel_registry=registry)
 
-    win = MainWindow(dlc_runtime=runtime)
+    win = MainWindow(dlc_runtime=runtime, enable_3d_viewer=False)
     qtbot.addWidget(win)
 
     sim = win.page(Workspace.SIMULATOR)

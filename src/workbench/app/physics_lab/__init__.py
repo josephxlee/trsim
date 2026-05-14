@@ -19,16 +19,16 @@ from workbench.app.physics_lab.bouncing_ball import (
     analytic_peak_height_m,
 )
 from workbench.app.physics_lab.clock import ClockTick, PhysicsClock
-from workbench.app.physics_lab.learning_models import (
-    NumpyNNPhysicsModel,
-    PolynomialFitModel,
-)
 from workbench.app.physics_lab.discovery import (
     PHYSICS_MODEL_SLOT,
     DiscoveryError,
     DiscoveryResult,
     physics_models_from_loaded_plugins,
     register_discovered_physics_models,
+)
+from workbench.app.physics_lab.learning_models import (
+    NumpyNNPhysicsModel,
+    PolynomialFitModel,
 )
 from workbench.app.physics_lab.model_registry import (
     builtin_physics_models,

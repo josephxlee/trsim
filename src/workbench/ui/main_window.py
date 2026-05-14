@@ -63,7 +63,12 @@ from workbench.ui.workspace_selector import WORKSPACE_ORDER, Workspace, Workspac
 class MainWindow(QMainWindow):
     """Thin shell that swaps Workspace pages in a QStackedWidget."""
 
-    def __init__(self, *, dlc_runtime: DLCRuntime | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        dlc_runtime: DLCRuntime | None = None,
+        enable_3d_viewer: bool = True,
+    ) -> None:
         super().__init__()
         self.setWindowTitle(f"TRsim {__version__}")
         self.resize(1280, 800)
@@ -85,8 +90,11 @@ class MainWindow(QMainWindow):
         sim_panel_registry = dlc_runtime.panel_registry if dlc_runtime is not None else None
         self._pages: dict[Workspace, QWidget] = {
             Workspace.EDITOR: EditorWorkspace(),
-            Workspace.SIMULATOR: SimulatorWorkspace(panel_registry=sim_panel_registry),
-            Workspace.PHYSICS_LAB: PhysicsLabWorkspace(),
+            Workspace.SIMULATOR: SimulatorWorkspace(
+                panel_registry=sim_panel_registry,
+                enable_3d_viewer=enable_3d_viewer,
+            ),
+            Workspace.PHYSICS_LAB: PhysicsLabWorkspace(enable_3d_viewer=enable_3d_viewer),
         }
         for ws in WORKSPACE_ORDER:
             self._stack.addWidget(self._pages[ws])

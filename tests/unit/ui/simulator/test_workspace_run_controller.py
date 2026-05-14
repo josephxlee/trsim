@@ -14,7 +14,9 @@ pytestmark = pytest.mark.qt
 
 
 def _ws(qtbot) -> SimulatorWorkspace:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace(nn_datasets_root=None, autostart_run_timer=False)
+    ws = SimulatorWorkspace(
+        nn_datasets_root=None, autostart_run_timer=False, enable_3d_viewer=False
+    )
     qtbot.addWidget(ws)
     return ws
 
@@ -63,12 +65,14 @@ def test_workspace_run_panel_default_readout(qtbot) -> None:  # type: ignore[no-
 def test_workspace_autostart_timer_default_true(qtbot) -> None:  # type: ignore[no-untyped-def]
     # Default constructor → QTimer running. We do not let it tick (event
     # loop not driven), but verify the timer is armed for production.
-    ws = SimulatorWorkspace(nn_datasets_root=None)
+    ws = SimulatorWorkspace(nn_datasets_root=None, enable_3d_viewer=False)
     qtbot.addWidget(ws)
     assert ws.run_controller().timer().isActive() is True
 
 
 def test_workspace_autostart_timer_false_path(qtbot) -> None:  # type: ignore[no-untyped-def]
-    ws = SimulatorWorkspace(nn_datasets_root=None, autostart_run_timer=False)
+    ws = SimulatorWorkspace(
+        nn_datasets_root=None, autostart_run_timer=False, enable_3d_viewer=False
+    )
     qtbot.addWidget(ws)
     assert ws.run_controller().timer().isActive() is False

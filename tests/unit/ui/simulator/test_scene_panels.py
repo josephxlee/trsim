@@ -20,7 +20,7 @@ pytestmark = pytest.mark.qt
 
 
 def test_scene3d_has_one_button_per_camera_preset(qtbot) -> None:  # type: ignore[no-untyped-def]
-    p = Scene3DPanel()
+    p = Scene3DPanel(enable_3d_viewer=False)
     qtbot.addWidget(p)
     for preset in CameraPreset:
         btn = p.camera_button(preset)
@@ -29,7 +29,7 @@ def test_scene3d_has_one_button_per_camera_preset(qtbot) -> None:  # type: ignor
 
 
 def test_scene3d_select_camera_emits_preset(qtbot) -> None:  # type: ignore[no-untyped-def]
-    p = Scene3DPanel()
+    p = Scene3DPanel(enable_3d_viewer=False)
     qtbot.addWidget(p)
     received: list[CameraPreset] = []
     p.camera_preset_chosen.connect(received.append)
@@ -40,7 +40,7 @@ def test_scene3d_select_camera_emits_preset(qtbot) -> None:  # type: ignore[no-u
 
 
 def test_scene3d_camera_buttons_are_exclusive(qtbot) -> None:  # type: ignore[no-untyped-def]
-    p = Scene3DPanel()
+    p = Scene3DPanel(enable_3d_viewer=False)
     qtbot.addWidget(p)
     p.select_camera(CameraPreset.LEFT)
     p.select_camera(CameraPreset.FREE)
@@ -49,7 +49,7 @@ def test_scene3d_camera_buttons_are_exclusive(qtbot) -> None:  # type: ignore[no
 
 
 def test_scene3d_layer_toggle_emits_signal(qtbot) -> None:  # type: ignore[no-untyped-def]
-    p = Scene3DPanel()
+    p = Scene3DPanel(enable_3d_viewer=False)
     qtbot.addWidget(p)
     received: list[tuple[SceneLayer, bool]] = []
     p.layer_visibility_changed.connect(lambda lyr, v: received.append((lyr, v)))
@@ -59,7 +59,7 @@ def test_scene3d_layer_toggle_emits_signal(qtbot) -> None:  # type: ignore[no-un
 
 
 def test_scene3d_default_layers_match_plan_05(qtbot) -> None:  # type: ignore[no-untyped-def]
-    p = Scene3DPanel()
+    p = Scene3DPanel(enable_3d_viewer=False)
     qtbot.addWidget(p)
     expected_on = {
         SceneLayer.TERRAIN,

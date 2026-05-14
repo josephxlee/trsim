@@ -58,6 +58,7 @@ from workbench.ui.simulator.panels import (
 from workbench.ui.simulator.profiler_panel import ProfilerPanel
 from workbench.ui.simulator.rd_controller import SimulatorRDController
 from workbench.ui.simulator.run_controller import SimulatorRunController
+from workbench.ui.simulator.scene_controller import SimulatorSceneController
 from workbench.ui.widgets import DetachableTabWidget
 
 
@@ -92,6 +93,7 @@ class SimulatorWorkspace(QWidget):
         nn_datasets_root: Path | None | object = _NN_DATASETS_DEFAULT,
         run_tick_interval_ms: int = 16,
         autostart_run_timer: bool = True,
+        enable_3d_viewer: bool = True,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("SimulatorWorkspace")
@@ -104,7 +106,7 @@ class SimulatorWorkspace(QWidget):
             raise TypeError(msg)
 
         # Build panels.
-        self._scene_3d_panel = Scene3DPanel(self)
+        self._scene_3d_panel = Scene3DPanel(self, enable_3d_viewer=enable_3d_viewer)
         self._scope_panel = ScopePOVPanel(self)
         self._fft_panel = FFTPanel(self)
         self._range_doppler_panel = RangeDopplerPanel(self)
@@ -233,6 +235,18 @@ class SimulatorWorkspace(QWidget):
             parent=self,
         )
 
+        # Phase 4 L4 — Scene 3D panel live PyVista actors binding. The
+        # ``MockSceneGenerator`` paints a fixed radar at the origin
+        # plus a single target on a horizontal circular orbit. The
+        # Scene3DPanel runs in headless mode (``enable_3d_viewer=
+        # False``) skips actor creation; the controller still emits
+        # frames so the status label stays in sync.
+        self._scene_controller = SimulatorSceneController(
+            scene_panel=self._scene_3d_panel,
+            run_controller=self._run_controller,
+            parent=self,
+        )
+
     # ------------------------------------------------------------------
     # DLC panel mounting (task D)
     # ------------------------------------------------------------------
@@ -328,6 +342,9 @@ class SimulatorWorkspace(QWidget):
 
     def rd_controller(self) -> SimulatorRDController:
         return self._rd_controller
+
+    def scene_controller(self) -> SimulatorSceneController:
+        return self._scene_controller
 
     def sim_play(self) -> None:
         """Toolbar / hook entry — start simulation clock."""

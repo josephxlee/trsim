@@ -14,24 +14,24 @@ pytestmark = pytest.mark.qt
 
 
 def test_ui_parser_defaults_workspace_to_editor() -> None:
-    args = build_parser().parse_args(["ui"])
+    args = build_parser().parse_args(["ui", "--no-3d-viewer"])
     assert args.command == "ui"
     assert args.workspace == "editor"
     assert args.no_dlc is False
 
 
 def test_ui_parser_simulator_workspace() -> None:
-    args = build_parser().parse_args(["ui", "--workspace", "simulator"])
+    args = build_parser().parse_args(["ui", "--no-3d-viewer", "--workspace", "simulator"])
     assert args.workspace == "simulator"
 
 
 def test_ui_parser_no_dlc_flag() -> None:
-    args = build_parser().parse_args(["ui", "--no-dlc"])
+    args = build_parser().parse_args(["ui", "--no-3d-viewer", "--no-dlc"])
     assert args.no_dlc is True
 
 
 def test_build_ui_window_returns_main_window_with_dlc_runtime(qtbot) -> None:  # type: ignore[no-untyped-def]
-    args = build_parser().parse_args(["ui", "--no-dlc"])
+    args = build_parser().parse_args(["ui", "--no-3d-viewer", "--no-dlc"])
     win = build_ui_window(args)
     qtbot.addWidget(win)  # type: ignore[arg-type]
     assert isinstance(win, MainWindow)
@@ -67,7 +67,7 @@ def test_build_ui_window_with_dlc_runtime(qtbot, monkeypatch: pytest.MonkeyPatch
     # touches the real ~/.trsim/.
     _patch_default_paths(monkeypatch, packages_root=tmp_path / "packages")
 
-    args = build_parser().parse_args(["ui", "--workspace", "simulator"])
+    args = build_parser().parse_args(["ui", "--no-3d-viewer", "--workspace", "simulator"])
     win = build_ui_window(args)
     qtbot.addWidget(win)  # type: ignore[arg-type]
     assert isinstance(win, MainWindow)
@@ -100,7 +100,7 @@ def test_build_ui_window_echoes_package_errors_to_stderr(  # type: ignore[no-unt
 
     _patch_default_paths(monkeypatch, packages_root=pkgs)
 
-    args = build_parser().parse_args(["ui"])
+    args = build_parser().parse_args(["ui", "--no-3d-viewer"])
     win = build_ui_window(args)
     qtbot.addWidget(win)  # type: ignore[arg-type]
 
@@ -143,7 +143,7 @@ trsim_min_version = "0.35.0"
 
     _patch_default_paths(monkeypatch, packages_root=pkgs)
 
-    args = build_parser().parse_args(["ui"])
+    args = build_parser().parse_args(["ui", "--no-3d-viewer"])
     win = build_ui_window(args)
     qtbot.addWidget(win)  # type: ignore[arg-type]
 

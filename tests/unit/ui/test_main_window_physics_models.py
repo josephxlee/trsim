@@ -65,7 +65,7 @@ trsim_min_version = "0.35.0"
 
 
 def test_main_window_no_dlc_has_no_discovery_result(qtbot) -> None:  # type: ignore[no-untyped-def]
-    win = MainWindow()
+    win = MainWindow(enable_3d_viewer=False)
     qtbot.addWidget(win)
     assert win.physics_discovery_result() is None
     # PhysicsLabWorkspace 가 default None → 3 built-in.
@@ -88,7 +88,7 @@ def test_main_window_with_dlc_registers_physics_model_plugin(  # type: ignore[no
     paths = DLCPaths(packages_root=packages_root, user_root=None, builtin_root=None)
     runtime = build_dlc_runtime(paths=paths)
 
-    win = MainWindow(dlc_runtime=runtime)
+    win = MainWindow(dlc_runtime=runtime, enable_3d_viewer=False)
     qtbot.addWidget(win)
     result = win.physics_discovery_result()
     assert result is not None
@@ -111,7 +111,7 @@ def test_main_window_with_two_dlc_physics_packages(qtbot, tmp_path: Path) -> Non
     paths = DLCPaths(packages_root=packages_root, user_root=None, builtin_root=None)
     runtime = build_dlc_runtime(paths=paths)
 
-    win = MainWindow(dlc_runtime=runtime)
+    win = MainWindow(dlc_runtime=runtime, enable_3d_viewer=False)
     qtbot.addWidget(win)
 
     phys = win.page(Workspace.PHYSICS_LAB)
@@ -126,7 +126,7 @@ def test_main_window_with_dlc_but_no_physics_models(qtbot, tmp_path: Path) -> No
     packages_root = tmp_path / "ghost"  # missing dir
     paths = DLCPaths(packages_root=packages_root, user_root=None, builtin_root=None)
     runtime = build_dlc_runtime(paths=paths)
-    win = MainWindow(dlc_runtime=runtime)
+    win = MainWindow(dlc_runtime=runtime, enable_3d_viewer=False)
     qtbot.addWidget(win)
     result = win.physics_discovery_result()
     assert result is not None

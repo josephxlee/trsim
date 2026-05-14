@@ -207,6 +207,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="skip the ~/.trsim/ DLC auto-load (start with an empty runtime)",
     )
+    ui_p.add_argument(
+        "--no-3d-viewer",
+        action="store_true",
+        help=(
+            "skip the PyVista QtInteractor mount in the Simulator + "
+            "Physics Lab workspaces (use when no usable OpenGL context "
+            "is available, e.g. headless CI smoke tests)"
+        ),
+    )
 
     return parser
 
@@ -491,7 +500,8 @@ def build_ui_window(args: argparse.Namespace) -> object:
     runtime = None if args.no_dlc else build_dlc_runtime()
     if runtime is not None:
         _report_dlc_load_errors(runtime)
-    window = MainWindow(dlc_runtime=runtime)
+    enable_3d = not getattr(args, "no_3d_viewer", False)
+    window = MainWindow(dlc_runtime=runtime, enable_3d_viewer=enable_3d)
     if runtime is not None:
         _report_simulator_mount_errors(window)
     window.selector.set_workspace(Workspace(args.workspace))
