@@ -48,6 +48,10 @@ from workbench.app.physics_lab.parameter_fitter import (
     FitResult,
     fit_bouncing_ball,
 )
+from workbench.app.physics_lab.validation_bench import (
+    ValidationBench,
+    ValidationConfig,
+)
 
 __all__ = [
     "PHYSICS_MODEL_SLOT",
@@ -64,6 +68,8 @@ __all__ = [
     "NumpyNNPhysicsModel",
     "PhysicsClock",
     "PolynomialFitModel",
+    "ValidationBench",
+    "ValidationConfig",
     "analytic_peak_height_m",
     "builtin_physics_models",
     "default_physics_models",
