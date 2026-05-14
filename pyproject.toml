@@ -73,21 +73,26 @@ dependencies = [
 
 
 [project.optional-dependencies]
-# 개발 도구 (CI ci.yml 가정)
+# 개발 도구 (CI ci.yml + 사용자 hand-test). Phase 4 본격 가동 후
+# pytest-qt + pyvistaqt 는 거의 모든 GUI 테스트에서 필요하므로
+# `dev` 가 ui-dev 도 포함하도록 통합 (2026-05-14 MVP 완성 시점).
+# CI Linux 환경은 libegl1 등 system deps 가 ci.yml 에서 별도 설치.
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "pytest-qt>=4.4",                    # Qt 위젯 테스트 (Phase 4)
+    "pyvistaqt>=0.11",                   # PyVista QtInteractor (Phase 4.9)
     "ruff>=0.5.0",                       # lint + format
     "mypy>=1.10",                        # type check
     "import-linter>=2.0",                # 의존 규칙 강제 (02 § 2.5)
 ]
 
-# Qt UI 개발 (Phase 4 시작 시 dev 에 합치거나 별도 extra)
-# pytest-qt 가 시작 시 PySide6 자동 로드 → CI Linux libEGL.so.1 부재로 fail
-# Phase 4 에서 Qt 테스트 시작 시 다시 활성, 그 때 ci.yml 에 libegl1 등 system deps 추가 필요
+# 후방 호환 — 옛 ``pip install -e ".[ui-dev]"`` 호출이 깨지지 않도록
+# alias 로 남겨둠. Phase 4 본격 가동 이후 모든 GUI 테스트가
+# pytest-qt + pyvistaqt 를 요구하므로 ``[dev]`` 와 사실상 동일.
 ui-dev = [
-    "pytest-qt>=4.4",                    # Qt 위젯 테스트 (Phase 4)
-    "pyvistaqt>=0.11",                   # PyVista QtInteractor (Phase 4.9)
+    "pytest-qt>=4.4",
+    "pyvistaqt>=0.11",
 ]
 
 # NN 통합 (Phase 6, MVP+α)
