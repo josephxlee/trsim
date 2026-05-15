@@ -6,6 +6,9 @@ import pytest
 
 pytest.importorskip("PySide6")
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence
+
 from workbench.ui.simulator.panels import (
     CameraPreset,
     Scene3DPanel,
@@ -46,6 +49,32 @@ def test_scene3d_camera_buttons_are_exclusive(qtbot) -> None:  # type: ignore[no
     p.select_camera(CameraPreset.FREE)
     checked = [pre for pre in CameraPreset if p.camera_button(pre).isChecked()]
     assert checked == [CameraPreset.FREE]
+
+
+def test_scene3d_has_camera_shortcut_per_preset(qtbot) -> None:  # type: ignore[no-untyped-def]
+    p = Scene3DPanel(enable_3d_viewer=False)
+    qtbot.addWidget(p)
+    expected_keys = {
+        CameraPreset.TOP: "T",
+        CameraPreset.LEFT: "L",
+        CameraPreset.FREE: "F",
+        CameraPreset.RADAR: "R",
+    }
+    for preset, key in expected_keys.items():
+        sc = p.camera_shortcut(preset)
+        assert sc.key() == QKeySequence(key)
+        # Panel-scoped so it works when the embedded VTK canvas has focus.
+        assert sc.context() == Qt.ShortcutContext.WidgetWithChildrenShortcut
+
+
+def test_scene3d_camera_shortcut_selects_camera(qtbot) -> None:  # type: ignore[no-untyped-def]
+    p = Scene3DPanel(enable_3d_viewer=False)
+    qtbot.addWidget(p)
+    received: list[CameraPreset] = []
+    p.camera_preset_chosen.connect(received.append)
+    p.camera_shortcut(CameraPreset.FREE).activated.emit()
+    assert received == [CameraPreset.FREE]
+    assert p.camera_button(CameraPreset.FREE).isChecked()
 
 
 def test_scene3d_layer_toggle_emits_signal(qtbot) -> None:  # type: ignore[no-untyped-def]

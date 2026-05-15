@@ -28,10 +28,12 @@ State pushed by the controller
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QKeySequence, QResizeEvent, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -104,6 +106,20 @@ _CAMERA_KEY: dict[CameraPreset, str] = {
 _RADAR_MARKER_RADIUS_M: float = 80.0
 _TARGET_MARKER_RADIUS_M: float = 60.0
 
+#: Resize-settle debounce [ms]. The embedded VTK window is redrawn this
+#: long after the last resize event, once Qt has reflowed the layout to
+#: the final geometry — rendering inline in ``resizeEvent`` is too early
+#: (the interactor is still at its old size) and leaves a stale ghost.
+_RESIZE_RENDER_DEBOUNCE_MS: int = 50
+
+#: RADAR camera preset — eye at the radar (ENU origin, slightly raised)
+#: looking north toward the target orbit. ``[position, focal point, up]``.
+_RADAR_CAMERA_POSITION: list[tuple[float, float, float]] = [
+    (0.0, 0.0, 150.0),
+    (0.0, 4000.0, 500.0),
+    (0.0, 0.0, 1.0),
+]
+
 
 class Scene3DPanel(QWidget):
     """3rd-person 3D scene panel with lazy PyVista canvas (L4)."""
@@ -116,21 +132,31 @@ class Scene3DPanel(QWidget):
         parent: QWidget | None = None,
         *,
         enable_3d_viewer: bool = True,
+        interactor_factory: Callable[[QWidget], QWidget] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("Scene3DPanel")
         self._enable_3d_viewer = enable_3d_viewer
+        self._interactor_factory = interactor_factory
         self._frame_label = QLabel("frame: -")
         self._frame_label.setObjectName("Scene3DFrameLabel")
         self._status_label = QLabel("3D canvas (Phase 4.10.x mounts the PyVista QtInteractor)")
         self._status_label.setObjectName("Scene3DStatusLabel")
         self._status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._status_label.setStyleSheet("color: #777;")
-        self._interactor: Any | None = None  # pyvistaqt.QtInteractor when enabled
+        self._interactor: Any = None  # pyvistaqt.QtInteractor (or fake) when enabled
         self._terrain_actor: Any | None = None
         self._radar_actor: Any | None = None
         self._target_actor: Any | None = None
         self._terrain_halfspan_m: float | None = None
+
+        # Resize-settle debounce — coalesces a maximise / drag burst
+        # into a single VTK redraw once the layout reaches its final
+        # geometry. See ``resizeEvent`` for why an inline render fails.
+        self._resize_render_timer = QTimer(self)
+        self._resize_render_timer.setSingleShot(True)
+        self._resize_render_timer.setInterval(_RESIZE_RENDER_DEBOUNCE_MS)
+        self._resize_render_timer.timeout.connect(self._render_interactor)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -157,6 +183,7 @@ class Scene3DPanel(QWidget):
         h.addSpacing(12)
         h.addWidget(QLabel("Camera:"))
         self._camera_buttons: dict[CameraPreset, QToolButton] = {}
+        self._camera_shortcuts: dict[CameraPreset, QShortcut] = {}
         self._camera_group = QButtonGroup(self)
         self._camera_group.setExclusive(True)
         for preset in CameraPreset:
@@ -168,6 +195,13 @@ class Scene3DPanel(QWidget):
             btn.toggled.connect(lambda checked, p=preset: self._on_camera_toggled(p, checked))
             h.addWidget(btn)
             self._camera_buttons[preset] = btn
+            # Keyboard shortcut (T/L/F/R). Scoped to this panel + its
+            # children so it fires even when the embedded VTK canvas
+            # holds focus, but not when focus is in another workspace.
+            shortcut = QShortcut(QKeySequence(_CAMERA_KEY[preset]), self)
+            shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+            shortcut.activated.connect(lambda p=preset: self.select_camera(p))
+            self._camera_shortcuts[preset] = shortcut
         h.addStretch(1)
         h.addWidget(self._frame_label)
         return row
@@ -180,12 +214,18 @@ class Scene3DPanel(QWidget):
         cl = QVBoxLayout(canvas)
         cl.setContentsMargins(0, 0, 0, 0)
         if self._enable_3d_viewer:
-            # Local import so headless test runs (which set
-            # ``enable_3d_viewer=False`` everywhere) never touch the
-            # PyVista / pyvistaqt OpenGL stack.
-            from pyvistaqt import QtInteractor
+            if self._interactor_factory is not None:
+                # Test seam — a fake QWidget interactor that records
+                # add_mesh / remove_actor / render without an OpenGL
+                # context. Production callers leave the factory unset.
+                self._interactor = self._interactor_factory(canvas)
+            else:
+                # Local import so headless test runs (which set
+                # ``enable_3d_viewer=False`` everywhere) never touch
+                # the PyVista / pyvistaqt OpenGL stack.
+                from pyvistaqt import QtInteractor
 
-            self._interactor = QtInteractor(canvas)
+                self._interactor = QtInteractor(canvas)
             self._interactor.setObjectName("Scene3DInteractor")
             # Click + wheel trackball interaction needs StrongFocus so
             # the interactor sees mouse press / wheel events; without
@@ -223,7 +263,27 @@ class Scene3DPanel(QWidget):
     def _on_camera_toggled(self, preset: CameraPreset, checked: bool) -> None:
         if not checked:
             return
+        self._apply_camera_preset(preset)
         self.camera_preset_chosen.emit(preset)
+
+    def _apply_camera_preset(self, preset: CameraPreset) -> None:
+        """Move the embedded VTK camera to the chosen preset.
+
+        No-op in headless mode (no interactor). Without this the preset
+        buttons / shortcuts only toggled state and emitted a signal —
+        nothing consumed it, so the 3D view never actually moved.
+        """
+        if self._interactor is None:
+            return
+        if preset is CameraPreset.TOP:
+            self._interactor.view_xy()
+        elif preset is CameraPreset.LEFT:
+            self._interactor.view_yz()
+        elif preset is CameraPreset.FREE:
+            self._interactor.view_isometric()
+        elif preset is CameraPreset.RADAR:
+            self._interactor.camera_position = _RADAR_CAMERA_POSITION
+        self._interactor.render()
 
     # ------------------------------------------------------------------
     # Phase 4 L4 live scene API
@@ -265,27 +325,60 @@ class Scene3DPanel(QWidget):
             )
             self._terrain_halfspan_m = frame.terrain_halfspan_m
 
-        # Replace radar marker.
-        if self._radar_actor is not None:
-            self._interactor.remove_actor(self._radar_actor)
-        radar_mesh = pv.Sphere(
-            radius=_RADAR_MARKER_RADIUS_M,
-            center=tuple(frame.radar_position_enu_m.tolist()),
+        # Radar + target markers are created once and then moved via
+        # the actor transform on every frame. Recreating the mesh +
+        # actor per tick churns VTK needlessly and would not scale to
+        # DEM terrain + many targets.
+        self._radar_actor = self._ensure_marker(
+            self._radar_actor, radius=_RADAR_MARKER_RADIUS_M, color="orange"
         )
-        self._radar_actor = self._interactor.add_mesh(radar_mesh, color="orange")
+        self._radar_actor.position = tuple(frame.radar_position_enu_m.tolist())
+        self._target_actor = self._ensure_marker(
+            self._target_actor, radius=_TARGET_MARKER_RADIUS_M, color="red"
+        )
+        self._target_actor.position = tuple(frame.target_position_enu_m.tolist())
 
-        # Replace target marker.
-        if self._target_actor is not None:
-            self._interactor.remove_actor(self._target_actor)
-        target_mesh = pv.Sphere(
-            radius=_TARGET_MARKER_RADIUS_M,
-            center=tuple(frame.target_position_enu_m.tolist()),
-        )
-        self._target_actor = self._interactor.add_mesh(target_mesh, color="red")
+        # ``.position`` updates the actor transform but, unlike
+        # ``add_mesh``, does not trigger a redraw — render explicitly.
+        self._interactor.render()
+
+    def _ensure_marker(self, actor: Any | None, *, radius: float, color: str) -> Any:
+        """Return ``actor``, creating a sphere marker on first use.
+
+        The sphere is built at the origin; per-frame motion is applied
+        through the actor ``position`` transform by the caller.
+        """
+        if actor is not None:
+            return actor
+        # Lazy import so the module survives without PyVista installed.
+        import pyvista as pv
+
+        mesh = pv.Sphere(radius=radius)
+        return self._interactor.add_mesh(mesh, color=color)
 
     def set_frame(self, frame_index: int) -> None:
         """Update the header frame counter."""
         self._frame_label.setText(f"frame: {frame_index}")
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 — Qt API
+        """Schedule a VTK redraw once the resize settles.
+
+        The embedded VTK render window is a native surface outside
+        Qt's compositing pipeline. Rendering inline here is too early —
+        Qt has not yet reflowed the layout, so the interactor is still
+        at its old geometry and the redraw lands at the wrong size,
+        leaving a stale ghost after a maximise-then-shrink. Restarting a
+        short single-shot timer debounces the resize burst so the redraw
+        runs once, after the layout has reached its final geometry.
+        """
+        super().resizeEvent(event)
+        if self._interactor is not None:
+            self._resize_render_timer.start()
+
+    def _render_interactor(self) -> None:
+        """Redraw the embedded VTK window (resize-settle timer callback)."""
+        if self._interactor is not None:
+            self._interactor.render()
 
     # ------------------------------------------------------------------
     # Public API / Test helpers
@@ -297,6 +390,9 @@ class Scene3DPanel(QWidget):
 
     def camera_button(self, preset: CameraPreset) -> QToolButton:
         return self._camera_buttons[preset]
+
+    def camera_shortcut(self, preset: CameraPreset) -> QShortcut:
+        return self._camera_shortcuts[preset]
 
     def layer_check(self, layer: SceneLayer) -> QCheckBox:
         return self._layer_checks[layer]
