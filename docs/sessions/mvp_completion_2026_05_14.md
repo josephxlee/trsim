@@ -22,7 +22,7 @@ MVP 잔여 punch list 본격 마감.
 | P4 | `7c6d6db` | +23 | **Phase 5 #18 / #19 재현성 정량** — `tests/physics/test_reference_timing_reproducibility.py` (frozen dataclass 동일성 + tuple 순서) + `test_frame_profiler_reproducibility.py` (same sample sequence → same StageReport + alphabetic ordering + reset idempotent + percentile 단조 + multi-stage 독립). |
 | P5 | `e8849c8` | +13 | **방향키 manual pointing** — `SimulatorWorkspace.keyPressEvent`: Left/Right ±AZ 0.5°, Up/Down ±EL 0.5°, Home·0 reset. `PrimaryTargetController` 가 `manual_az_offset_deg` / `manual_el_offset_deg` 누적 → ScopePOVPanel + Properties 즉시 repaint. |
 | P6 | `9437320` | +5 | **A1-c + A1-d stub lock** — `tests/unit/app/test_nn_evaluator_postmvp_stubs.py` 가 Tracker/Predictor/Classifier loss + multi-step rollout 의 NotImplementedError 컨트랙트 잠금. Real impl 은 TrackerNNPlugin / PredictorNNPlugin / ClassifierNNPlugin 출시 후 post-MVP. |
-| P7 | `bdd01ea` | +16 | **Editor preview 3종** — RadarEditor `_BeamPatternPreview` (sinc² gain pattern, pyqtgraph), TargetsEditor `_TrajectoryPreview` (7 motion-kind synthetic path, 자동 swap), AtmospherePanel rain attenuation vs frequency (ITU-R P.838 simplified). |
+| P7 | `bdd01ea` | +11 | **Editor preview 3종** — RadarEditor `_BeamPatternPreview` (sinc² gain pattern, pyqtgraph), TargetsEditor `_TrajectoryPreview` (7 motion-kind synthetic path, 자동 swap), AtmospherePanel rain attenuation vs frequency (ITU-R P.838 simplified). |
 | P8 | `d25f27e` | 0 | **SDK manifest 이동** — `src/workbench/domain/dlc/manifest.py` → `src/workbench/sdk/manifest.py`. `domain/dlc/` 디렉토리 완전 제거. 7 import site 갱신 + tests/unit/domain/test_dlc_manifest.py → tests/unit/sdk/test_manifest.py. `sdk/__init__.py` 5 신규 re-export. |
 
 **총 +83 신규 test** (2707 → 2790).
